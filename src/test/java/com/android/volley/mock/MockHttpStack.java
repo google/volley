@@ -22,12 +22,15 @@ import com.android.volley.toolbox.HttpStack;
 
 import org.apache.http.HttpResponse;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class MockHttpStack implements HttpStack {
 
     private HttpResponse mResponseToReturn;
+
+    private IOException mExceptionToThrow;
 
     private String mLastUrl;
 
@@ -51,9 +54,16 @@ public class MockHttpStack implements HttpStack {
         mResponseToReturn = response;
     }
 
+    public void setExceptionToThrow(IOException exception) {
+        mExceptionToThrow = exception;
+    }
+
     @Override
     public HttpResponse performRequest(Request<?> request, Map<String, String> additionalHeaders)
-            throws AuthFailureError {
+            throws IOException, AuthFailureError {
+        if (mExceptionToThrow != null) {
+            throw mExceptionToThrow;
+        }
         mLastUrl = request.getUrl();
         mLastHeaders = new HashMap<String, String>();
         if (request.getHeaders() != null) {
