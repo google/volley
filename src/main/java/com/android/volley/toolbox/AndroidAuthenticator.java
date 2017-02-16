@@ -21,6 +21,7 @@ import com.android.volley.AuthFailureError;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerFuture;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -29,6 +30,8 @@ import android.os.Bundle;
  * An Authenticator that uses {@link AccountManager} to get auth
  * tokens of a specified type for a specified account.
  */
+// TODO: Update this to account for runtime permissions
+@SuppressLint("MissingPermission")
 public class AndroidAuthenticator implements Authenticator {
     private final AccountManager mAccountManager;
     private final Account mAccount;

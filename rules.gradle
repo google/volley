@@ -2,11 +2,24 @@
 
 apply plugin: 'com.android.library'
 
+android {
+  useLibrary 'org.apache.http.legacy'
+}
+
 // Check if the android plugin version supports unit testing.
 if (configurations.findByName("testCompile")) {
   dependencies {
     testCompile "junit:junit:4.10"
     testCompile "org.mockito:mockito-core:1.9.5"
     testCompile "org.robolectric:robolectric:3.0"
+  }
+}
+
+// TODO(#4): Remove this once Javadoc errors are fixed
+if (JavaVersion.current().isJava8Compatible()) {
+  allprojects {
+    tasks.withType(Javadoc) {
+      options.addStringOption('Xdoclint:none', '-quiet')
+    }
   }
 }
