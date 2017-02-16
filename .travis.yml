@@ -18,6 +18,8 @@ jdk:
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+  - rm -fr $HOME/.gradle/caches/*/classAnalysis/
+  - rm -fr $HOME/.gradle/caches/*/workerMain/
 cache:
   directories:
     - $HOME/.gradle/caches/
