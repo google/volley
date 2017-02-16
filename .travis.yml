@@ -4,6 +4,9 @@ android:
     - build-tools-25.0.2
     - android-25
 
+jdk:
+  - oraclejdk8
+
 # Avoid uploading the cache after every build
 # See https://docs.travis-ci.com/user/languages/android/
 before_cache:
