@@ -257,7 +257,7 @@ public class BasicNetwork implements Network {
             } catch (IOException e) {
                 // This can happen if there was an exception above that left the entity in
                 // an invalid state.
-                VolleyLog.v("Error occured when calling consumingContent");
+                VolleyLog.v("Error occurred when calling consumingContent");
             }
             mPool.returnBuf(buffer);
             bytes.close();

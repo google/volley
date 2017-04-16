@@ -59,7 +59,7 @@ public class RequestQueue {
      * </ul>
      */
     private final Map<String, Queue<Request<?>>> mWaitingRequests =
-            new HashMap<String, Queue<Request<?>>>();
+            new HashMap<>();
 
     /**
      * The set of all requests currently being processed by this RequestQueue. A Request
@@ -70,11 +70,11 @@ public class RequestQueue {
 
     /** The cache triage queue. */
     private final PriorityBlockingQueue<Request<?>> mCacheQueue =
-        new PriorityBlockingQueue<Request<?>>();
+            new PriorityBlockingQueue<>();
 
     /** The queue of requests that are actually going out to the network. */
     private final PriorityBlockingQueue<Request<?>> mNetworkQueue =
-        new PriorityBlockingQueue<Request<?>>();
+            new PriorityBlockingQueue<>();
 
     /** Number of network request dispatcher threads to start. */
     private static final int DEFAULT_NETWORK_THREAD_POOL_SIZE = 4;
@@ -95,7 +95,7 @@ public class RequestQueue {
     private CacheDispatcher mCacheDispatcher;
 
     private final List<RequestFinishedListener> mFinishedListeners =
-            new ArrayList<RequestFinishedListener>();
+            new ArrayList<>();
 
     /**
      * Creates the worker pool. Processing will not begin until {@link #start()} is called.
@@ -160,9 +160,9 @@ public class RequestQueue {
         if (mCacheDispatcher != null) {
             mCacheDispatcher.quit();
         }
-        for (int i = 0; i < mDispatchers.length; i++) {
-            if (mDispatchers[i] != null) {
-                mDispatchers[i].quit();
+        for (final NetworkDispatcher mDispatcher : mDispatchers) {
+            if (mDispatcher != null) {
+                mDispatcher.quit();
             }
         }
     }
@@ -248,7 +248,7 @@ public class RequestQueue {
                 // There is already a request in flight. Queue up.
                 Queue<Request<?>> stagedRequests = mWaitingRequests.get(cacheKey);
                 if (stagedRequests == null) {
-                    stagedRequests = new LinkedList<Request<?>>();
+                    stagedRequests = new LinkedList<>();
                 }
                 stagedRequests.add(request);
                 mWaitingRequests.put(cacheKey, stagedRequests);
