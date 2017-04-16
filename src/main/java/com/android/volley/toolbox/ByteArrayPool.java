@@ -53,8 +53,8 @@ import java.util.List;
  */
 public class ByteArrayPool {
     /** The buffer pool, arranged both by last use and by buffer size */
-    private List<byte[]> mBuffersByLastUse = new LinkedList<byte[]>();
-    private List<byte[]> mBuffersBySize = new ArrayList<byte[]>(64);
+    private final List<byte[]> mBuffersByLastUse = new LinkedList<byte[]>();
+    private final List<byte[]> mBuffersBySize = new ArrayList<byte[]>(64);
 
     /** The total size of the buffers in the pool */
     private int mCurrentSize = 0;
