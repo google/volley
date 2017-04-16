@@ -151,7 +151,6 @@ public class CacheDispatcher extends Thread {
                 if (mQuit) {
                     return;
                 }
-                continue;
             }
         }
     }
