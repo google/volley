@@ -57,9 +57,9 @@ import java.util.TreeMap;
 public class BasicNetwork implements Network {
     protected static final boolean DEBUG = VolleyLog.DEBUG;
 
-    private static int SLOW_REQUEST_THRESHOLD_MS = 3000;
+    private static final int SLOW_REQUEST_THRESHOLD_MS = 3000;
 
-    private static int DEFAULT_POOL_SIZE = 4096;
+    private static final int DEFAULT_POOL_SIZE = 4096;
 
     protected final HttpStack mHttpStack;
 
@@ -257,7 +257,7 @@ public class BasicNetwork implements Network {
             } catch (IOException e) {
                 // This can happen if there was an exception above that left the entity in
                 // an invalid state.
-                VolleyLog.v("Error occured when calling consumingContent");
+                VolleyLog.v("Error occurred when calling consumingContent");
             }
             mPool.returnBuf(buffer);
             bytes.close();
