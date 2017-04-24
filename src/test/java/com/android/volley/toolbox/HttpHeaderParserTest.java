@@ -268,6 +268,8 @@ public class HttpHeaderParserTest {
         assertEquals("ISO-8859-1", HttpHeaderParser.parseCharset(headers));
     }
 
+    // TODO(#21): Rewrite this test without using Apache HTTP after we rewrite the header logic
+    // to support multiple response headers with the same key.
     @Test public void parseCaseInsensitive() {
 
         long now = System.currentTimeMillis();
