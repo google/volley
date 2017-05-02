@@ -131,8 +131,8 @@ public class BasicNetworkTest {
         } catch (VolleyError e) {
             // expected
         }
-        // should retry in case it's an auth failure.
-        verify(mMockRetryPolicy).retry(any(AuthFailureError.class));
+        // should not retry in case it's an auth failure.
+        verify(mMockRetryPolicy, never()).retry(any(AuthFailureError.class));
     }
 
     @Test public void forbidden() throws Exception {
@@ -149,8 +149,8 @@ public class BasicNetworkTest {
         } catch (VolleyError e) {
             // expected
         }
-        // should retry in case it's an auth failure.
-        verify(mMockRetryPolicy).retry(any(AuthFailureError.class));
+        // should not retry in case it's an auth failure.
+        verify(mMockRetryPolicy, never()).retry(any(AuthFailureError.class));
     }
 
     @Test public void redirect() throws Exception {
