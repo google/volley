@@ -121,7 +121,6 @@ public class ByteArrayPool {
         }
 
         int low = 0, high = bufList.size() - 1;
-
         while (low + 1 < high) {
             int mid = (low + high) >>> 1;
             if (buf.length == bufList.get(mid).length) {
@@ -132,7 +131,6 @@ public class ByteArrayPool {
                 low = mid;
             }
         }
-
         return high;
     }
 
