@@ -209,7 +209,6 @@ public class HurlStack implements HttpStack {
                 // GET.  Otherwise, it is assumed that the request is a POST.
                 byte[] postBody = request.getPostBody();
                 if (postBody != null) {
-                    connection.setDoOutput(true);
                     connection.setRequestMethod("POST");
                     addBody(connection, request, postBody);
                 }
