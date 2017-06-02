@@ -19,13 +19,3 @@ if (configurations.findByName("testCompile")) {
     testCompile "org.robolectric:robolectric:3.0"
   }
 }
-
-android.libraryVariants.all { variant ->
-  task("generate${variant.name.capitalize()}Javadoc", type: Javadoc) {
-    source = variant.javaCompile.source
-    classpath = files(variant.javaCompile.classpath.files) +
-        files(project.android.getBootClasspath().join(File.pathSeparator))
-    options.linkSource true
-    failOnError true
-  }
-}
