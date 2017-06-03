@@ -16,6 +16,8 @@
 
 package com.android.volley.toolbox;
 
+import android.text.TextUtils;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
@@ -120,8 +122,10 @@ public class HurlStack implements HttpStack {
             response.setEntity(entityFromConnection(connection));
         }
         for (Entry<String, List<String>> header : connection.getHeaderFields().entrySet()) {
-            if (header.getKey() != null) {
-                Header h = new BasicHeader(header.getKey(), header.getValue().get(0));
+            if (header.getKey() != null)
+            {
+                String value = TextUtils.join(Volley.IDENTICAL_HEADER_SEPARATOR, header.getValue());
+                Header h = new BasicHeader(header.getKey(), value);
                 response.addHeader(h);
             }
         }

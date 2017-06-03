@@ -32,6 +32,9 @@ public class Volley {
     /** Default on-disk cache directory. */
     private static final String DEFAULT_CACHE_DIR = "volley";
 
+    /** Separator for identical header */
+    public static final String IDENTICAL_HEADER_SEPARATOR = String.valueOf('\0');
+
     /**
      * Creates a default instance of the worker pool and calls {@link RequestQueue#start()} on it.
      *
