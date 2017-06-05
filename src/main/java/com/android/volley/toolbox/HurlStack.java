@@ -137,9 +137,9 @@ public class HurlStack implements HttpStack {
      */
     private static boolean hasResponseBody(int requestMethod, int responseCode) {
         return requestMethod != Request.Method.HEAD
-                && !(HttpStatus.SC_CONTINUE <= responseCode && responseCode < HttpStatus.SC_OK)
-                && responseCode != HttpStatus.SC_NO_CONTENT
-                && responseCode != HttpStatus.SC_NOT_MODIFIED;
+            && !(HttpStatus.SC_CONTINUE <= responseCode && responseCode < HttpStatus.SC_OK)
+            && responseCode != HttpStatus.SC_NO_CONTENT
+            && responseCode != HttpStatus.SC_NOT_MODIFIED;
     }
 
     /**
@@ -201,7 +201,7 @@ public class HurlStack implements HttpStack {
 
     @SuppressWarnings("deprecation")
     /* package */ static void setConnectionParametersForRequest(HttpURLConnection connection,
-                                                                Request<?> request) throws IOException, AuthFailureError {
+            Request<?> request) throws IOException, AuthFailureError {
         switch (request.getMethod()) {
             case Method.DEPRECATED_GET_OR_POST:
                 // This is the deprecated way that needs to be handled for backwards compatibility.
@@ -257,13 +257,13 @@ public class HurlStack implements HttpStack {
 
     private static void addBody(HttpURLConnection connection, Request<?> request, byte[] body)
             throws IOException, AuthFailureError {
-            // Prepare output. There is no need to set Content-Length explicitly,
-            // since this is handled by HttpURLConnection using the size of the prepared
-            // output stream.
-            connection.setDoOutput(true);
-            connection.addRequestProperty(HEADER_CONTENT_TYPE, request.getBodyContentType());
-            DataOutputStream out = new DataOutputStream(connection.getOutputStream());
-            out.write(body);
-            out.close();
+        // Prepare output. There is no need to set Content-Length explicitly,
+        // since this is handled by HttpURLConnection using the size of the prepared
+        // output stream.
+        connection.setDoOutput(true);
+        connection.addRequestProperty(HEADER_CONTENT_TYPE, request.getBodyContentType());
+        DataOutputStream out = new DataOutputStream(connection.getOutputStream());
+        out.write(body);
+        out.close();
     }
 }
