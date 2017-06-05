@@ -157,8 +157,10 @@ public class BasicNetwork implements Network {
                             responseHeaders, false, SystemClock.elapsedRealtime() - requestStart);
                     if (statusCode == HttpStatus.SC_UNAUTHORIZED ||
                             statusCode == HttpStatus.SC_FORBIDDEN) {
-                        attemptRetryOnException("auth",
-                                request, new AuthFailureError(networkResponse));
+                        // Don't retry on Authentication erros per w3 guidance
+                        // see https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+                        // "Authorization will not help and the request SHOULD NOT be repeated"
+                        throw new AuthFailureError(networkResponse);
                     } else if (statusCode >= 400 && statusCode <= 499) {
                         // Don't retry other client errors.
                         throw new ClientError(networkResponse);
