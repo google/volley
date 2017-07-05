@@ -18,17 +18,25 @@ package com.android.volley.toolbox;
 
 import com.android.volley.Cache;
 import com.android.volley.toolbox.DiskBasedCache.CacheHeader;
+
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.*;
 
 public class DiskBasedCacheTest {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     // Simple end-to-end serialize/deserialize test.
     @Test public void cacheHeaderSerialization() throws Exception {
@@ -57,7 +65,13 @@ public class DiskBasedCacheTest {
         assertEquals(first.responseHeaders, second.responseHeaders);
     }
 
-    @Test public void serializeInt() throws Exception {
+    @Test public void readEmpty() throws IOException {
+        ByteArrayInputStream empty = new ByteArrayInputStream(new byte[] { });
+        exception.expect(EOFException.class);
+        DiskBasedCache.readInt(empty);
+    }
+
+    @Test public void serializeInt() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DiskBasedCache.writeInt(baos, 0);
         DiskBasedCache.writeInt(baos, 19791214);
