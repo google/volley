@@ -480,6 +480,8 @@ public class DiskBasedCache implements Cache {
      * headers on disk. Once upon a time, this used the standard Java
      * Object{Input,Output}Stream, but the default implementation relies heavily
      * on reflection (even for standard types) and generates a ton of garbage.
+     *
+     * TODO: Replace by standard DataInput and DataOutput in next cache version.
      */
 
     /**

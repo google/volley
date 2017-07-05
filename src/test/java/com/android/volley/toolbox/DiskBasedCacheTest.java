@@ -39,7 +39,7 @@ public class DiskBasedCacheTest {
         e.ttl = 9876543L;
         e.softTtl = 8765432L;
         e.etag = "etag";
-        e.responseHeaders = new HashMap<String, String>();
+        e.responseHeaders = new HashMap<>();
         e.responseHeaders.put("fruit", "banana");
 
         CacheHeader first = new CacheHeader("my-magical-key", e);
@@ -104,17 +104,17 @@ public class DiskBasedCacheTest {
 
     @Test public void serializeMap() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Map<String, String> empty = new HashMap<String, String>();
+        Map<String, String> empty = new HashMap<>();
         DiskBasedCache.writeStringStringMap(empty, baos);
         DiskBasedCache.writeStringStringMap(null, baos);
-        Map<String, String> twoThings = new HashMap<String, String>();
+        Map<String, String> twoThings = new HashMap<>();
         twoThings.put("first", "thing");
         twoThings.put("second", "item");
         DiskBasedCache.writeStringStringMap(twoThings, baos);
-        Map<String, String> emptyKey = new HashMap<String, String>();
+        Map<String, String> emptyKey = new HashMap<>();
         emptyKey.put("", "value");
         DiskBasedCache.writeStringStringMap(emptyKey, baos);
-        Map<String, String> emptyValue = new HashMap<String, String>();
+        Map<String, String> emptyValue = new HashMap<>();
         emptyValue.put("key", "");
         DiskBasedCache.writeStringStringMap(emptyValue, baos);
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
