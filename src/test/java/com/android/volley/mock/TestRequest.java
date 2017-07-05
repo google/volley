@@ -56,7 +56,7 @@ public class TestRequest {
 
     /** Test example of a POST request in the deprecated style. */
     public static class DeprecatedPost extends Base {
-        private Map<String, String> mPostParams;
+        private final Map<String, String> mPostParams;
 
         public DeprecatedPost() {
             super(TEST_URL, null);
@@ -89,7 +89,7 @@ public class TestRequest {
 
     /** Test example of a POST request in the new style with a body. */
     public static class PostWithBody extends Post {
-        private Map<String, String> mParams;
+        private final Map<String, String> mParams;
 
         public PostWithBody() {
             mParams = new HashMap<String, String>();
