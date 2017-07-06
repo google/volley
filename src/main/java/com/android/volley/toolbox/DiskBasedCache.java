@@ -449,10 +449,11 @@ public class DiskBasedCache implements Cache {
 
     }
 
-    private static class CountingInputStream extends FilterInputStream {
-        private int bytesRead = 0;
+    //VisibleForTesting
+    static class CountingInputStream extends FilterInputStream {
+        private int bytesRead;
 
-        private CountingInputStream(InputStream in) {
+        CountingInputStream(InputStream in) {
             super(in);
         }
 
@@ -472,6 +473,10 @@ public class DiskBasedCache implements Cache {
                 bytesRead += result;
             }
             return result;
+        }
+
+        int byteCount() {
+            return bytesRead;
         }
     }
 

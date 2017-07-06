@@ -18,6 +18,7 @@ package com.android.volley.toolbox;
 
 import com.android.volley.Cache;
 import com.android.volley.toolbox.DiskBasedCache.CacheHeader;
+import com.android.volley.toolbox.DiskBasedCache.CountingInputStream;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 public class DiskBasedCacheTest {
@@ -65,7 +67,38 @@ public class DiskBasedCacheTest {
         assertEquals(first.responseHeaders, second.responseHeaders);
     }
 
-    @Test public void readEmpty() throws IOException {
+    @Test
+    @SuppressWarnings("TryFinallyCanBeTryWithResources")
+    public void testCountingInputStreamByteCount() throws IOException {
+        // Write some bytes
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        //noinspection ThrowFromFinallyBlock
+        try {
+            DiskBasedCache.writeInt(out, 1);
+            DiskBasedCache.writeLong(out, -1L);
+            DiskBasedCache.writeString(out, "hamburger");
+        } finally {
+            //noinspection ThrowFromFinallyBlock
+            out.close();
+        }
+        int bytesWritten = out.size();
+
+        // Read the bytes and compare the counts
+        CountingInputStream cis =
+                new CountingInputStream(new ByteArrayInputStream(out.toByteArray()));
+        try {
+            assertThat(cis.byteCount(), is(0));
+            assertThat(DiskBasedCache.readInt(cis), is(1));
+            assertThat(DiskBasedCache.readLong(cis), is(-1L));
+            assertThat(DiskBasedCache.readString(cis), is("hamburger"));
+            assertThat(cis.byteCount(), is(bytesWritten));
+        } finally {
+            //noinspection ThrowFromFinallyBlock
+            cis.close();
+        }
+    }
+
+    @Test public void testReadThrowsEOF() throws IOException {
         ByteArrayInputStream empty = new ByteArrayInputStream(new byte[] { });
         exception.expect(EOFException.class);
         DiskBasedCache.readInt(empty);
