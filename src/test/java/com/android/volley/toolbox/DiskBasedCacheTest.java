@@ -354,11 +354,13 @@ public class DiskBasedCacheTest {
         CountingInputStream cis =
                 new CountingInputStream(new ByteArrayInputStream(out.toByteArray()), bytesWritten);
         try {
+            assertThat(cis.bytesRemaining(), is(bytesWritten));
             assertThat(cis.bytesRead(), is(0));
             assertThat(DiskBasedCache.readInt(cis), is(1));
             assertThat(DiskBasedCache.readLong(cis), is(-1L));
             assertThat(DiskBasedCache.readString(cis), is("hamburger"));
             assertThat(cis.bytesRead(), is(bytesWritten));
+            assertThat(cis.bytesRemaining(), is(0));
         } finally {
             //noinspection ThrowFromFinallyBlock
             cis.close();
