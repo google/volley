@@ -23,9 +23,11 @@ import com.android.volley.VolleyLog;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -84,9 +86,6 @@ public class DiskBasedCache implements Cache {
         this(rootDirectory, DEFAULT_DISK_USAGE_BYTES);
     }
 
-    /**
-     * Clears the cache. Deletes all cached files from disk.
-     */
     @Override
     public synchronized void clear() {
         File[] files = mRootDirectory.listFiles();
@@ -114,7 +113,7 @@ public class DiskBasedCache implements Cache {
         File file = getFileForKey(key);
         CountingInputStream cis = null;
         try {
-            cis = new CountingInputStream(new BufferedInputStream(new FileInputStream(file)));
+            cis = new CountingInputStream(new BufferedInputStream(createInputStream(file)));
             CacheHeader.readHeader(cis); // eat header
             byte[] data = streamToBytes(cis, (int) (file.length() - cis.bytesRead));
             return entry.toCacheEntry(data);
@@ -157,7 +156,7 @@ public class DiskBasedCache implements Cache {
         for (File file : files) {
             BufferedInputStream fis = null;
             try {
-                fis = new BufferedInputStream(new FileInputStream(file));
+                fis = new BufferedInputStream(createInputStream(file));
                 CacheHeader entry = CacheHeader.readHeader(fis);
                 entry.size = file.length();
                 putEntry(entry.key, entry);
@@ -201,7 +200,7 @@ public class DiskBasedCache implements Cache {
         pruneIfNeeded(entry.data.length);
         File file = getFileForKey(key);
         try {
-            BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(file));
+            BufferedOutputStream fos = new BufferedOutputStream(createOutputStream(file));
             CacheHeader e = new CacheHeader(key, entry);
             boolean success = e.writeHeader(fos);
             if (!success) {
@@ -322,24 +321,27 @@ public class DiskBasedCache implements Cache {
 
     /**
      * Reads the contents of an InputStream into a byte[].
-     * */
+     */
     private static byte[] streamToBytes(InputStream in, int length) throws IOException {
         byte[] bytes = new byte[length];
-        int count;
-        int pos = 0;
-        while (pos < length && ((count = in.read(bytes, pos, length - pos)) != -1)) {
-            pos += count;
-        }
-        if (pos != length) {
-            throw new IOException("Expected " + length + " bytes, read " + pos + " bytes");
-        }
+        new DataInputStream(in).readFully(bytes);
         return bytes;
+    }
+
+    //VisibleForTesting
+    InputStream createInputStream(File file) throws FileNotFoundException {
+        return new FileInputStream(file);
+    }
+
+    //VisibleForTesting
+    OutputStream createOutputStream(File file) throws FileNotFoundException {
+        return new FileOutputStream(file);
     }
 
     /**
      * Handles holding onto the cache headers for an entry.
      */
-    // Visible for testing.
+    //VisibleForTesting
     static class CacheHeader {
         /** The size of the data identified by this CacheHeader. (This is not
          * serialized to disk. */
@@ -373,7 +375,7 @@ public class DiskBasedCache implements Cache {
          * @param key The key that identifies the cache entry
          * @param entry The cache entry.
          */
-        public CacheHeader(String key, Entry entry) {
+        CacheHeader(String key, Entry entry) {
             this.key = key;
             this.size = entry.data.length;
             this.etag = entry.etag;
@@ -389,7 +391,7 @@ public class DiskBasedCache implements Cache {
          * @param is The InputStream to read from.
          * @throws IOException
          */
-        public static CacheHeader readHeader(InputStream is) throws IOException {
+        static CacheHeader readHeader(InputStream is) throws IOException {
             CacheHeader entry = new CacheHeader();
             int magic = readInt(is);
             if (magic != CACHE_MAGIC) {
@@ -413,7 +415,7 @@ public class DiskBasedCache implements Cache {
         /**
          * Creates a cache entry for the specified data.
          */
-        public Entry toCacheEntry(byte[] data) {
+        Entry toCacheEntry(byte[] data) {
             Entry e = new Entry();
             e.data = data;
             e.etag = etag;
@@ -429,7 +431,7 @@ public class DiskBasedCache implements Cache {
         /**
          * Writes the contents of this CacheHeader to the specified OutputStream.
          */
-        public boolean writeHeader(OutputStream os) {
+        boolean writeHeader(OutputStream os) {
             try {
                 writeInt(os, CACHE_MAGIC);
                 writeString(os, key);
@@ -577,6 +579,5 @@ public class DiskBasedCache implements Cache {
         }
         return result;
     }
-
 
 }
