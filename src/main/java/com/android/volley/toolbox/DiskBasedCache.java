@@ -109,30 +109,28 @@ public class DiskBasedCache implements Cache {
         if (entry == null) {
             return null;
         }
-
         File file = getFileForKey(key);
-        CountingInputStream cis = null;
         try {
-            cis = new CountingInputStream(new BufferedInputStream(createInputStream(file)));
-            CacheHeader.readHeader(cis); // eat header
-            byte[] data = streamToBytes(cis, (int) (file.length() - cis.bytesRead));
-            return entry.toCacheEntry(data);
+            CountingInputStream cis = new CountingInputStream(
+                    new BufferedInputStream(createInputStream(file)), (int) file.length());
+            try {
+                CacheHeader found = CacheHeader.readHeader(cis);
+                if (!key.equals(found.key)) {
+                    // File was shared by two keys and now holds data for a different entry!
+                    VolleyLog.d("%s: key=%s, found=%s", file.getAbsolutePath(), key, found.key);
+                    removeEntry(key);
+                    return null;
+                }
+                byte[] data = streamToBytes(cis, cis.bytesRemaining());
+                return entry.toCacheEntry(data);
+            } finally {
+                //noinspection ThrowFromFinallyBlock
+                cis.close();
+            }
         } catch (IOException e) {
             VolleyLog.d("%s: %s", file.getAbsolutePath(), e.toString());
             remove(key);
             return null;
-        }  catch (NegativeArraySizeException e) {
-            VolleyLog.d("%s: %s", file.getAbsolutePath(), e.toString());
-            remove(key);
-            return null;
-        } finally {
-            if (cis != null) {
-                try {
-                    cis.close();
-                } catch (IOException ioe) {
-                    return null;
-                }
-            }
         }
     }
 
@@ -148,28 +146,25 @@ public class DiskBasedCache implements Cache {
             }
             return;
         }
-
         File[] files = mRootDirectory.listFiles();
         if (files == null) {
             return;
         }
         for (File file : files) {
-            BufferedInputStream fis = null;
             try {
-                fis = new BufferedInputStream(createInputStream(file));
-                CacheHeader entry = CacheHeader.readHeader(fis);
-                entry.size = file.length();
-                putEntry(entry.key, entry);
-            } catch (IOException e) {
-                if (file != null) {
-                   file.delete();
-                }
-            } finally {
+                CountingInputStream cis = new CountingInputStream(
+                        new BufferedInputStream(createInputStream(file)), (int) file.length());
                 try {
-                    if (fis != null) {
-                        fis.close();
-                    }
-                } catch (IOException ignored) { }
+                    CacheHeader entry = CacheHeader.readHeader(cis);
+                    entry.size = cis.bytesRemaining();
+                    putEntry(entry.key, entry);
+                } finally {
+                    //noinspection ThrowFromFinallyBlock
+                    cis.close();
+                }
+            } catch (IOException e) {
+                //noinspection ResultOfMethodCallIgnored
+                file.delete();
             }
         }
     }
@@ -189,7 +184,6 @@ public class DiskBasedCache implements Cache {
             }
             put(key, entry);
         }
-
     }
 
     /**
@@ -312,19 +306,26 @@ public class DiskBasedCache implements Cache {
      * Removes the entry identified by 'key' from the cache.
      */
     private void removeEntry(String key) {
-        CacheHeader entry = mEntries.get(key);
-        if (entry != null) {
-            mTotalSize -= entry.size;
-            mEntries.remove(key);
+        CacheHeader removed = mEntries.remove(key);
+        if (removed != null) {
+            mTotalSize -= removed.size;
         }
     }
 
     /**
-     * Reads the contents of an InputStream into a byte[].
+     * Reads length bytes from CountingInputStream into byte array.
+     * @param cis input stream
+     * @param length number of bytes to read
+     * @throws IOException if fails to read all bytes
      */
-    private static byte[] streamToBytes(InputStream in, int length) throws IOException {
+    //VisibleForTesting
+    static byte[] streamToBytes(CountingInputStream cis, int length) throws IOException {
+        int maxLength = cis.bytesRemaining();
+        if (length < 0 || length > maxLength) {
+            throw new IOException("streamToBytes length=" + length + ", maxLength=" + maxLength);
+        }
         byte[] bytes = new byte[length];
-        new DataInputStream(in).readFully(bytes);
+        new DataInputStream(cis).readFully(bytes);
         return bytes;
     }
 
@@ -345,30 +346,39 @@ public class DiskBasedCache implements Cache {
     static class CacheHeader {
         /** The size of the data identified by this CacheHeader. (This is not
          * serialized to disk. */
-        public long size;
+        long size;
 
         /** The key that identifies the cache entry. */
-        public String key;
+        final String key;
 
         /** ETag for cache coherence. */
-        public String etag;
+        final String etag;
 
         /** Date of this response as reported by the server. */
-        public long serverDate;
+        final long serverDate;
 
         /** The last modified date for the requested object. */
-        public long lastModified;
+        final long lastModified;
 
         /** TTL for this record. */
-        public long ttl;
+        final long ttl;
 
         /** Soft TTL for this record. */
-        public long softTtl;
+        final long softTtl;
 
         /** Headers from the response resulting in this cache entry. */
-        public Map<String, String> responseHeaders;
+        final Map<String, String> responseHeaders;
 
-        private CacheHeader() { }
+        private CacheHeader(String key, String etag, long serverDate, long lastModified, long ttl,
+                           long softTtl, Map<String, String> responseHeaders) {
+            this.key = key;
+            this.etag = ("".equals(etag)) ? null : etag;
+            this.serverDate = serverDate;
+            this.lastModified = lastModified;
+            this.ttl = ttl;
+            this.softTtl = softTtl;
+            this.responseHeaders = responseHeaders;
+        }
 
         /**
          * Instantiates a new CacheHeader object
@@ -376,40 +386,31 @@ public class DiskBasedCache implements Cache {
          * @param entry The cache entry.
          */
         CacheHeader(String key, Entry entry) {
-            this.key = key;
-            this.size = entry.data.length;
-            this.etag = entry.etag;
-            this.serverDate = entry.serverDate;
-            this.lastModified = entry.lastModified;
-            this.ttl = entry.ttl;
-            this.softTtl = entry.softTtl;
-            this.responseHeaders = entry.responseHeaders;
+            this(key, entry.etag, entry.serverDate, entry.lastModified, entry.ttl, entry.softTtl,
+                    entry.responseHeaders);
+            size = entry.data.length;
         }
 
         /**
-         * Reads the header off of an InputStream and returns a CacheHeader object.
+         * Reads the header from a CountingInputStream and returns a CacheHeader object.
          * @param is The InputStream to read from.
-         * @throws IOException
+         * @throws IOException if fails to read header
          */
-        static CacheHeader readHeader(InputStream is) throws IOException {
-            CacheHeader entry = new CacheHeader();
+        static CacheHeader readHeader(CountingInputStream is) throws IOException {
             int magic = readInt(is);
             if (magic != CACHE_MAGIC) {
                 // don't bother deleting, it'll get pruned eventually
                 throw new IOException();
             }
-            entry.key = readString(is);
-            entry.etag = readString(is);
-            if (entry.etag.equals("")) {
-                entry.etag = null;
-            }
-            entry.serverDate = readLong(is);
-            entry.lastModified = readLong(is);
-            entry.ttl = readLong(is);
-            entry.softTtl = readLong(is);
-            entry.responseHeaders = readStringStringMap(is);
-
-            return entry;
+            String key = readString(is);
+            String etag = readString(is);
+            long serverDate = readLong(is);
+            long lastModified = readLong(is);
+            long ttl = readLong(is);
+            long softTtl = readLong(is);
+            Map<String, String> responseHeaders = readStringStringMap(is);
+            return new CacheHeader(
+                    key, etag, serverDate, lastModified, ttl, softTtl, responseHeaders);
         }
 
         /**
@@ -448,15 +449,16 @@ public class DiskBasedCache implements Cache {
                 return false;
             }
         }
-
     }
 
     //VisibleForTesting
     static class CountingInputStream extends FilterInputStream {
+        private final int length;
         private int bytesRead;
 
-        CountingInputStream(InputStream in) {
+        CountingInputStream(InputStream in, int length) {
             super(in);
+            this.length = length;
         }
 
         @Override
@@ -477,8 +479,12 @@ public class DiskBasedCache implements Cache {
             return result;
         }
 
-        int byteCount() {
+        int bytesRead() {
             return bytesRead;
+        }
+
+        int bytesRemaining() {
+            return length - bytesRead;
         }
     }
 
@@ -549,9 +555,9 @@ public class DiskBasedCache implements Cache {
         os.write(b, 0, b.length);
     }
 
-    static String readString(InputStream is) throws IOException {
-        int n = (int) readLong(is);
-        byte[] b = streamToBytes(is, n);
+    static String readString(CountingInputStream cis) throws IOException {
+        int n = (int) readLong(cis);
+        byte[] b = streamToBytes(cis, n);
         return new String(b, "UTF-8");
     }
 
@@ -567,14 +573,14 @@ public class DiskBasedCache implements Cache {
         }
     }
 
-    static Map<String, String> readStringStringMap(InputStream is) throws IOException {
-        int size = readInt(is);
+    static Map<String, String> readStringStringMap(CountingInputStream cis) throws IOException {
+        int size = readInt(cis);
         Map<String, String> result = (size == 0)
                 ? Collections.<String, String>emptyMap()
                 : new HashMap<String, String>(size);
         for (int i = 0; i < size; i++) {
-            String key = readString(is).intern();
-            String value = readString(is).intern();
+            String key = readString(cis).intern();
+            String value = readString(cis).intern();
             result.put(key, value);
         }
         return result;

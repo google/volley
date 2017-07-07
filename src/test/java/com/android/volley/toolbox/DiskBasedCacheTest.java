@@ -62,7 +62,6 @@ import static org.mockito.Mockito.verify;
 @Config(manifest="src/main/AndroidManifest.xml", sdk=21)
 public class DiskBasedCacheTest {
 
-    private static final String CACHE_FOLDER = "test";
     private static final int MAX_SIZE = 1024 * 1024;
 
     private Cache cache;
@@ -76,8 +75,7 @@ public class DiskBasedCacheTest {
     @Before
     public void setup() throws IOException {
         // Initialize empty cache
-        File rootDirectory = new File(temporaryFolder.getRoot(), CACHE_FOLDER);
-        cache = new DiskBasedCache(rootDirectory, MAX_SIZE);
+        cache = new DiskBasedCache(temporaryFolder.getRoot(), MAX_SIZE);
         cache.initialize();
     }
 
@@ -138,7 +136,7 @@ public class DiskBasedCacheTest {
         Cache.Entry entry = randomData(1023);
         cache.put("key", entry);
 
-        Cache copy = new DiskBasedCache(new File(temporaryFolder.getRoot(), CACHE_FOLDER));
+        Cache copy = new DiskBasedCache(temporaryFolder.getRoot(), MAX_SIZE);
         copy.initialize();
 
         assertThatEntriesAreEqual(copy.get("key"), entry);
@@ -209,7 +207,7 @@ public class DiskBasedCacheTest {
         assertThatEntriesAreEqual(cache.get("key"), entry);
 
         // Overwrite the magic header
-        File cacheFolder = new File(temporaryFolder.getRoot(), CACHE_FOLDER);
+        File cacheFolder = temporaryFolder.getRoot();
         File file = cacheFolder.listFiles()[0];
         FileOutputStream fos = new FileOutputStream(file);
         try {
@@ -232,7 +230,7 @@ public class DiskBasedCacheTest {
         assertThatEntriesAreEqual(cache.get("key"), entry);
 
         // Access the cached file
-        File cacheFolder = new File(temporaryFolder.getRoot(), CACHE_FOLDER);
+        File cacheFolder = temporaryFolder.getRoot();
         File file = cacheFolder.listFiles()[0];
         FileOutputStream fos = new FileOutputStream(file);
         try {
@@ -253,20 +251,22 @@ public class DiskBasedCacheTest {
 
     @Test
     @SuppressWarnings("TryFinallyCanBeTryWithResources")
-    public void testGetWrongLength() {
-        // Cache something
-        Cache.Entry entry = randomData(1023);
-        cache.put("key", entry);
-        assertThatEntriesAreEqual(cache.get("key"), entry);
+    public void testStreamToBytesNegativeLength() throws IOException {
+        byte[] data = new byte[1];
+        CountingInputStream cis =
+                new CountingInputStream(new ByteArrayInputStream(data), data.length);
+        exception.expect(IOException.class);
+        DiskBasedCache.streamToBytes(cis, -1);
+    }
 
-        // Sneakily overwrite with a different length
-        Cache copy = new DiskBasedCache(new File(temporaryFolder.getRoot(), CACHE_FOLDER));
-        copy.initialize();
-        copy.put("key", randomData(127));
-
-        // Item is removed when we try to get it
-        assertThat(cache.get("key"), is(nullValue()));
-        assertThat(listCachedFiles(), is(emptyArray()));
+    @Test
+    @SuppressWarnings("TryFinallyCanBeTryWithResources")
+    public void testStreamToBytesExcessiveLength() throws IOException {
+        byte[] data = new byte[1];
+        CountingInputStream cis =
+                new CountingInputStream(new ByteArrayInputStream(data), data.length);
+        exception.expect(IOException.class);
+        DiskBasedCache.streamToBytes(cis, 2);
     }
 
     @Test
@@ -305,7 +305,7 @@ public class DiskBasedCacheTest {
 
         // Create broken cache that fails to read anything
         DiskBasedCache broken =
-                spy(new DiskBasedCache(new File(temporaryFolder.getRoot(), CACHE_FOLDER)));
+                spy(new DiskBasedCache(temporaryFolder.getRoot()));
         doReturn(mockedInputStream).when(broken).createInputStream(any(File.class));
 
         // Attempt to initialize
@@ -352,13 +352,13 @@ public class DiskBasedCacheTest {
 
         // Read the bytes and compare the counts
         CountingInputStream cis =
-                new CountingInputStream(new ByteArrayInputStream(out.toByteArray()));
+                new CountingInputStream(new ByteArrayInputStream(out.toByteArray()), bytesWritten);
         try {
-            assertThat(cis.byteCount(), is(0));
+            assertThat(cis.bytesRead(), is(0));
             assertThat(DiskBasedCache.readInt(cis), is(1));
             assertThat(DiskBasedCache.readLong(cis), is(-1L));
             assertThat(DiskBasedCache.readString(cis), is("hamburger"));
-            assertThat(cis.byteCount(), is(bytesWritten));
+            assertThat(cis.bytesRead(), is(bytesWritten));
         } finally {
             //noinspection ThrowFromFinallyBlock
             cis.close();
@@ -368,7 +368,7 @@ public class DiskBasedCacheTest {
     /* Serialization tests */
 
     @Test public void testEmptyReadThrowsEOF() throws IOException {
-        ByteArrayInputStream empty = new ByteArrayInputStream(new byte[] { });
+        ByteArrayInputStream empty = new ByteArrayInputStream(new byte[]{});
         exception.expect(EOFException.class);
         DiskBasedCache.readInt(empty);
     }
@@ -412,10 +412,11 @@ public class DiskBasedCacheTest {
         DiskBasedCache.writeString(baos, "");
         DiskBasedCache.writeString(baos, "This is a string.");
         DiskBasedCache.writeString(baos, "ファイカス");
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        assertEquals(DiskBasedCache.readString(bais), "");
-        assertEquals(DiskBasedCache.readString(bais), "This is a string.");
-        assertEquals(DiskBasedCache.readString(bais), "ファイカス");
+        CountingInputStream cis =
+                new CountingInputStream(new ByteArrayInputStream(baos.toByteArray()), baos.size());
+        assertEquals(DiskBasedCache.readString(cis), "");
+        assertEquals(DiskBasedCache.readString(cis), "This is a string.");
+        assertEquals(DiskBasedCache.readString(cis), "ファイカス");
     }
 
     @Test public void serializeMap() throws Exception {
@@ -433,12 +434,13 @@ public class DiskBasedCacheTest {
         Map<String, String> emptyValue = new HashMap<>();
         emptyValue.put("key", "");
         DiskBasedCache.writeStringStringMap(emptyValue, baos);
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        assertEquals(DiskBasedCache.readStringStringMap(bais), empty);
-        assertEquals(DiskBasedCache.readStringStringMap(bais), empty); // null reads back empty
-        assertEquals(DiskBasedCache.readStringStringMap(bais), twoThings);
-        assertEquals(DiskBasedCache.readStringStringMap(bais), emptyKey);
-        assertEquals(DiskBasedCache.readStringStringMap(bais), emptyValue);
+        CountingInputStream cis =
+                new CountingInputStream(new ByteArrayInputStream(baos.toByteArray()), baos.size());
+        assertEquals(DiskBasedCache.readStringStringMap(cis), empty);
+        assertEquals(DiskBasedCache.readStringStringMap(cis), empty); // null reads back empty
+        assertEquals(DiskBasedCache.readStringStringMap(cis), twoThings);
+        assertEquals(DiskBasedCache.readStringStringMap(cis), emptyKey);
+        assertEquals(DiskBasedCache.readStringStringMap(cis), emptyValue);
     }
 
     @Test
@@ -471,6 +473,6 @@ public class DiskBasedCacheTest {
     }
 
     private File[] listCachedFiles() {
-        return new File(temporaryFolder.getRoot(), CACHE_FOLDER).listFiles();
+        return temporaryFolder.getRoot().listFiles();
     }
 }
