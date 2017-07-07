@@ -86,6 +86,9 @@ public class DiskBasedCache implements Cache {
         this(rootDirectory, DEFAULT_DISK_USAGE_BYTES);
     }
 
+    /**
+     * Clears the cache. Deletes all cached files from disk.
+     */
     @Override
     public synchronized void clear() {
         File[] files = mRootDirectory.listFiles();
