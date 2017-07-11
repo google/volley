@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.2"
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.0.0"
     }
 }
 
@@ -12,13 +12,12 @@ buildscript {
 // is currently not capable of loading plugins by Id if the dependency is anywhere else than
 // in the main project build.gradle. This file is "imported" into the project's build.gradle
 // through a "apply from:".
-apply plugin: com.jfrog.bintray.gradle.BintrayPlugin
+apply plugin: org.jfrog.gradle.plugin.artifactory.ArtifactoryPlugin
 apply plugin: 'maven-publish'
 
-project.ext.group = 'com.android.volley'
-project.ext.archivesBaseName = 'volley'
-project.ext.version = '1.0.0'
-project.ext.pomDesc = 'Volley Android library'
+def bintrayInfoFilePath = "$buildDir/outputs/bintray-descriptor.bintray-info.json"
+
+project.ext.version = '1.0.1-SNAPSHOT'
 
 task sourcesJar(type: Jar) {
     classifier = 'sources'
@@ -35,6 +34,16 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
 }
 
+task bintrayInfoFile {
+    outputs.file(bintrayInfoFilePath)
+    doLast {
+        println 'Creating bintray-info.json'
+        String fileContent = new File("$rootDir/bintray-info-template.json").getText('UTF-8')
+        fileContent = fileContent.replace('$VERSION$', project.ext.version)
+        ((new File(bintrayInfoFilePath))).write(fileContent)
+    }
+}
+
 artifacts {
     archives javadocJar
     archives sourcesJar
@@ -43,45 +52,36 @@ artifacts {
 publishing {
     publications {
         library(MavenPublication) {
-            groupId project.ext.group
-            artifactId project.ext.archivesBaseName
+            groupId 'com.android.volley'
+            artifactId 'volley'
             version project.ext.version
 
             // Release AAR, Sources, and JavaDoc
             artifact "$buildDir/outputs/aar/volley-release.aar"
             artifact sourcesJar
             artifact javadocJar
+            artifact(bintrayInfoFilePath) {
+                builtBy bintrayInfoFile
+                extension "bintray-info.json"
+            }
         }
     }
 }
 
-bintray {
-    user = System.env.BINTRAY_USER
-    key = System.env.BINTRAY_USER_KEY
-
-    publications = [ 'library' ]
-
-    publish = project.hasProperty("release")
-    pkg {
-        userOrg = 'android'
-        repo = 'android-utils'
-        group = project.ext.group
-        name = project.ext.group + '.' + project.ext.archivesBaseName
-        desc = project.ext.pomDesc
-        licenses = [ 'Apache-2.0' ]
-        websiteUrl = 'https://tools.android.com'
-        issueTrackerUrl = 'https://code.google.com/p/android/'
-        vcsUrl = 'https://android.googlesource.com/platform/frameworks/volley.git'
-        labels = ['android', 'volley', 'network']
-        publicDownloadNumbers = true
-
-        version {
-            name = project.ext.version
-            desc = project.ext.pomDesc + ' version ' + project.ext.version
-            gpg {
-                sign = true
-                passphrase = System.env.GPG_PASSPHRASE
-            }
+artifactory {
+    contextUrl = "https://oss.jfrog.org"
+    publish {
+        repository {
+            repoKey = 'oss-snapshot-local'
+            username = System.env.CI_DEPLOY_USERNAME
+            password = System.env.CI_DEPLOY_PASSWORD
         }
+        defaults {
+            publications('library')
+            publishArtifacts = true
+        }
+    }
+    resolve {
+        repoKey = 'jcenter'
     }
 }

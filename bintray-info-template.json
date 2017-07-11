@@ -1,0 +1,21 @@
+{
+  "package": {
+    "user_org": "android",
+    "repo": "android-utils",
+    "group": "com.android.volley",
+    "name": "com.android.volley.volley",
+    "desc": "Volley Android library",
+    "licenses": ["Apache-2.0"],
+    "website_url": "https://github.com/google/volley",
+    "issue_tracker_url": "https://github.com/google/volley/issues",
+    "vcs_url": "https://github.com/google/volley.git",
+    "labels": ["android", "volley", "network"],
+    "public_download_numbers": true
+  },
+  "version": {
+    "name": "$VERSION$",
+    "desc": "Volley Android library version $VERSION$",
+    "gpgSign": false
+  },
+  "publish": true
+}
