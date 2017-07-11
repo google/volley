@@ -19,12 +19,3 @@ if (configurations.findByName("testCompile")) {
     testCompile "org.robolectric:robolectric:3.0"
   }
 }
-
-// TODO(#4): Remove this once Javadoc errors are fixed
-if (JavaVersion.current().isJava8Compatible()) {
-  allprojects {
-    tasks.withType(Javadoc) {
-      options.addStringOption('Xdoclint:none', '-quiet')
-    }
-  }
-}
