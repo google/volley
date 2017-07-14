@@ -59,7 +59,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(manifest="src/main/AndroidManifest.xml", sdk=21)
+@Config(manifest="src/main/AndroidManifest.xml", sdk=16)
 public class DiskBasedCacheTest {
 
     private static final int MAX_SIZE = 1024 * 1024;
@@ -469,7 +469,7 @@ public class DiskBasedCacheTest {
     private Cache.Entry randomData(int length) {
         Cache.Entry entry = new Cache.Entry();
         byte[] data = new byte[length];
-        new Random().nextBytes(data);
+        new Random(42).nextBytes(data); // explicit seed for reproducible results
         entry.data = data;
         return entry;
     }

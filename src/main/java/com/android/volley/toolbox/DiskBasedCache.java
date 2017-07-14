@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import android.os.SystemClock;
+import android.text.TextUtils;
 
 import com.android.volley.Cache;
 import com.android.volley.VolleyLog;
@@ -117,16 +118,19 @@ public class DiskBasedCache implements Cache {
             CountingInputStream cis = new CountingInputStream(
                     new BufferedInputStream(createInputStream(file)), (int) file.length());
             try {
-                CacheHeader found = CacheHeader.readHeader(cis);
-                if (!key.equals(found.key)) {
+                CacheHeader entryOnDisk = CacheHeader.readHeader(cis);
+                if (!TextUtils.equals(key, entryOnDisk.key)) {
                     // File was shared by two keys and now holds data for a different entry!
-                    VolleyLog.d("%s: key=%s, found=%s", file.getAbsolutePath(), key, found.key);
+                    VolleyLog.d("%s: key=%s, found=%s",
+                            file.getAbsolutePath(), key, entryOnDisk.key);
+                    // Remove key whose contents on disk have been replaced.
                     removeEntry(key);
                     return null;
                 }
                 byte[] data = streamToBytes(cis, cis.bytesRemaining());
                 return entry.toCacheEntry(data);
             } finally {
+                // Any IOException thrown here is handled by the below catch block by design.
                 //noinspection ThrowFromFinallyBlock
                 cis.close();
             }
@@ -162,6 +166,7 @@ public class DiskBasedCache implements Cache {
                     entry.size = cis.bytesRemaining();
                     putEntry(entry.key, entry);
                 } finally {
+                    // Any IOException thrown here is handled by the below catch block by design.
                     //noinspection ThrowFromFinallyBlock
                     cis.close();
                 }
