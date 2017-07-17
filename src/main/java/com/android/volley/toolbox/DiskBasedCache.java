@@ -159,11 +159,14 @@ public class DiskBasedCache implements Cache {
         }
         for (File file : files) {
             try {
+                int entrySize = (int) file.length();
                 CountingInputStream cis = new CountingInputStream(
-                        new BufferedInputStream(createInputStream(file)), (int) file.length());
+                        new BufferedInputStream(createInputStream(file)), entrySize);
                 try {
                     CacheHeader entry = CacheHeader.readHeader(cis);
-                    entry.size = cis.bytesRemaining();
+                    // NOTE: When this entry was put, its size was recorded as data.length, but
+                    // when the entry is initialized below, its size is recorded as file.length()
+                    entry.size = entrySize;
                     putEntry(entry.key, entry);
                 } finally {
                     // Any IOException thrown here is handled by the below catch block by design.
