@@ -250,7 +250,6 @@ public class DiskBasedCacheTest {
     }
 
     @Test
-    @SuppressWarnings("TryFinallyCanBeTryWithResources")
     public void testStreamToBytesNegativeLength() throws IOException {
         byte[] data = new byte[1];
         CountingInputStream cis =
@@ -260,7 +259,6 @@ public class DiskBasedCacheTest {
     }
 
     @Test
-    @SuppressWarnings("TryFinallyCanBeTryWithResources")
     public void testStreamToBytesExcessiveLength() throws IOException {
         byte[] data = new byte[1];
         CountingInputStream cis =
@@ -270,7 +268,6 @@ public class DiskBasedCacheTest {
     }
 
     @Test
-    @SuppressWarnings("TryFinallyCanBeTryWithResources")
     public void testStreamToBytesOverflow() throws IOException {
         byte[] data = new byte[0];
         CountingInputStream cis =
