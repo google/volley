@@ -270,6 +270,16 @@ public class DiskBasedCacheTest {
     }
 
     @Test
+    @SuppressWarnings("TryFinallyCanBeTryWithResources")
+    public void testStreamToBytesOverflow() throws IOException {
+        byte[] data = new byte[0];
+        CountingInputStream cis =
+                new CountingInputStream(new ByteArrayInputStream(data), 0x100000000L);
+        exception.expect(IOException.class);
+        DiskBasedCache.streamToBytes(cis, 0x100000000L);
+    }
+
+    @Test
     public void testFileIsDeletedWhenWriteHeaderFails() throws IOException {
         // Create DataOutputStream that throws IOException
         OutputStream mockedOutputStream = spy(OutputStream.class);
@@ -348,19 +358,19 @@ public class DiskBasedCacheTest {
             //noinspection ThrowFromFinallyBlock
             out.close();
         }
-        int bytesWritten = out.size();
+        long bytesWritten = out.size();
 
         // Read the bytes and compare the counts
         CountingInputStream cis =
                 new CountingInputStream(new ByteArrayInputStream(out.toByteArray()), bytesWritten);
         try {
             assertThat(cis.bytesRemaining(), is(bytesWritten));
-            assertThat(cis.bytesRead(), is(0));
+            assertThat(cis.bytesRead(), is(0L));
             assertThat(DiskBasedCache.readInt(cis), is(1));
             assertThat(DiskBasedCache.readLong(cis), is(-1L));
             assertThat(DiskBasedCache.readString(cis), is("hamburger"));
             assertThat(cis.bytesRead(), is(bytesWritten));
-            assertThat(cis.bytesRemaining(), is(0));
+            assertThat(cis.bytesRemaining(), is(0L));
         } finally {
             //noinspection ThrowFromFinallyBlock
             cis.close();

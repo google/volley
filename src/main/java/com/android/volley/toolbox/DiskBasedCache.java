@@ -116,7 +116,7 @@ public class DiskBasedCache implements Cache {
         File file = getFileForKey(key);
         try {
             CountingInputStream cis = new CountingInputStream(
-                    new BufferedInputStream(createInputStream(file)), (int) file.length());
+                    new BufferedInputStream(createInputStream(file)), file.length());
             try {
                 CacheHeader entryOnDisk = CacheHeader.readHeader(cis);
                 if (!TextUtils.equals(key, entryOnDisk.key)) {
@@ -159,7 +159,7 @@ public class DiskBasedCache implements Cache {
         }
         for (File file : files) {
             try {
-                int entrySize = (int) file.length();
+                long entrySize = file.length();
                 CountingInputStream cis = new CountingInputStream(
                         new BufferedInputStream(createInputStream(file)), entrySize);
                 try {
@@ -330,12 +330,13 @@ public class DiskBasedCache implements Cache {
      * @throws IOException if fails to read all bytes
      */
     //VisibleForTesting
-    static byte[] streamToBytes(CountingInputStream cis, int length) throws IOException {
-        int maxLength = cis.bytesRemaining();
-        if (length < 0 || length > maxLength) {
+    static byte[] streamToBytes(CountingInputStream cis, long length) throws IOException {
+        long maxLength = cis.bytesRemaining();
+        // Length cannot be negative or greater than bytes remaining, and must not overflow int.
+        if (length < 0 || length > maxLength || (int) length != length) {
             throw new IOException("streamToBytes length=" + length + ", maxLength=" + maxLength);
         }
-        byte[] bytes = new byte[length];
+        byte[] bytes = new byte[(int) length];
         new DataInputStream(cis).readFully(bytes);
         return bytes;
     }
@@ -464,10 +465,10 @@ public class DiskBasedCache implements Cache {
 
     //VisibleForTesting
     static class CountingInputStream extends FilterInputStream {
-        private final int length;
-        private int bytesRead;
+        private final long length;
+        private long bytesRead;
 
-        CountingInputStream(InputStream in, int length) {
+        CountingInputStream(InputStream in, long length) {
             super(in);
             this.length = length;
         }
@@ -490,11 +491,12 @@ public class DiskBasedCache implements Cache {
             return result;
         }
 
-        int bytesRead() {
+        //VisibleForTesting
+        long bytesRead() {
             return bytesRead;
         }
 
-        int bytesRemaining() {
+        long bytesRemaining() {
             return length - bytesRead;
         }
     }
@@ -567,7 +569,7 @@ public class DiskBasedCache implements Cache {
     }
 
     static String readString(CountingInputStream cis) throws IOException {
-        int n = (int) readLong(cis);
+        long n = readLong(cis);
         byte[] b = streamToBytes(cis, n);
         return new String(b, "UTF-8");
     }
