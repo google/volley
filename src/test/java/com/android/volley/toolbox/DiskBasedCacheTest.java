@@ -273,7 +273,7 @@ public class DiskBasedCacheTest {
         CountingInputStream cis =
                 new CountingInputStream(new ByteArrayInputStream(data), 0x100000000L);
         exception.expect(IOException.class);
-        DiskBasedCache.streamToBytes(cis, 0x100000000L);
+        DiskBasedCache.streamToBytes(cis, 0x100000000L); // int value is 0
     }
 
     @Test
