@@ -41,8 +41,6 @@ public class NetworkDispatcher extends Thread {
     private final Cache mCache;
     /** For posting responses and errors. */
     private final ResponseDelivery mDelivery;
-    /** Used for telling us to die. */
-    private volatile boolean mQuit = false;
 
     /**
      * Creates a new network dispatcher thread.  You must call {@link #start()}
@@ -67,7 +65,6 @@ public class NetworkDispatcher extends Thread {
      * the queue, they are not guaranteed to be processed.
      */
     public void quit() {
-        mQuit = true;
         interrupt();
     }
 
@@ -82,7 +79,7 @@ public class NetworkDispatcher extends Thread {
     @Override
     public void run() {
         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
-        while (true) {
+        while (!isInterrupted()) {
             long startTimeMs = SystemClock.elapsedRealtime();
             Request<?> request;
             try {
@@ -90,10 +87,7 @@ public class NetworkDispatcher extends Thread {
                 request = mQueue.take();
             } catch (InterruptedException e) {
                 // We may have been interrupted because it was time to quit.
-                if (mQuit) {
-                    return;
-                }
-                continue;
+                return;
             }
 
             try {

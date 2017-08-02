@@ -45,9 +45,6 @@ public class CacheDispatcher extends Thread {
     /** For posting responses. */
     private final ResponseDelivery mDelivery;
 
-    /** Used for telling us to die. */
-    private volatile boolean mQuit = false;
-
     /**
      * Creates a new cache triage dispatcher thread.  You must call {@link #start()}
      * in order to begin processing.
@@ -71,7 +68,6 @@ public class CacheDispatcher extends Thread {
      * the queue, they are not guaranteed to be processed.
      */
     public void quit() {
-        mQuit = true;
         interrupt();
     }
 
@@ -83,7 +79,7 @@ public class CacheDispatcher extends Thread {
         // Make a blocking call to initialize the cache.
         mCache.initialize();
 
-        while (true) {
+        while (!isInterrupted()) {
             try {
                 // Get a request from the cache triage queue, blocking until
                 // at least one is available.
@@ -148,9 +144,7 @@ public class CacheDispatcher extends Thread {
 
             } catch (InterruptedException e) {
                 // We may have been interrupted because it was time to quit.
-                if (mQuit) {
-                    return;
-                }
+                return;
             }
         }
     }
