@@ -87,12 +87,12 @@ public interface Cache {
         public Map<String, String> responseHeaders = Collections.emptyMap();
 
         /** True if the entry is expired. */
-        boolean isExpired() {
+        public boolean isExpired() {
             return this.ttl < System.currentTimeMillis();
         }
 
         /** True if a refresh is needed from the original data source. */
-        boolean refreshNeeded() {
+        public boolean refreshNeeded() {
             return this.softTtl < System.currentTimeMillis();
         }
     }
