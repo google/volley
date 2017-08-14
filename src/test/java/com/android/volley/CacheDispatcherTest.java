@@ -124,7 +124,7 @@ public class CacheDispatcherTest {
         assertFalse(mDelivery.postResponse_called);
     }
 
-    @Test public void duplicateSoftExpiredCacheHit() throws Exception {
+    @Test public void duplicateSoftExpiredCacheHit_failedRequest() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
         mCache.setEntryToReturn(entry);
 
@@ -138,5 +138,34 @@ public class CacheDispatcherTest {
 
         assertTrue(mNetworkQueue.size() == 1);
         assertTrue(mDelivery.postResponse_calledNtimes == 2);
+
+        Request request = mNetworkQueue.take();
+        request.notifyListenerResponseNotUsable();
+        // Second request should now be in network queue.
+        assertTrue(mNetworkQueue.size() == 1);
+        request = mNetworkQueue.take();
+        assertTrue(request.equals(secondRequest));
+    }
+
+    @Test public void duplicateSoftExpiredCacheHit_successfulRequest() throws Exception {
+        Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
+        mCache.setEntryToReturn(entry);
+
+        MockRequest secondRequest = new MockRequest();
+        mRequest.setSequence(1);
+        secondRequest.setSequence(2);
+
+        mCacheQueue.add(mRequest);
+        mCacheQueue.add(secondRequest);
+        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
+
+        assertTrue(mNetworkQueue.size() == 1);
+        assertTrue(mDelivery.postResponse_calledNtimes == 2);
+
+        Request request = mNetworkQueue.take();
+        request.notifyListenerResponseReceived(Response.success(null, entry));
+        // Second request should have delivered response.
+        assertTrue(mNetworkQueue.size() == 0);
+        assertTrue(mDelivery.postResponse_calledNtimes == 3);
     }
 }
