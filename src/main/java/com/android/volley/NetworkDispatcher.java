@@ -33,6 +33,7 @@ import java.util.concurrent.BlockingQueue;
  * errors are posted back to the caller via a {@link ResponseDelivery}.
  */
 public class NetworkDispatcher extends Thread {
+
     /** The queue of requests to service. */
     private final BlockingQueue<Request<?>> mQueue;
     /** The network interface for processing requests. */
@@ -54,8 +55,7 @@ public class NetworkDispatcher extends Thread {
      * @param delivery Delivery interface to use for posting responses
      */
     public NetworkDispatcher(BlockingQueue<Request<?>> queue,
-            Network network, Cache cache,
-            ResponseDelivery delivery) {
+            Network network, Cache cache, ResponseDelivery delivery) {
         mQueue = queue;
         mNetwork = network;
         mCache = cache;
@@ -103,6 +103,7 @@ public class NetworkDispatcher extends Thread {
                 // network request.
                 if (request.isCanceled()) {
                     request.finish("network-discard-cancelled");
+                    request.notifyListenerResponseNotUsable();
                     continue;
                 }
 
@@ -116,6 +117,7 @@ public class NetworkDispatcher extends Thread {
                 // we're done -- don't deliver a second identical response.
                 if (networkResponse.notModified && request.hasHadResponseDelivered()) {
                     request.finish("not-modified");
+                    request.notifyListenerResponseNotUsable();
                     continue;
                 }
 
@@ -133,14 +135,17 @@ public class NetworkDispatcher extends Thread {
                 // Post the response back.
                 request.markDelivered();
                 mDelivery.postResponse(request, response);
+                request.notifyListenerResponseReceived(response);
             } catch (VolleyError volleyError) {
                 volleyError.setNetworkTimeMs(SystemClock.elapsedRealtime() - startTimeMs);
                 parseAndDeliverNetworkError(request, volleyError);
+                request.notifyListenerResponseNotUsable();
             } catch (Exception e) {
                 VolleyLog.e(e, "Unhandled exception %s", e.toString());
                 VolleyError volleyError = new VolleyError(e);
                 volleyError.setNetworkTimeMs(SystemClock.elapsedRealtime() - startTimeMs);
                 mDelivery.postError(request, volleyError);
+                request.notifyListenerResponseNotUsable();
             }
         }
     }

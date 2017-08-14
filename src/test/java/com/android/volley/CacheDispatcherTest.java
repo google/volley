@@ -112,4 +112,31 @@ public class CacheDispatcherTest {
         Request request = mNetworkQueue.take();
         assertSame(entry, request.getCacheEntry());
     }
+
+    @Test public void duplicateCacheMiss() throws Exception {
+        MockRequest secondRequest = new MockRequest();
+        mRequest.setSequence(1);
+        secondRequest.setSequence(2);
+        mCacheQueue.add(mRequest);
+        mCacheQueue.add(secondRequest);
+        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
+        assertTrue(mNetworkQueue.size() == 1);
+        assertFalse(mDelivery.postResponse_called);
+    }
+
+    @Test public void duplicateSoftExpiredCacheHit() throws Exception {
+        Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
+        mCache.setEntryToReturn(entry);
+
+        MockRequest secondRequest = new MockRequest();
+        mRequest.setSequence(1);
+        secondRequest.setSequence(2);
+
+        mCacheQueue.add(mRequest);
+        mCacheQueue.add(secondRequest);
+        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
+
+        assertTrue(mNetworkQueue.size() == 1);
+        assertTrue(mDelivery.postResponse_calledNtimes == 2);
+    }
 }
