@@ -608,8 +608,8 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     }
 
     /**
-     * Notify RequestCompleteListener that a valid response has been received which can be used
-     * for other, waiting requests.
+     * Notify NetworkRequestCompleteListener that a valid response has been received
+     * which can be used for other, waiting requests.
      * @param response received from the network
      */
     /* package */ void notifyListenerResponseReceived(Response<?> response) {
@@ -619,8 +619,8 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     }
 
     /**
-     * Notify RequestCompleteListener that the network request did not result in a response
-     * which can be used for other, waiting requests.
+     * Notify NetworkRequestCompleteListener that the network request did not result in
+     * a response which can be used for other, waiting requests.
      */
     /* package */ void notifyListenerResponseNotUsable() {
          if (mRequestCompleteListener != null) {

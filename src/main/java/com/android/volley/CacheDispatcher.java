@@ -148,11 +148,10 @@ public class CacheDispatcher extends Thread implements Request.NetworkRequestCom
                     // refreshing.
                     request.addMarker("cache-hit-refresh-needed");
                     request.setCacheEntry(entry);
+                    // Mark the response as intermediate.
                     response.intermediate = true;
 
                     if (!maybeAddToWaitingRequests(request)) {
-                        // Mark the response as intermediate.
-
                         // Post the intermediate response back to the user and have
                         // the delivery then forward the request along to the network.
                         mDelivery.postResponse(request, response, new Runnable() {
@@ -166,6 +165,8 @@ public class CacheDispatcher extends Thread implements Request.NetworkRequestCom
                             }
                         });
                     } else {
+                        // request has been added to list of waiting requests
+                        // to receive the network response from the first request once it returns.
                         mDelivery.postResponse(request, response);
                     }
                 }
