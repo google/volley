@@ -303,6 +303,7 @@ public class BasicNetwork implements Network {
      * @deprecated Should never have been exposed in the API. This method may be removed in a future
      *             release of Volley.
      */
+    // Visible for testing (see HttpHeaderParserTest).
     @Deprecated
     protected static Map<String, String> convertHeaders(Header[] headers) {
         Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -314,7 +315,6 @@ public class BasicNetwork implements Network {
 
     // TODO(#21): Pass all headers to NetworkResponse so clients can access all the headers with
     // the same keys (e.g. for SetCookie headers). Just need to ensure case-insensitivity.
-    // Visible for testing (see HttpHeaderParserText).
     private static Map<String, String> convertHeaders(Map<String, List<String>> headers) {
         Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (Map.Entry<String, List<String>> entry : headers.entrySet()) {

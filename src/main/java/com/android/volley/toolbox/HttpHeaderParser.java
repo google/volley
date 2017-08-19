@@ -150,7 +150,6 @@ public class HttpHeaderParser {
                 new SimpleDateFormat(RFC1123_FORMAT, Locale.US);
         formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
         return formatter;
-
     }
 
     /**

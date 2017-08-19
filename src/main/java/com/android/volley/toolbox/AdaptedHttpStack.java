@@ -73,6 +73,11 @@ class AdaptedHttpStack extends BaseHttpStack {
             return new HttpResponse(statusCode, headerMap);
         }
 
+        long contentLength = apacheResp.getEntity().getContentLength();
+        if ((int) contentLength != contentLength) {
+            throw new IOException("Response too large: " + contentLength);
+        }
+
         return new HttpResponse(
                 statusCode,
                 headerMap,

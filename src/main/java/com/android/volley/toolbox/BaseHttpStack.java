@@ -18,15 +18,19 @@ package com.android.volley.toolbox;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 
+import org.apache.http.Header;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.StatusLine;
 import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /** An HTTP stack abstraction. */
@@ -64,10 +68,20 @@ public abstract class BaseHttpStack implements HttpStack {
             Request<?> request, Map<String, String> additionalHeaders)
             throws IOException, AuthFailureError {
         HttpResponse response = executeRequest(request, additionalHeaders);
+
         ProtocolVersion protocolVersion = new ProtocolVersion("HTTP", 1, 1);
         StatusLine statusLine = new BasicStatusLine(
                 protocolVersion, response.getStatusCode(), "" /* reasonPhrase */);
         BasicHttpResponse apacheResponse = new BasicHttpResponse(statusLine);
+
+        List<Header> headers = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : response.getHeaders().entrySet()) {
+            for (String value : entry.getValue()) {
+                headers.add(new BasicHeader(entry.getKey(), value));
+            }
+        }
+        apacheResponse.setHeaders(headers.toArray(new Header[0]));
+
         InputStream responseStream = response.getContent();
         if (responseStream != null) {
             BasicHttpEntity entity = new BasicHttpEntity();
@@ -75,6 +89,7 @@ public abstract class BaseHttpStack implements HttpStack {
             entity.setContentLength(response.getContentLength());
             apacheResponse.setEntity(entity);
         }
+
         return apacheResponse;
     }
 }

@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.Cache.Entry;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -68,8 +69,15 @@ public class BasicNetworkTest {
         mockHttpStack.setResponseToReturn(fakeResponse);
         BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
         Request<String> request = buildRequest();
+        Entry entry = new Entry();
+        entry.etag = "foobar";
+        entry.lastModified = 1503102002000L;
+        request.setCacheEntry(entry);
         httpNetwork.performRequest(request);
         assertEquals("foo", mockHttpStack.getLastHeaders().get("requestheader"));
+        assertEquals("foobar", mockHttpStack.getLastHeaders().get("If-None-Match"));
+        assertEquals("Sat, 19 Aug 2017 00:20:02 GMT",
+                mockHttpStack.getLastHeaders().get("If-Modified-Since"));
         assertEquals("requestpost=foo&", new String(mockHttpStack.getLastPostBody()));
     }
 
