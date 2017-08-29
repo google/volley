@@ -113,9 +113,9 @@ public class BasicNetwork implements Network {
                     // have to use the header fields from the cache entry plus
                     // the new ones from the response.
                     // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.5
-                    entry.responseHeaders.putAll(responseHeaders);
+                    responseHeaders.putAll(entry.responseHeaders);
                     return new NetworkResponse(HttpStatus.SC_NOT_MODIFIED, entry.data,
-                            entry.responseHeaders, true,
+                            responseHeaders, true,
                             SystemClock.elapsedRealtime() - requestStart);
                 }
 
