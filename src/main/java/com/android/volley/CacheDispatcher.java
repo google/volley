@@ -18,8 +18,6 @@ package com.android.volley;
 
 import android.os.Process;
 
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 
 /**
@@ -117,14 +115,8 @@ public class CacheDispatcher extends Thread {
 
                 // We have a cache hit; parse its data for delivery back to the request.
                 request.addMarker("cache-hit");
-
-                // cache headers should also be case-insensitive
-                Map<String, String> responseHeaders =
-                        new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-                responseHeaders.putAll(entry.responseHeaders);
                 Response<?> response = request.parseNetworkResponse(
-                        new NetworkResponse(entry.data, responseHeaders));
-
+                        new NetworkResponse(entry.data, entry.responseHeaders));
                 request.addMarker("cache-hit-parsed");
 
                 if (!entry.refreshNeeded()) {
