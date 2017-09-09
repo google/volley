@@ -218,9 +218,7 @@ public class CacheDispatcher extends Thread implements Request.NetworkRequestCom
                         waitingRequests.size(), cacheKey);
                 }
                 Request<?> nextInLine = waitingRequests.remove();
-                if (waitingRequests.size() > 0) {
-                  mWaitingRequests.put(cacheKey, waitingRequests);
-                }
+                mWaitingRequests.put(cacheKey, waitingRequests);
                 try {
                     mNetworkQueue.put(nextInLine);
                 } catch (InterruptedException iex) {
