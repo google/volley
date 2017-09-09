@@ -160,7 +160,8 @@ public class CacheDispatcher extends Thread implements Request.NetworkRequestCom
                                 try {
                                     mNetworkQueue.put(request);
                                 } catch (InterruptedException e) {
-                                    // Not much we can do about this.
+                                    // Restore the interrupted status
+                                    Thread.currentThread().interrupt();
                                 }
                             }
                         });
@@ -211,21 +212,23 @@ public class CacheDispatcher extends Thread implements Request.NetworkRequestCom
         Queue<Request<?>> waitingRequests;
         synchronized (mWaitingRequests) {
             waitingRequests = mWaitingRequests.remove(cacheKey);
-        }
-        if (waitingRequests != null) {
-            if (VolleyLog.DEBUG) {
-                VolleyLog.v("%d waiting requests for cacheKey=%s; resend to network",
-                    waitingRequests.size(), cacheKey);
-            }
-            Request<?> nextInLine = waitingRequests.remove();
-            synchronized (mWaitingRequests) {
-                mWaitingRequests.put(cacheKey, waitingRequests);
-            }
-            try {
-                mNetworkQueue.put(nextInLine);
-            } catch (InterruptedException iex) {
-                VolleyLog.e("Couldn't add request to queue. %s", iex.toString());
-                quit();
+            if (waitingRequests != null) {
+                if (VolleyLog.DEBUG) {
+                    VolleyLog.v("%d waiting requests for cacheKey=%s; resend to network",
+                        waitingRequests.size(), cacheKey);
+                }
+                Request<?> nextInLine = waitingRequests.remove();
+                if (waitingRequests.size() > 0) {
+                  mWaitingRequests.put(cacheKey, waitingRequests);
+                }
+                try {
+                    mNetworkQueue.put(nextInLine);
+                } catch (InterruptedException iex) {
+                    VolleyLog.e("Couldn't add request to queue. %s", iex.toString());
+                    // Restore the interrupted status
+                    Thread.currentThread().interrupt();
+                    quit();
+                }
             }
         }
     }

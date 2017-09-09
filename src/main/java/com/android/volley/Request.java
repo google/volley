@@ -117,7 +117,11 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     /** An opaque token tagging this request; used for bulk cancellation. */
     private Object mTag;
 
+    /** Listener that will be notified when a response has been delivered. */
     private NetworkRequestCompleteListener mRequestCompleteListener;
+
+    /** Object to guard access to mRequestCompleteListener. */
+    private final Object mLock = new Object();
 
     /**
      * Creates a new request with the given URL and error listener.  Note that
@@ -604,7 +608,9 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      */
     /* package */ void setNetworkRequestCompleteListener(
             NetworkRequestCompleteListener requestCompleteListener) {
-        mRequestCompleteListener = requestCompleteListener;
+        synchronized(mLock) {
+            mRequestCompleteListener = requestCompleteListener;
+        }
     }
 
     /**
@@ -613,8 +619,10 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * @param response received from the network
      */
     /* package */ void notifyListenerResponseReceived(Response<?> response) {
-        if (mRequestCompleteListener != null) {
-           mRequestCompleteListener.onResponseReceived(this, response);
+        synchronized(mLock) {
+            if (mRequestCompleteListener != null) {
+               mRequestCompleteListener.onResponseReceived(this, response);
+            }
         }
     }
 
@@ -623,9 +631,11 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * a response which can be used for other, waiting requests.
      */
     /* package */ void notifyListenerResponseNotUsable() {
-         if (mRequestCompleteListener != null) {
-             mRequestCompleteListener.onNoUsableResponseReceived(this);
-         }
+        synchronized(mLock) {
+            if (mRequestCompleteListener != null) {
+                mRequestCompleteListener.onNoUsableResponseReceived(this);
+            }
+        }
     }
 
     /**
