@@ -608,7 +608,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      */
     /* package */ void setNetworkRequestCompleteListener(
             NetworkRequestCompleteListener requestCompleteListener) {
-        synchronized(mLock) {
+        synchronized (mLock) {
             mRequestCompleteListener = requestCompleteListener;
         }
     }
@@ -619,7 +619,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * @param response received from the network
      */
     /* package */ void notifyListenerResponseReceived(Response<?> response) {
-        synchronized(mLock) {
+        synchronized (mLock) {
             if (mRequestCompleteListener != null) {
                mRequestCompleteListener.onResponseReceived(this, response);
             }
@@ -631,7 +631,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * a response which can be used for other, waiting requests.
      */
     /* package */ void notifyListenerResponseNotUsable() {
-        synchronized(mLock) {
+        synchronized (mLock) {
             if (mRequestCompleteListener != null) {
                 mRequestCompleteListener.onNoUsableResponseReceived(this);
             }

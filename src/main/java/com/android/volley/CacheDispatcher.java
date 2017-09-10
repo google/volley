@@ -209,22 +209,25 @@ public class CacheDispatcher extends Thread implements Request.NetworkRequestCom
     @Override
     public void onNoUsableResponseReceived(Request<?> request) {
         String cacheKey = request.getCacheKey();
-        Queue<Request<?>> waitingRequests;
         synchronized (mWaitingRequests) {
-            waitingRequests = mWaitingRequests.remove(cacheKey);
+            Queue<Request<?>> waitingRequests = mWaitingRequests.remove(cacheKey);
             if (waitingRequests != null) {
                 if (VolleyLog.DEBUG) {
                     VolleyLog.v("%d waiting requests for cacheKey=%s; resend to network",
                         waitingRequests.size(), cacheKey);
                 }
                 Request<?> nextInLine = waitingRequests.remove();
+		if (nextInLine == null) {
+		    return;
+		}
                 mWaitingRequests.put(cacheKey, waitingRequests);
                 try {
                     mNetworkQueue.put(nextInLine);
                 } catch (InterruptedException iex) {
                     VolleyLog.e("Couldn't add request to queue. %s", iex.toString());
-                    // Restore the interrupted status
+                    // Restore the interrupted status of the calling thread (i.e. NetworkDIspatcher)
                     Thread.currentThread().interrupt();
+		    // Quit the current CacheDispatcher thread.
                     quit();
                 }
             }
