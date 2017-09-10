@@ -53,7 +53,7 @@ public class CacheDispatcher extends Thread {
     private volatile boolean mQuit = false;
 
     /** Manage list of waiting requests and de-duplicate requests with same cache key. */
-    private WaitingRequestHandler mWaitingRequestHandler;
+    private final WaitingRequestHandler mWaitingRequestHandler;
 
     /**
      * Creates a new cache triage dispatcher thread.  You must call {@link #start()}
@@ -71,7 +71,7 @@ public class CacheDispatcher extends Thread {
         mNetworkQueue = networkQueue;
         mCache = cache;
         mDelivery = delivery;
-	mWaitingRequestHandler = new WaitingRequestHandler();
+	mWaitingRequestHandler = new WaitingRequestHandler(this);
     }
 
     /**
@@ -173,7 +173,7 @@ public class CacheDispatcher extends Thread {
         }
     }
 
-    private class WaitingRequestHandler implements Request.NetworkRequestCompleteListener {
+    private static class WaitingRequestHandler implements Request.NetworkRequestCompleteListener {
 	
 	/**
 	 * Staging area for requests that already have a duplicate request in flight.
@@ -187,6 +187,12 @@ public class CacheDispatcher extends Thread {
 	 */
 	private final Map<String, Queue<Request<?>>> mWaitingRequests = new HashMap<>();
 
+	private final CacheDispatcher mCacheDispatcher;
+	
+	WaitingRequestHandler(CacheDispatcher cacheDispatcher) {
+	    mCacheDispatcher = cacheDispatcher;
+	}
+	
 	/** Request received a valid response that can be used by other waiting requests. */
 	@Override
 	public synchronized void onResponseReceived(Request<?> request, Response<?> response) {
@@ -195,8 +201,7 @@ public class CacheDispatcher extends Thread {
 		return;
 	    }
 	    String cacheKey = request.getCacheKey();
-	    Queue<Request<?>> waitingRequests;
-	    waitingRequests = mWaitingRequests.remove(cacheKey);
+	    Queue<Request<?>> waitingRequests = mWaitingRequests.remove(cacheKey);
 	    if (waitingRequests != null) {
 		if (VolleyLog.DEBUG) {
 		    VolleyLog.v("Releasing %d waiting requests for cacheKey=%s.",
@@ -204,7 +209,7 @@ public class CacheDispatcher extends Thread {
 		}
 		// Process all queued up requests.
 		for (Request<?> waiting : waitingRequests) {
-		    mDelivery.postResponse(waiting, response);
+		    mCacheDispatcher.mDelivery.postResponse(waiting, response);
 		}
 	    }
 	}
@@ -225,13 +230,13 @@ public class CacheDispatcher extends Thread {
 		}
 		mWaitingRequests.put(cacheKey, waitingRequests);
 		try {
-		    mNetworkQueue.put(nextInLine);
+		    mCacheDispatcher.mNetworkQueue.put(nextInLine);
 		} catch (InterruptedException iex) {
 		    VolleyLog.e("Couldn't add request to queue. %s", iex.toString());
 		    // Restore the interrupted status of the calling thread (i.e. NetworkDIspatcher)
 		    Thread.currentThread().interrupt();
 		    // Quit the current CacheDispatcher thread.
-		    quit();
+		    mCacheDispatcher.quit();
 		}
 	    }
 	}
