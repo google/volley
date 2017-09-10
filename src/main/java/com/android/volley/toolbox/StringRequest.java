@@ -21,12 +21,8 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
-
-<<<<<<< 27f4207774f7a0b59168f5b3b53d8c0c3841de64
 import java.io.UnsupportedEncodingException;
 
-=======
->>>>>>> 1.Create StringResponseModel, available for modify html element's size(img,div ...)
 /**
  * A canned request for retrieving the response body at a given URL as a String.
  */
@@ -67,21 +63,9 @@ public class StringRequest extends Request<String> {
 
     @Override
     protected Response<String> parseNetworkResponse(NetworkResponse response) {
-<<<<<<< 27f4207774f7a0b59168f5b3b53d8c0c3841de64
-        String parsed;
-        try {
-            parsed = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
-        } catch (UnsupportedEncodingException e) {
-            parsed = new String(response.data);
-        }
-        return Response.success(parsed, HttpHeaderParser.parseCacheHeaders(response));
-    }
-}
-=======
         ParsedString parsed;
         parsed = new ParsedString(response.data, HttpHeaderParser.parseCharset(response.headers));
 
         return Response.success(parsed.toString(), HttpHeaderParser.parseCacheHeaders(response));
     }
 }
->>>>>>> 1.Create StringResponseModel, available for modify html element's size(img,div ...)
