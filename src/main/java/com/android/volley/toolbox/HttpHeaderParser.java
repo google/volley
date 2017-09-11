@@ -18,6 +18,7 @@ package com.android.volley.toolbox;
 
 import com.android.volley.Cache;
 import com.android.volley.NetworkResponse;
+import com.android.volley.VolleyLog;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -136,6 +137,7 @@ public class HttpHeaderParser {
             return newRfc1123Formatter().parse(dateStr).getTime();
         } catch (ParseException e) {
             // Date in invalid format, fallback to 0
+            VolleyLog.e(e, "Unable to parse dateStr: %s, falling back to 0", dateStr);
             return 0;
         }
     }

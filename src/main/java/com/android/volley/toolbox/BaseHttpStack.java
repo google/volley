@@ -80,7 +80,7 @@ public abstract class BaseHttpStack implements HttpStack {
                 headers.add(new BasicHeader(entry.getKey(), value));
             }
         }
-        apacheResponse.setHeaders(headers.toArray(new Header[0]));
+        apacheResponse.setHeaders(headers.toArray(new Header[headers.size()]));
 
         InputStream responseStream = response.getContent();
         if (responseStream != null) {
