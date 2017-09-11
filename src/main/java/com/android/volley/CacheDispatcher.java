@@ -71,7 +71,7 @@ public class CacheDispatcher extends Thread {
         mNetworkQueue = networkQueue;
         mCache = cache;
         mDelivery = delivery;
-	mWaitingRequestHandler = new WaitingRequestHandler(this);
+        mWaitingRequestHandler = new WaitingRequestHandler(this);
     }
 
     /**
