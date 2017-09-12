@@ -222,7 +222,7 @@ public class CacheDispatcher extends Thread {
         public synchronized void onNoUsableResponseReceived(Request<?> request) {
             String cacheKey = request.getCacheKey();
             List<Request<?>> waitingRequests = mWaitingRequests.remove(cacheKey);
-            if (waitingRequests != null) {
+            if (waitingRequests != null && !waitingRequests.isEmpty()) {
                 if (VolleyLog.DEBUG) {
                     VolleyLog.v("%d waiting requests for cacheKey=%s; resend to network",
                             waitingRequests.size(), cacheKey);
