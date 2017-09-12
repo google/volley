@@ -55,6 +55,9 @@ publishing {
             groupId 'com.android.volley'
             artifactId 'volley'
             version project.ext.version
+            pom {
+                packaging 'aar'
+            }
 
             // Release AAR, Sources, and JavaDoc
             artifact "$buildDir/outputs/aar/volley-release.aar"
