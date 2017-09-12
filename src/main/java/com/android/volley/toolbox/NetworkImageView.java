@@ -204,7 +204,7 @@ public class NetworkImageView extends ImageView {
             // If the view was bound to an image request, cancel it and clear
             // out the image from the view.
             mImageContainer.cancelRequest();
-            setImageBitmap(null);
+
             // also clear out the container so we can reload the image if necessary.
             mImageContainer = null;
         }
