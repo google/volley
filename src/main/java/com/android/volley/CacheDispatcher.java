@@ -228,10 +228,7 @@ public class CacheDispatcher extends Thread {
                             waitingRequests.size(), cacheKey);
                 }
                 Request<?> nextInLine = waitingRequests.remove(0);
-                    if (nextInLine == null) {
-                        return;
-                    }
-                    mWaitingRequests.put(cacheKey, waitingRequests);
+                mWaitingRequests.put(cacheKey, waitingRequests);
                 try {
                     mCacheDispatcher.mNetworkQueue.put(nextInLine);
                 } catch (InterruptedException iex) {
