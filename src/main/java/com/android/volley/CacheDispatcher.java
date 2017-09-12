@@ -18,10 +18,10 @@ package com.android.volley;
 
 import android.os.Process;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
 /**
@@ -185,7 +185,7 @@ public class CacheDispatcher extends Thread {
          *          is <em>not</em> contained in that list. Is null if no requests are staged.</li>
          * </ul>
          */
-        private final Map<String, Queue<Request<?>>> mWaitingRequests = new HashMap<>();
+        private final Map<String, List<Request<?>>> mWaitingRequests = new HashMap<>();
 
         private final CacheDispatcher mCacheDispatcher;
 
@@ -201,7 +201,7 @@ public class CacheDispatcher extends Thread {
                 return;
             }
             String cacheKey = request.getCacheKey();
-            Queue<Request<?>> waitingRequests;
+            List<Request<?>> waitingRequests;
             synchronized (this) {
                 waitingRequests = mWaitingRequests.remove(cacheKey);
             }
@@ -221,17 +221,14 @@ public class CacheDispatcher extends Thread {
         @Override
         public synchronized void onNoUsableResponseReceived(Request<?> request) {
             String cacheKey = request.getCacheKey();
-            Queue<Request<?>> waitingRequests = mWaitingRequests.remove(cacheKey);
-            if (waitingRequests != null) {
+            List<Request<?>> waitingRequests = mWaitingRequests.remove(cacheKey);
+            if (waitingRequests != null && !waitingRequests.isEmpty()) {
                 if (VolleyLog.DEBUG) {
                     VolleyLog.v("%d waiting requests for cacheKey=%s; resend to network",
                             waitingRequests.size(), cacheKey);
                 }
-                Request<?> nextInLine = waitingRequests.remove();
-                    if (nextInLine == null) {
-                        return;
-                    }
-                    mWaitingRequests.put(cacheKey, waitingRequests);
+                Request<?> nextInLine = waitingRequests.remove(0);
+                mWaitingRequests.put(cacheKey, waitingRequests);
                 try {
                     mCacheDispatcher.mNetworkQueue.put(nextInLine);
                 } catch (InterruptedException iex) {
@@ -257,9 +254,9 @@ public class CacheDispatcher extends Thread {
             // in flight.
             if (mWaitingRequests.containsKey(cacheKey)) {
                 // There is already a request in flight. Queue up.
-                Queue<Request<?>> stagedRequests = mWaitingRequests.get(cacheKey);
+                List<Request<?>> stagedRequests = mWaitingRequests.get(cacheKey);
                 if (stagedRequests == null) {
-                    stagedRequests = new LinkedList<Request<?>>();
+                    stagedRequests = new ArrayList<Request<?>>();
                 }
                 request.addMarker("waiting-for-response");
                 stagedRequests.add(request);
