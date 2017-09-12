@@ -18,15 +18,14 @@ package com.android.volley.mock;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
-import com.android.volley.toolbox.HttpStack;
-
-import org.apache.http.HttpResponse;
+import com.android.volley.toolbox.BaseHttpStack;
+import com.android.volley.toolbox.HttpResponse;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MockHttpStack implements HttpStack {
+public class MockHttpStack extends BaseHttpStack {
 
     private HttpResponse mResponseToReturn;
 
@@ -59,13 +58,13 @@ public class MockHttpStack implements HttpStack {
     }
 
     @Override
-    public HttpResponse performRequest(Request<?> request, Map<String, String> additionalHeaders)
+    public HttpResponse executeRequest(Request<?> request, Map<String, String> additionalHeaders)
             throws IOException, AuthFailureError {
         if (mExceptionToThrow != null) {
             throw mExceptionToThrow;
         }
         mLastUrl = request.getUrl();
-        mLastHeaders = new HashMap<String, String>();
+        mLastHeaders = new HashMap<>();
         if (request.getHeaders() != null) {
             mLastHeaders.putAll(request.getHeaders());
         }

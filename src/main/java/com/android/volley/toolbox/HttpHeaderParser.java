@@ -18,17 +18,25 @@ package com.android.volley.toolbox;
 
 import com.android.volley.Cache;
 import com.android.volley.NetworkResponse;
+import com.android.volley.VolleyLog;
 
-import org.apache.http.impl.cookie.DateParseException;
-import org.apache.http.impl.cookie.DateUtils;
-import org.apache.http.protocol.HTTP;
-
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Utility methods for parsing HTTP headers.
  */
 public class HttpHeaderParser {
+
+    static final String HEADER_CONTENT_TYPE = "Content-Type";
+
+    private static final String DEFAULT_CONTENT_CHARSET = "ISO-8859-1";
+
+    private static final String RFC1123_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
 
     /**
      * Extracts a {@link com.android.volley.Cache.Entry} from a {@link NetworkResponse}.
@@ -126,11 +134,24 @@ public class HttpHeaderParser {
     public static long parseDateAsEpoch(String dateStr) {
         try {
             // Parse date in RFC1123 format if this header contains one
-            return DateUtils.parseDate(dateStr).getTime();
-        } catch (DateParseException e) {
+            return newRfc1123Formatter().parse(dateStr).getTime();
+        } catch (ParseException e) {
             // Date in invalid format, fallback to 0
+            VolleyLog.e(e, "Unable to parse dateStr: %s, falling back to 0", dateStr);
             return 0;
         }
+    }
+
+    /** Format an epoch date in RFC1123 format. */
+    static String formatEpochAsRfc1123(long epoch) {
+        return newRfc1123Formatter().format(new Date(epoch));
+    }
+
+    private static SimpleDateFormat newRfc1123Formatter() {
+        SimpleDateFormat formatter =
+                new SimpleDateFormat(RFC1123_FORMAT, Locale.US);
+        formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return formatter;
     }
 
     /**
@@ -142,7 +163,7 @@ public class HttpHeaderParser {
      * or the defaultCharset if none can be found.
      */
     public static String parseCharset(Map<String, String> headers, String defaultCharset) {
-        String contentType = headers.get(HTTP.CONTENT_TYPE);
+        String contentType = headers.get(HEADER_CONTENT_TYPE);
         if (contentType != null) {
             String[] params = contentType.split(";");
             for (int i = 1; i < params.length; i++) {
@@ -163,6 +184,6 @@ public class HttpHeaderParser {
      * or the HTTP default (ISO-8859-1) if none can be found.
      */
     public static String parseCharset(Map<String, String> headers) {
-        return parseCharset(headers, HTTP.DEFAULT_CONTENT_CHARSET);
+        return parseCharset(headers, DEFAULT_CONTENT_CHARSET);
     }
 }

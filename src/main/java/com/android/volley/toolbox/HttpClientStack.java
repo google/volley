@@ -46,7 +46,11 @@ import java.util.Map;
 
 /**
  * An HttpStack that performs request over an {@link HttpClient}.
+ *
+ * @deprecated The Apache HTTP library on Android is deprecated. Use {@link HurlStack} or another
+ *             {@link BaseHttpStack} implementation.
  */
+@Deprecated
 public class HttpClientStack implements HttpStack {
     protected final HttpClient mClient;
 

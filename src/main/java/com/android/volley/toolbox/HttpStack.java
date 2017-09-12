@@ -26,7 +26,12 @@ import java.util.Map;
 
 /**
  * An HTTP stack abstraction.
+ *
+ * @deprecated This interface should be avoided as it depends on the deprecated Apache HTTP library.
+ *     Use {@link BaseHttpStack} to avoid this dependency. This class may be removed in a future
+ *     release of Volley.
  */
+@Deprecated
 public interface HttpStack {
     /**
      * Performs an HTTP request with the given parameters.
