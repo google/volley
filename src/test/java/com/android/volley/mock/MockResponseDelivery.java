@@ -25,6 +25,7 @@ public class MockResponseDelivery implements ResponseDelivery {
 
     public boolean postResponse_called = false;
     public boolean postError_called = false;
+    public long postResponse_calledNtimes = 0;
 
     public boolean wasEitherResponseCalled() {
         return postResponse_called || postError_called;
@@ -34,12 +35,14 @@ public class MockResponseDelivery implements ResponseDelivery {
     @Override
     public void postResponse(Request<?> request, Response<?> response) {
         postResponse_called = true;
+        postResponse_calledNtimes++;
         responsePosted = response;
     }
 
     @Override
     public void postResponse(Request<?> request, Response<?> response, Runnable runnable) {
         postResponse_called = true;
+        postResponse_calledNtimes++;
         responsePosted = response;
         runnable.run();
     }

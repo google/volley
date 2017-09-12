@@ -56,6 +56,18 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         int PATCH = 7;
     }
 
+    /**
+     * Callback to notify when the network request returns.
+     */
+    /* package */ interface NetworkRequestCompleteListener {
+
+        /** Callback when a network response has been received. */
+        void onResponseReceived(Request<?> request, Response<?> response);
+
+        /** Callback when request returns from network without valid response. */
+        void onNoUsableResponseReceived(Request<?> request);
+    }
+
     /** An event log tracing the lifetime of this request; for debugging. */
     private final MarkerLog mEventLog = MarkerLog.ENABLED ? new MarkerLog() : null;
 
@@ -104,6 +116,12 @@ public abstract class Request<T> implements Comparable<Request<T>> {
 
     /** An opaque token tagging this request; used for bulk cancellation. */
     private Object mTag;
+
+    /** Listener that will be notified when a response has been delivered. */
+    private NetworkRequestCompleteListener mRequestCompleteListener;
+
+    /** Object to guard access to mRequestCompleteListener. */
+    private final Object mLock = new Object();
 
     /**
      * Creates a new request with the given URL and error listener.  Note that
@@ -581,6 +599,42 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     public void deliverError(VolleyError error) {
         if (mErrorListener != null) {
             mErrorListener.onErrorResponse(error);
+        }
+    }
+
+    /**
+     * {@link NetworkRequestCompleteListener} that will receive callbacks when the request
+     * returns from the network.
+     */
+    /* package */ void setNetworkRequestCompleteListener(
+            NetworkRequestCompleteListener requestCompleteListener) {
+        synchronized (mLock) {
+            mRequestCompleteListener = requestCompleteListener;
+        }
+    }
+
+    /**
+     * Notify NetworkRequestCompleteListener that a valid response has been received
+     * which can be used for other, waiting requests.
+     * @param response received from the network
+     */
+    /* package */ void notifyListenerResponseReceived(Response<?> response) {
+        synchronized (mLock) {
+            if (mRequestCompleteListener != null) {
+               mRequestCompleteListener.onResponseReceived(this, response);
+            }
+        }
+    }
+
+    /**
+     * Notify NetworkRequestCompleteListener that the network request did not result in
+     * a response which can be used for other, waiting requests.
+     */
+    /* package */ void notifyListenerResponseNotUsable() {
+        synchronized (mLock) {
+            if (mRequestCompleteListener != null) {
+                mRequestCompleteListener.onNoUsableResponseReceived(this);
+            }
         }
     }
 
