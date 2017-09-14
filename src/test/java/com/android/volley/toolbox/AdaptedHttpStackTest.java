@@ -2,10 +2,10 @@ package com.android.volley.toolbox;
 
 import android.util.Pair;
 
+import com.android.volley.Header;
 import com.android.volley.Request;
 import com.android.volley.mock.TestRequest;
 
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -68,13 +68,13 @@ public class AdaptedHttpStackTest {
     public void emptyResponse() throws Exception {
         when(mHttpStack.performRequest(REQUEST, ADDITIONAL_HEADERS)).thenReturn(mHttpResponse);
         when(mStatusLine.getStatusCode()).thenReturn(12345);
-        when(mHttpResponse.getAllHeaders()).thenReturn(new Header[0]);
+        when(mHttpResponse.getAllHeaders()).thenReturn(new org.apache.http.Header[0]);
 
         com.android.volley.toolbox.HttpResponse response =
                 mAdaptedHttpStack.executeRequest(REQUEST, ADDITIONAL_HEADERS);
 
         assertEquals(12345, response.getStatusCode());
-        assertEquals(Collections.emptyMap(), response.getHeaders());
+        assertEquals(Collections.emptyList(), response.getHeaders());
         assertNull(response.getContent());
     }
 
@@ -82,7 +82,7 @@ public class AdaptedHttpStackTest {
     public void nonEmptyResponse() throws Exception {
         when(mHttpStack.performRequest(REQUEST, ADDITIONAL_HEADERS)).thenReturn(mHttpResponse);
         when(mStatusLine.getStatusCode()).thenReturn(12345);
-        when(mHttpResponse.getAllHeaders()).thenReturn(new Header[0]);
+        when(mHttpResponse.getAllHeaders()).thenReturn(new org.apache.http.Header[0]);
         when(mHttpResponse.getEntity()).thenReturn(mHttpEntity);
         when(mHttpEntity.getContentLength()).thenReturn((long) Integer.MAX_VALUE);
         when(mHttpEntity.getContent()).thenReturn(mContent);
@@ -91,7 +91,7 @@ public class AdaptedHttpStackTest {
                 mAdaptedHttpStack.executeRequest(REQUEST, ADDITIONAL_HEADERS);
 
         assertEquals(12345, response.getStatusCode());
-        assertEquals(Collections.emptyMap(), response.getHeaders());
+        assertEquals(Collections.emptyList(), response.getHeaders());
         assertEquals(Integer.MAX_VALUE, response.getContentLength());
         assertSame(mContent, response.getContent());
     }
@@ -100,7 +100,7 @@ public class AdaptedHttpStackTest {
     public void responseTooBig() throws Exception {
         when(mHttpStack.performRequest(REQUEST, ADDITIONAL_HEADERS)).thenReturn(mHttpResponse);
         when(mStatusLine.getStatusCode()).thenReturn(12345);
-        when(mHttpResponse.getAllHeaders()).thenReturn(new Header[0]);
+        when(mHttpResponse.getAllHeaders()).thenReturn(new org.apache.http.Header[0]);
         when(mHttpResponse.getEntity()).thenReturn(mHttpEntity);
         when(mHttpEntity.getContentLength()).thenReturn(Integer.MAX_VALUE + 1L);
         when(mHttpEntity.getContent()).thenReturn(mContent);
@@ -112,7 +112,7 @@ public class AdaptedHttpStackTest {
     public void responseWithHeaders() throws Exception {
         when(mHttpStack.performRequest(REQUEST, ADDITIONAL_HEADERS)).thenReturn(mHttpResponse);
         when(mStatusLine.getStatusCode()).thenReturn(12345);
-        when(mHttpResponse.getAllHeaders()).thenReturn(new Header[] {
+        when(mHttpResponse.getAllHeaders()).thenReturn(new org.apache.http.Header[] {
                 new BasicHeader("header1", "value1_B"),
                 new BasicHeader("header3", "value3"),
                 new BasicHeader("HEADER2", "value2"),
@@ -125,18 +125,11 @@ public class AdaptedHttpStackTest {
         assertEquals(12345, response.getStatusCode());
         assertNull(response.getContent());
 
-        List<Pair<String, String>> orderedHeaders = new ArrayList<>();
-        for (Map.Entry<String, List<String>> entry : response.getHeaders().entrySet()) {
-            for (String value : entry.getValue()) {
-                orderedHeaders.add(Pair.create(entry.getKey(), value));
-            }
-        }
-
-        List<Pair<String, String>> expectedHeaders = new ArrayList<>();
-        expectedHeaders.add(Pair.create("header1", "value1_B"));
-        expectedHeaders.add(Pair.create("header1", "value1_A"));
-        expectedHeaders.add(Pair.create("HEADER2", "value2"));
-        expectedHeaders.add(Pair.create("header3", "value3"));
-        assertEquals(expectedHeaders, orderedHeaders);
+        List<Header> expectedHeaders = new ArrayList<>();
+        expectedHeaders.add(new Header("header1", "value1_B"));
+        expectedHeaders.add(new Header("header3", "value3"));
+        expectedHeaders.add(new Header("HEADER2", "value2"));
+        expectedHeaders.add(new Header("header1", "value1_A"));
+        assertEquals(expectedHeaders, response.getHeaders());
     }
 }

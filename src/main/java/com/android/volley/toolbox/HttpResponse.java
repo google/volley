@@ -15,14 +15,19 @@
  */
 package com.android.volley.toolbox;
 
+import android.util.Pair;
+
+import com.android.volley.Header;
+
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
 /** A response from an HTTP server. */
-public class HttpResponse {
+public final class HttpResponse {
+
     private final int mStatusCode;
-    private final Map<String, List<String>> mHeaders;
+    private final List<Header> mHeaders;
     private final int mContentLength;
     private final InputStream mContent;
 
@@ -32,7 +37,7 @@ public class HttpResponse {
      * @param statusCode the HTTP status code of the response
      * @param headers the response headers
      */
-    public HttpResponse(int statusCode, Map<String, List<String>> headers) {
+    public HttpResponse(int statusCode, List<Header> headers) {
         this(statusCode, headers, -1 /* contentLength */, null /* content */);
     }
 
@@ -45,8 +50,8 @@ public class HttpResponse {
      * @param content an {@link InputStream} of the response content. May be null to indicate that
      *     the response has no content.
      */
-    public HttpResponse(int statusCode, Map<String, List<String>> headers,
-            int contentLength, InputStream content) {
+    public HttpResponse(
+            int statusCode, List<Header> headers, int contentLength, InputStream content) {
         mStatusCode = statusCode;
         mHeaders = headers;
         mContentLength = contentLength;
@@ -59,7 +64,7 @@ public class HttpResponse {
     }
 
     /** Returns the response headers. */
-    public final Map<String, List<String>> getHeaders() {
+    public final List<Header> getHeaders() {
         return mHeaders;
     }
 

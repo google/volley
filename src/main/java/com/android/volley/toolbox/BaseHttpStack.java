@@ -16,9 +16,9 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.Header;
 import com.android.volley.Request;
 
-import org.apache.http.Header;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.StatusLine;
 import org.apache.http.entity.BasicHttpEntity;
@@ -74,13 +74,11 @@ public abstract class BaseHttpStack implements HttpStack {
                 protocolVersion, response.getStatusCode(), "" /* reasonPhrase */);
         BasicHttpResponse apacheResponse = new BasicHttpResponse(statusLine);
 
-        List<Header> headers = new ArrayList<>();
-        for (Map.Entry<String, List<String>> entry : response.getHeaders().entrySet()) {
-            for (String value : entry.getValue()) {
-                headers.add(new BasicHeader(entry.getKey(), value));
-            }
+        List<org.apache.http.Header> headers = new ArrayList<>();
+        for (Header header : response.getHeaders()) {
+            headers.add(new BasicHeader(header.getName(), header.getValue()));
         }
-        apacheResponse.setHeaders(headers.toArray(new Header[headers.size()]));
+        apacheResponse.setHeaders(headers.toArray(new org.apache.http.Header[headers.size()]));
 
         InputStream responseStream = response.getContent();
         if (responseStream != null) {

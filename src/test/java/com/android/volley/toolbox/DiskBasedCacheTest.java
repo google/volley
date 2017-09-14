@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Cache;
+import com.android.volley.Header;
 import com.android.volley.toolbox.DiskBasedCache.CacheHeader;
 import com.android.volley.toolbox.DiskBasedCache.CountingInputStream;
 
@@ -38,7 +39,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -428,28 +431,33 @@ public class DiskBasedCacheTest {
         assertEquals(DiskBasedCache.readString(cis), "ファイカス");
     }
 
-    @Test public void serializeMap() throws Exception {
+    @Test public void serializeHeaders() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Map<String, String> empty = new HashMap<>();
-        DiskBasedCache.writeStringStringMap(empty, baos);
-        DiskBasedCache.writeStringStringMap(null, baos);
-        Map<String, String> twoThings = new HashMap<>();
-        twoThings.put("first", "thing");
-        twoThings.put("second", "item");
-        DiskBasedCache.writeStringStringMap(twoThings, baos);
-        Map<String, String> emptyKey = new HashMap<>();
-        emptyKey.put("", "value");
-        DiskBasedCache.writeStringStringMap(emptyKey, baos);
-        Map<String, String> emptyValue = new HashMap<>();
-        emptyValue.put("key", "");
-        DiskBasedCache.writeStringStringMap(emptyValue, baos);
+        List<Header> empty = new ArrayList<>();
+        DiskBasedCache.writeHeaderList(empty, baos);
+        DiskBasedCache.writeHeaderList(null, baos);
+        List<Header> twoThings = new ArrayList<>();
+        twoThings.add(new Header("first", "thing"));
+        twoThings.add(new Header("second", "item"));
+        DiskBasedCache.writeHeaderList(twoThings, baos);
+        List<Header> emptyKey = new ArrayList<>();
+        emptyKey.add(new Header("", "value"));
+        DiskBasedCache.writeHeaderList(emptyKey, baos);
+        List<Header> emptyValue = new ArrayList<>();
+        emptyValue.add(new Header("key", ""));
+        DiskBasedCache.writeHeaderList(emptyValue, baos);
+        List<Header> sameKeys = new ArrayList<>();
+        sameKeys.add(new Header("key", "value"));
+        sameKeys.add(new Header("key", "value2"));
+        DiskBasedCache.writeHeaderList(sameKeys, baos);
         CountingInputStream cis =
                 new CountingInputStream(new ByteArrayInputStream(baos.toByteArray()), baos.size());
-        assertEquals(DiskBasedCache.readStringStringMap(cis), empty);
-        assertEquals(DiskBasedCache.readStringStringMap(cis), empty); // null reads back empty
-        assertEquals(DiskBasedCache.readStringStringMap(cis), twoThings);
-        assertEquals(DiskBasedCache.readStringStringMap(cis), emptyKey);
-        assertEquals(DiskBasedCache.readStringStringMap(cis), emptyValue);
+        assertEquals(DiskBasedCache.readHeaderList(cis), empty);
+        assertEquals(DiskBasedCache.readHeaderList(cis), empty); // null reads back empty
+        assertEquals(DiskBasedCache.readHeaderList(cis), twoThings);
+        assertEquals(DiskBasedCache.readHeaderList(cis), emptyKey);
+        assertEquals(DiskBasedCache.readHeaderList(cis), emptyValue);
+        assertEquals(DiskBasedCache.readHeaderList(cis), sameKeys);
     }
 
     @Test

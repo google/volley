@@ -16,6 +16,7 @@
 
 package com.android.volley.toolbox;
 
+import com.android.volley.Header;
 import com.android.volley.Request.Method;
 import com.android.volley.mock.MockHttpURLConnection;
 import com.android.volley.mock.TestRequest;
@@ -24,6 +25,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
@@ -151,5 +158,20 @@ public class HurlStackTest {
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
         assertEquals("PATCH", mMockConnection.getRequestMethod());
         assertTrue(mMockConnection.getDoOutput());
+    }
+
+    @Test public void convertHeaders() {
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("HeaderA", Collections.singletonList("ValueA"));
+        List<String> values = new ArrayList<>();
+        values.add("ValueB_1");
+        values.add("ValueB_2");
+        headers.put("HeaderB", values);
+        List<Header> result = HurlStack.convertHeaders(headers);
+        List<Header> expected = new ArrayList<>();
+        expected.add(new Header("HeaderA", "ValueA"));
+        expected.add(new Header("HeaderB", "ValueB_1"));
+        expected.add(new Header("HeaderB", "ValueB_2"));
+        assertEquals(expected, result);
     }
 }

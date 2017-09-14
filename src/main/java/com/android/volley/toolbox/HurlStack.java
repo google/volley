@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.Header;
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
 
@@ -25,7 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -99,12 +102,26 @@ public class HurlStack extends BaseHttpStack {
             // Signal to the caller that something was wrong with the connection.
             throw new IOException("Could not retrieve response code from HttpUrlConnection.");
         }
+
+
+
         if (!hasResponseBody(request.getMethod(), responseCode)) {
-            return new HttpResponse(responseCode, connection.getHeaderFields());
+            return new HttpResponse(responseCode, convertHeaders(connection.getHeaderFields()));
         }
 
-        return new HttpResponse(responseCode, connection.getHeaderFields(),
+        return new HttpResponse(responseCode, convertHeaders(connection.getHeaderFields()),
                 connection.getContentLength(), inputStreamFromConnection(connection));
+    }
+
+    // VisibleForTesting
+    static List<Header> convertHeaders(Map<String, List<String>> responseHeaders) {
+        List<Header> headerList = new ArrayList<>(responseHeaders.size());
+        for (Map.Entry<String, List<String>> entry : responseHeaders.entrySet()) {
+            for (String value : entry.getValue()) {
+                headerList.add(new Header(entry.getKey(), value));
+            }
+        }
+        return headerList;
     }
 
     /**

@@ -17,15 +17,19 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Cache;
+import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 import com.android.volley.VolleyLog;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.TreeMap;
 
 /**
  * Utility methods for parsing HTTP headers.
@@ -124,6 +128,7 @@ public class HttpHeaderParser {
         entry.serverDate = serverDate;
         entry.lastModified = lastModified;
         entry.responseHeaders = headers;
+        entry.allResponseHeaders = response.allHeaders;
 
         return entry;
     }
@@ -185,5 +190,27 @@ public class HttpHeaderParser {
      */
     public static String parseCharset(Map<String, String> headers) {
         return parseCharset(headers, DEFAULT_CONTENT_CHARSET);
+    }
+
+    // Note - these are copied from NetworkResponse to avoid making them public (as needed to access
+    // them from the .toolbox package), which would mean they'd become part of the Volley API.
+    // TODO: Consider obfuscating official releases so we can share utility methods between Volley
+    // and Toolbox without making them public APIs.
+
+    static Map<String, String> toHeaderMap(List<Header> allHeaders) {
+        Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        // Later elements in the list take precedence.
+        for (Header header : allHeaders) {
+            headers.put(header.getName(), header.getValue());
+        }
+        return headers;
+    }
+
+    static List<Header> toAllHeaderList(Map<String, String> headers) {
+        List<Header> allHeaders = new ArrayList<>(headers.size());
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            allHeaders.add(new Header(header.getKey(), header.getValue()));
+        }
+        return allHeaders;
     }
 }
