@@ -85,7 +85,8 @@ public interface Cache {
         public long softTtl;
 
         /**
-         * Immutable response headers as received from server; must be non-null.
+         * Response headers as received from server; must be non-null. Should not be mutated
+         * directly.
          *
          * <p>Note that if the server returns two headers with the same (case-insensitive) name,
          * this map will only contain the one of them. {@link #allResponseHeaders} may contain all
@@ -93,7 +94,10 @@ public interface Cache {
          */
         public Map<String, String> responseHeaders = Collections.emptyMap();
 
-        /** All response headers. May be null depending on the {@link Cache} implementation. */
+        /**
+         * All response headers. May be null depending on the {@link Cache} implementation. Should
+         * not be mutated directly.
+         */
         public List<Header> allResponseHeaders;
 
         /** True if the entry is expired. */

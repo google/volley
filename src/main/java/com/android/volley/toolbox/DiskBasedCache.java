@@ -451,7 +451,7 @@ public class DiskBasedCache implements Cache {
             e.ttl = ttl;
             e.softTtl = softTtl;
             e.responseHeaders = HttpHeaderParser.toHeaderMap(allResponseHeaders);
-            e.allResponseHeaders = allResponseHeaders;
+            e.allResponseHeaders = Collections.unmodifiableList(allResponseHeaders);
             return e;
         }
 

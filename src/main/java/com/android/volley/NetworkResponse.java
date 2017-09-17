@@ -19,7 +19,6 @@ package com.android.volley;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -101,7 +100,7 @@ public class NetworkResponse {
         this.statusCode = statusCode;
         this.data = data;
         this.headers = headers;
-        this.allHeaders = allHeaders;
+        this.allHeaders = Collections.unmodifiableList(allHeaders);
         this.notModified = notModified;
         this.networkTimeMs = networkTimeMs;
     }
@@ -113,9 +112,9 @@ public class NetworkResponse {
     public final byte[] data;
 
     /**
-     * Immutable response headers.
+     * Response headers.
      *
-     * <p>This map is case-insensitive.
+     * <p>This map is case-insensitive. It should not be mutated directly.
      *
      * <p>Note that if the server returns two headers with the same (case-insensitive) name, this
      * map will only contain the last one. Use {@link #allHeaders} to inspect all headers returned
@@ -123,7 +122,7 @@ public class NetworkResponse {
      */
     public final Map<String, String> headers;
 
-    /** All response headers. */
+    /** All response headers. Must not be mutated directly. */
     public final List<Header> allHeaders;
 
     /** True if the server returned a 304 (Not Modified). */

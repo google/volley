@@ -39,6 +39,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -140,9 +141,9 @@ public class BasicNetwork implements Network {
                                 SystemClock.elapsedRealtime() - requestStart);
                     }
                     // Combine cached and response headers so the response will be complete.
-                    combineHeaders(responseHeaders, entry);
+                    List<Header> combinedHeaders = combineHeaders(responseHeaders, entry);
                     return new NetworkResponse(HttpURLConnection.HTTP_NOT_MODIFIED, entry.data,
-                            responseHeaders, true,
+                            combinedHeaders, true,
                             SystemClock.elapsedRealtime() - requestStart);
                 }
 
@@ -319,10 +320,11 @@ public class BasicNetwork implements Network {
      * from the cache entry plus the new ones from the response. See also:
      * http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.5
      *
-     * @param responseHeaders Headers from the network response. Cache headers will be added here.
+     * @param responseHeaders Headers from the network response.
      * @param entry The cached response.
+     * @return The combined list of headers.
      */
-    private static void combineHeaders(List<Header> responseHeaders, Entry entry) {
+    private static List<Header> combineHeaders(List<Header> responseHeaders, Entry entry) {
         // First, create a case-insensitive set of header names from the network
         // response.
         Set<String> headerNamesFromNetworkResponse =
@@ -333,19 +335,21 @@ public class BasicNetwork implements Network {
 
         // Second, add headers from the cache entry to the network response as long as
         // they didn't appear in the network response, which should take precedence.
+        List<Header> combinedHeaders = new ArrayList<>(responseHeaders);
         if (entry.allResponseHeaders != null) {
             for (Header header : entry.allResponseHeaders) {
                 if (!headerNamesFromNetworkResponse.contains(header.getName())) {
-                    responseHeaders.add(header);
+                    combinedHeaders.add(header);
                 }
             }
         } else {
             // Legacy caches only have entry.responseHeaders.
             for (Map.Entry<String, String> header : entry.responseHeaders.entrySet()) {
                 if (!headerNamesFromNetworkResponse.contains(header.getKey())) {
-                    responseHeaders.add(new Header(header.getKey(), header.getValue()));
+                    combinedHeaders.add(new Header(header.getKey(), header.getValue()));
                 }
             }
         }
+        return combinedHeaders;
     }
 }

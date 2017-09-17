@@ -15,13 +15,11 @@
  */
 package com.android.volley.toolbox;
 
-import android.util.Pair;
-
 import com.android.volley.Header;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /** A response from an HTTP server. */
 public final class HttpResponse {
@@ -63,9 +61,9 @@ public final class HttpResponse {
         return mStatusCode;
     }
 
-    /** Returns the response headers. */
+    /** Returns the response headers. Must not be mutated directly. */
     public final List<Header> getHeaders() {
-        return mHeaders;
+        return Collections.unmodifiableList(mHeaders);
     }
 
     /** Returns the length of the content. Only valid if {@link #getContent} is non-null. */
