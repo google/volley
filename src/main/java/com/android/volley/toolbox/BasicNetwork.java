@@ -329,24 +329,30 @@ public class BasicNetwork implements Network {
         // response.
         Set<String> headerNamesFromNetworkResponse =
                 new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        for (Header header : responseHeaders) {
-            headerNamesFromNetworkResponse.add(header.getName());
+        if (!responseHeaders.isEmpty()) {
+            for (Header header : responseHeaders) {
+                headerNamesFromNetworkResponse.add(header.getName());
+            }
         }
 
         // Second, add headers from the cache entry to the network response as long as
         // they didn't appear in the network response, which should take precedence.
         List<Header> combinedHeaders = new ArrayList<>(responseHeaders);
         if (entry.allResponseHeaders != null) {
-            for (Header header : entry.allResponseHeaders) {
-                if (!headerNamesFromNetworkResponse.contains(header.getName())) {
-                    combinedHeaders.add(header);
+            if (!entry.allResponseHeaders.isEmpty()) {
+                for (Header header : entry.allResponseHeaders) {
+                    if (!headerNamesFromNetworkResponse.contains(header.getName())) {
+                        combinedHeaders.add(header);
+                    }
                 }
             }
         } else {
             // Legacy caches only have entry.responseHeaders.
-            for (Map.Entry<String, String> header : entry.responseHeaders.entrySet()) {
-                if (!headerNamesFromNetworkResponse.contains(header.getKey())) {
-                    combinedHeaders.add(new Header(header.getKey(), header.getValue()));
+            if (!entry.responseHeaders.isEmpty()) {
+                for (Map.Entry<String, String> header : entry.responseHeaders.entrySet()) {
+                    if (!headerNamesFromNetworkResponse.contains(header.getKey())) {
+                        combinedHeaders.add(new Header(header.getKey(), header.getValue()));
+                    }
                 }
             }
         }
