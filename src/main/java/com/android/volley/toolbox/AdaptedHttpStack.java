@@ -16,9 +16,9 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.Header;
 import com.android.volley.Request;
 
-import org.apache.http.Header;
 import org.apache.http.conn.ConnectTimeoutException;
 
 import java.io.IOException;
@@ -58,19 +58,14 @@ class AdaptedHttpStack extends BaseHttpStack {
 
         int statusCode = apacheResp.getStatusLine().getStatusCode();
 
-        Header[] headers = apacheResp.getAllHeaders();
-        Map<String, List<String>> headerMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (Header header : headers) {
-            List<String> valueList = headerMap.get(header.getName());
-            if (valueList == null) {
-                valueList = new ArrayList<>();
-                headerMap.put(header.getName(), valueList);
-            }
-            valueList.add(header.getValue());
+        org.apache.http.Header[] headers = apacheResp.getAllHeaders();
+        List<Header> headerList = new ArrayList<>(headers.length);
+        for (org.apache.http.Header header : headers) {
+            headerList.add(new Header(header.getName(), header.getValue()));
         }
 
         if (apacheResp.getEntity() == null) {
-            return new HttpResponse(statusCode, headerMap);
+            return new HttpResponse(statusCode, headerList);
         }
 
         long contentLength = apacheResp.getEntity().getContentLength();
@@ -80,7 +75,7 @@ class AdaptedHttpStack extends BaseHttpStack {
 
         return new HttpResponse(
                 statusCode,
-                headerMap,
+                headerList,
                 (int) apacheResp.getEntity().getContentLength(),
                 apacheResp.getEntity().getContent());
     }

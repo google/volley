@@ -17,10 +17,9 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Cache;
+import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 
-import org.apache.http.Header;
-import org.apache.http.message.BasicHeader;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,8 +27,10 @@ import org.robolectric.RobolectricTestRunner;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -268,27 +269,24 @@ public class HttpHeaderParserTest {
         assertEquals("ISO-8859-1", HttpHeaderParser.parseCharset(headers));
     }
 
-    // TODO(#21): Rewrite this test without using Apache HTTP after we rewrite the header logic
-    // to support multiple response headers with the same key.
     @Test public void parseCaseInsensitive() {
-
         long now = System.currentTimeMillis();
 
-        Header[] headersArray = new Header[5];
-        headersArray[0] = new BasicHeader("eTAG", "Yow!");
-        headersArray[1] = new BasicHeader("DATE", rfc1123Date(now));
-        headersArray[2] = new BasicHeader("expires", rfc1123Date(now + ONE_HOUR_MILLIS));
-        headersArray[3] = new BasicHeader("cache-control", "public, max-age=86400");
-        headersArray[4] = new BasicHeader("content-type", "text/plain");
+        List<Header> headers = new ArrayList<>();
+        headers.add(new Header("eTAG", "Yow!"));
+        headers.add(new Header("DATE", rfc1123Date(now)));
+        headers.add(new Header("expires", rfc1123Date(now + ONE_HOUR_MILLIS)));
+        headers.add(new Header("cache-control", "public, max-age=86400"));
+        headers.add(new Header("content-type", "text/plain"));
 
-        Map<String, String> headers = BasicNetwork.convertHeaders(headersArray);
-        NetworkResponse response = new NetworkResponse(0, null, headers, false);
+        NetworkResponse response = new NetworkResponse(0, null, headers, false, 0);
         Cache.Entry entry = HttpHeaderParser.parseCacheHeaders(response);
 
         assertNotNull(entry);
         assertEquals("Yow!", entry.etag);
         assertEqualsWithin(now + ONE_DAY_MILLIS, entry.ttl, ONE_MINUTE_MILLIS);
         assertEquals(entry.softTtl, entry.ttl);
-        assertEquals("ISO-8859-1", HttpHeaderParser.parseCharset(headers));
+        assertEquals("ISO-8859-1",
+                HttpHeaderParser.parseCharset(HttpHeaderParser.toHeaderMap(headers)));
     }
 }

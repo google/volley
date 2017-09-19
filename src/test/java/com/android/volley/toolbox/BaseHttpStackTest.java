@@ -1,6 +1,7 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.Header;
 import com.android.volley.Request;
 import com.android.volley.mock.TestRequest;
 
@@ -45,7 +46,7 @@ public class BaseHttpStackTest {
                     throws IOException, AuthFailureError {
                 assertSame(REQUEST, request);
                 assertSame(ADDITIONAL_HEADERS, additionalHeaders);
-                return new HttpResponse(12345, Collections.<String, List<String>>emptyMap());
+                return new HttpResponse(12345, Collections.<Header>emptyList());
             }
         };
         org.apache.http.HttpResponse resp = stack.performRequest(REQUEST, ADDITIONAL_HEADERS);
@@ -65,7 +66,7 @@ public class BaseHttpStackTest {
                 assertSame(ADDITIONAL_HEADERS, additionalHeaders);
                 return new HttpResponse(
                         12345,
-                        Collections.<String, List<String>>emptyMap(),
+                        Collections.<Header>emptyList(),
                         555,
                         mContent);
             }
@@ -86,12 +87,10 @@ public class BaseHttpStackTest {
                     throws IOException, AuthFailureError {
                 assertSame(REQUEST, request);
                 assertSame(ADDITIONAL_HEADERS, additionalHeaders);
-                Map<String, List<String>> headers = new TreeMap<>();
-                headers.put("HeaderA", Collections.singletonList("ValueA"));
-                List<String> values = new ArrayList<>();
-                values.add("ValueB_1");
-                values.add("ValueB_2");
-                headers.put("HeaderB", values);
+                List<Header> headers = new ArrayList<>();
+                headers.add(new Header("HeaderA", "ValueA"));
+                headers.add(new Header("HeaderB", "ValueB_1"));
+                headers.add(new Header("HeaderB", "ValueB_2"));
                 return new HttpResponse(12345, headers);
             }
         };

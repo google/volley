@@ -20,6 +20,7 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 
 import com.android.volley.Cache;
+import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 
 import java.io.BufferedInputStream;
@@ -34,15 +35,18 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Cache implementation that caches files directly onto the hard disk in the specified
  * directory. The default disk usage size is 5MB, but is configurable.
+ *
+ * <p>This cache supports the {@link Entry#allResponseHeaders} headers field.
  */
 public class DiskBasedCache implements Cache {
 
@@ -379,28 +383,38 @@ public class DiskBasedCache implements Cache {
         final long softTtl;
 
         /** Headers from the response resulting in this cache entry. */
-        final Map<String, String> responseHeaders;
+        final List<Header> allResponseHeaders;
 
         private CacheHeader(String key, String etag, long serverDate, long lastModified, long ttl,
-                           long softTtl, Map<String, String> responseHeaders) {
+                           long softTtl, List<Header> allResponseHeaders) {
             this.key = key;
             this.etag = ("".equals(etag)) ? null : etag;
             this.serverDate = serverDate;
             this.lastModified = lastModified;
             this.ttl = ttl;
             this.softTtl = softTtl;
-            this.responseHeaders = responseHeaders;
+            this.allResponseHeaders = allResponseHeaders;
         }
 
         /**
-         * Instantiates a new CacheHeader object
+         * Instantiates a new CacheHeader object.
          * @param key The key that identifies the cache entry
          * @param entry The cache entry.
          */
         CacheHeader(String key, Entry entry) {
             this(key, entry.etag, entry.serverDate, entry.lastModified, entry.ttl, entry.softTtl,
-                    entry.responseHeaders);
+                    getAllResponseHeaders(entry));
             size = entry.data.length;
+        }
+
+        private static List<Header> getAllResponseHeaders(Entry entry) {
+            // If the entry contains all the response headers, use that field directly.
+            if (entry.allResponseHeaders != null) {
+                return entry.allResponseHeaders;
+            }
+
+            // Legacy fallback - copy headers from the map.
+            return HttpHeaderParser.toAllHeaderList(entry.responseHeaders);
         }
 
         /**
@@ -420,9 +434,9 @@ public class DiskBasedCache implements Cache {
             long lastModified = readLong(is);
             long ttl = readLong(is);
             long softTtl = readLong(is);
-            Map<String, String> responseHeaders = readStringStringMap(is);
+            List<Header> allResponseHeaders = readHeaderList(is);
             return new CacheHeader(
-                    key, etag, serverDate, lastModified, ttl, softTtl, responseHeaders);
+                    key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
         }
 
         /**
@@ -436,10 +450,10 @@ public class DiskBasedCache implements Cache {
             e.lastModified = lastModified;
             e.ttl = ttl;
             e.softTtl = softTtl;
-            e.responseHeaders = responseHeaders;
+            e.responseHeaders = HttpHeaderParser.toHeaderMap(allResponseHeaders);
+            e.allResponseHeaders = Collections.unmodifiableList(allResponseHeaders);
             return e;
         }
-
 
         /**
          * Writes the contents of this CacheHeader to the specified OutputStream.
@@ -453,7 +467,7 @@ public class DiskBasedCache implements Cache {
                 writeLong(os, lastModified);
                 writeLong(os, ttl);
                 writeLong(os, softTtl);
-                writeStringStringMap(responseHeaders, os);
+                writeHeaderList(allResponseHeaders, os);
                 os.flush();
                 return true;
             } catch (IOException e) {
@@ -574,27 +588,27 @@ public class DiskBasedCache implements Cache {
         return new String(b, "UTF-8");
     }
 
-    static void writeStringStringMap(Map<String, String> map, OutputStream os) throws IOException {
-        if (map != null) {
-            writeInt(os, map.size());
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                writeString(os, entry.getKey());
-                writeString(os, entry.getValue());
+    static void writeHeaderList(List<Header> headers, OutputStream os) throws IOException {
+        if (headers != null) {
+            writeInt(os, headers.size());
+            for (Header header : headers) {
+                writeString(os, header.getName());
+                writeString(os, header.getValue());
             }
         } else {
             writeInt(os, 0);
         }
     }
 
-    static Map<String, String> readStringStringMap(CountingInputStream cis) throws IOException {
+    static List<Header> readHeaderList(CountingInputStream cis) throws IOException {
         int size = readInt(cis);
-        Map<String, String> result = (size == 0)
-                ? Collections.<String, String>emptyMap()
-                : new HashMap<String, String>(size);
+        List<Header> result = (size == 0)
+                ? Collections.<Header>emptyList()
+                : new ArrayList<Header>(size);
         for (int i = 0; i < size; i++) {
-            String key = readString(cis).intern();
+            String name = readString(cis).intern();
             String value = readString(cis).intern();
-            result.put(key, value);
+            result.add(new Header(name, value));
         }
         return result;
     }
