@@ -13,6 +13,9 @@ android:
 jdk:
   - oraclejdk8
 
+# Ensure we can use (faster) container builds.
+sudo: false
+
 # Avoid uploading the cache after every build
 # See https://docs.travis-ci.com/user/languages/android/
 before_cache:
