@@ -136,15 +136,13 @@ public class BasicNetwork implements Network {
                 if (statusCode == HttpURLConnection.HTTP_NOT_MODIFIED) {
                     Entry entry = request.getCacheEntry();
                     if (entry == null) {
-                        return new NetworkResponse(HttpURLConnection.HTTP_NOT_MODIFIED, null,
-                                responseHeaders, true,
-                                SystemClock.elapsedRealtime() - requestStart);
+                        return new NetworkResponse(HttpURLConnection.HTTP_NOT_MODIFIED, null, true,
+                                SystemClock.elapsedRealtime() - requestStart, responseHeaders);
                     }
                     // Combine cached and response headers so the response will be complete.
                     List<Header> combinedHeaders = combineHeaders(responseHeaders, entry);
                     return new NetworkResponse(HttpURLConnection.HTTP_NOT_MODIFIED, entry.data,
-                            combinedHeaders, true,
-                            SystemClock.elapsedRealtime() - requestStart);
+                            true, SystemClock.elapsedRealtime() - requestStart, combinedHeaders);
                 }
 
                 // Some responses such as 204s do not have content.  We must check.
@@ -165,8 +163,8 @@ public class BasicNetwork implements Network {
                 if (statusCode < 200 || statusCode > 299) {
                     throw new IOException();
                 }
-                return new NetworkResponse(statusCode, responseContents, responseHeaders, false,
-                        SystemClock.elapsedRealtime() - requestStart);
+                return new NetworkResponse(statusCode, responseContents, false,
+                        SystemClock.elapsedRealtime() - requestStart, responseHeaders);
             } catch (SocketTimeoutException e) {
                 attemptRetryOnException("socket", request, new TimeoutError());
             } catch (MalformedURLException e) {
@@ -181,8 +179,8 @@ public class BasicNetwork implements Network {
                 VolleyLog.e("Unexpected response code %d for %s", statusCode, request.getUrl());
                 NetworkResponse networkResponse;
                 if (responseContents != null) {
-                    networkResponse = new NetworkResponse(statusCode, responseContents,
-                            responseHeaders, false, SystemClock.elapsedRealtime() - requestStart);
+                    networkResponse = new NetworkResponse(statusCode, responseContents, false,
+                            SystemClock.elapsedRealtime() - requestStart, responseHeaders);
                     if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED ||
                             statusCode == HttpURLConnection.HTTP_FORBIDDEN) {
                         attemptRetryOnException("auth",

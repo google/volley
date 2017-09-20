@@ -279,7 +279,7 @@ public class HttpHeaderParserTest {
         headers.add(new Header("cache-control", "public, max-age=86400"));
         headers.add(new Header("content-type", "text/plain"));
 
-        NetworkResponse response = new NetworkResponse(0, null, headers, false, 0);
+        NetworkResponse response = new NetworkResponse(0, null, false, 0, headers);
         Cache.Entry entry = HttpHeaderParser.parseCacheHeaders(response);
 
         assertNotNull(entry);

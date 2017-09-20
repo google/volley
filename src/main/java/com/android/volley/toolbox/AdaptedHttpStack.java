@@ -26,7 +26,6 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * {@link BaseHttpStack} implementation wrapping a {@link HttpStack}.

@@ -35,7 +35,7 @@ public class NetworkResponse {
      * @param headers Headers returned with this response, or null for none
      * @param notModified True if the server returned a 304 and the data was already in cache
      * @param networkTimeMs Round-trip network time to receive network response
-     * @deprecated see {@link #NetworkResponse(int, byte[], List, boolean, long)}. This constructor
+     * @deprecated see {@link #NetworkResponse(int, byte[], boolean, long, List)}. This constructor
      *             cannot handle server responses containing multiple headers with the same name.
      *             This constructor may be removed in a future release of Volley.
      */
@@ -49,12 +49,12 @@ public class NetworkResponse {
      * Creates a new network response.
      * @param statusCode the HTTP status code
      * @param data Response body
-     * @param allHeaders All headers returned with this response, or null for none
      * @param notModified True if the server returned a 304 and the data was already in cache
      * @param networkTimeMs Round-trip network time to receive network response
+     * @param allHeaders All headers returned with this response, or null for none
      */
-    public NetworkResponse(int statusCode, byte[] data, List<Header> allHeaders,
-            boolean notModified, long networkTimeMs) {
+    public NetworkResponse(int statusCode, byte[] data, boolean notModified, long networkTimeMs,
+            List<Header> allHeaders) {
         this(statusCode, data, toHeaderMap(allHeaders), allHeaders, notModified, networkTimeMs);
     }
 
@@ -64,7 +64,7 @@ public class NetworkResponse {
      * @param data Response body
      * @param headers Headers returned with this response, or null for none
      * @param notModified True if the server returned a 304 and the data was already in cache
-     * @deprecated see {@link #NetworkResponse(int, byte[], List, boolean, long)}. This constructor
+     * @deprecated see {@link #NetworkResponse(int, byte[], boolean, long, List)}. This constructor
      *             cannot handle server responses containing multiple headers with the same name.
      *             This constructor may be removed in a future release of Volley.
      */
@@ -79,14 +79,14 @@ public class NetworkResponse {
      * @param data Response body
      */
     public NetworkResponse(byte[] data) {
-        this(HttpURLConnection.HTTP_OK, data, Collections.<Header>emptyList(), false, 0);
+        this(HttpURLConnection.HTTP_OK, data, false, 0, Collections.<Header>emptyList());
     }
 
     /**
      * Creates a new network response for an OK response.
      * @param data Response body
      * @param headers Headers returned with this response, or null for none
-     * @deprecated see {@link #NetworkResponse(int, byte[], List, boolean, long)}. This constructor
+     * @deprecated see {@link #NetworkResponse(int, byte[], boolean, long, List)}. This constructor
      *             cannot handle server responses containing multiple headers with the same name.
      *             This constructor may be removed in a future release of Volley.
      */
@@ -100,7 +100,11 @@ public class NetworkResponse {
         this.statusCode = statusCode;
         this.data = data;
         this.headers = headers;
-        this.allHeaders = Collections.unmodifiableList(allHeaders);
+        if (allHeaders == null) {
+            this.allHeaders = null;
+        } else {
+            this.allHeaders = Collections.unmodifiableList(allHeaders);
+        }
         this.notModified = notModified;
         this.networkTimeMs = networkTimeMs;
     }
@@ -132,6 +136,12 @@ public class NetworkResponse {
     public final long networkTimeMs;
 
     private static Map<String, String> toHeaderMap(List<Header> allHeaders) {
+        if (allHeaders == null) {
+            return null;
+        }
+        if (allHeaders.isEmpty()) {
+            return Collections.emptyMap();
+        }
         Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         // Later elements in the list take precedence.
         for (Header header : allHeaders) {
@@ -141,6 +151,12 @@ public class NetworkResponse {
     }
 
     private static List<Header> toAllHeaderList(Map<String, String> headers) {
+        if (headers == null) {
+            return null;
+        }
+        if (headers.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<Header> allHeaders = new ArrayList<>(headers.size());
         for (Map.Entry<String, String> header : headers.entrySet()) {
             allHeaders.add(new Header(header.getKey(), header.getValue()));
