@@ -162,6 +162,7 @@ public class HurlStackTest {
 
     @Test public void convertHeaders() {
         Map<String, List<String>> headers = new HashMap<>();
+        headers.put(null, Collections.singletonList("Ignored"));
         headers.put("HeaderA", Collections.singletonList("ValueA"));
         List<String> values = new ArrayList<>();
         values.add("ValueB_1");
