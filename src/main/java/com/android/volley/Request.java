@@ -56,6 +56,12 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         int PATCH = 7;
     }
 
+    /** Callback interface to notify listeners when a request has been canceled. */
+    public interface CancelListener {
+        /** Called when a request was canceled before the response could be delivered. */
+        void onRequestCanceled();
+    }
+
     /**
      * Callback to notify when the network request returns.
      */
@@ -83,8 +89,11 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     /** Default tag for {@link TrafficStats}. */
     private final int mDefaultTrafficStatsTag;
 
+    /** Lock to guard state which can be mutated after a request is added to the queue. */
+    private final Object mLock = new Object();
+
     /** Listener interface for errors. */
-    private final Response.ErrorListener mErrorListener;
+    private Response.ErrorListener mErrorListener;
 
     /** Sequence number of this request, used to enforce FIFO ordering. */
     private Integer mSequence;
@@ -96,9 +105,11 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     private boolean mShouldCache = true;
 
     /** Whether or not this request has been canceled. */
+    // GuardedBy(mLock)
     private boolean mCanceled = false;
 
     /** Whether or not a response has been delivered for this request yet. */
+    // GuardedBy(mLock)
     private boolean mResponseDelivered = false;
 
     /** Whether the request should be retried in the event of an HTTP 5xx (server) error. */
@@ -118,10 +129,11 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     private Object mTag;
 
     /** Listener that will be notified when a response has been delivered. */
+    // GuardedBy(mLock)
     private NetworkRequestCompleteListener mRequestCompleteListener;
 
-    /** Object to guard access to mRequestCompleteListener. */
-    private final Object mLock = new Object();
+    /** Optional listener for request cancel events. */
+    private CancelListener mCancelListener;
 
     /**
      * Creates a new request with the given URL and error listener.  Note that
@@ -182,6 +194,18 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      */
     public Response.ErrorListener getErrorListener() {
         return mErrorListener;
+    }
+
+    /**
+     * @return this request's {@link CancelListener}, if any.
+     */
+    public CancelListener getCancelListener() {
+        return mCancelListener;
+    }
+
+    /** Sets a {@link CancelListener} which will be notified when the request is canceled. */
+    public void setCancelListener(CancelListener listener) {
+        mCancelListener = listener;
     }
 
     /**
@@ -320,17 +344,81 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     }
 
     /**
-     * Mark this request as canceled.  No callback will be delivered.
+     * Mark this request as canceled.
+     *
+     * <p>No callback will be delivered as long as {@link ExecutorDelivery} is used as the
+     * {@link ResponseDelivery} and as long as this method is not overridden. There are no
+     * guarantees otherwise.
+     *
+     * <p>Subclasses should generally override {@link #onCanceled()} instead to perform an action
+     * when the request is canceled (such as clearing response listeners to avoid leaks).
      */
     public void cancel() {
-        mCanceled = true;
+        synchronized (mLock) {
+            mCanceled = true;
+            onCanceledInternal();
+        }
     }
 
     /**
      * Returns true if this request has been canceled.
      */
     public boolean isCanceled() {
-        return mCanceled;
+        synchronized (mLock) {
+            return mCanceled;
+        }
+    }
+
+    private void onCanceledInternal() {
+        mErrorListener = null;
+        if (mCancelListener != null) {
+            mCancelListener.onRequestCanceled();
+            mCancelListener = null;
+        }
+        onCanceled();
+    }
+
+    /**
+     * Called when a request is canceled.
+     *
+     * <p>The default implementation does nothing. Subclasses may override this to perform custom
+     * actions, such as clearing response listeners to avoid leaks.
+     */
+    protected void onCanceled() {
+    }
+
+    /** Deliver the given response as long as the request isn't canceled. */
+    void deliverResponse(Response<T> response, Runnable runnable) {
+        // To uphold the contract of cancel(), we hold the same lock here around both the check of
+        // isCanceled() as well as the actual response delivery. This ensures that after a call
+        // to cancel() returns, we will never deliver the response.
+        synchronized (mLock) {
+            // If this request has canceled, finish it and don't deliver.
+            if (isCanceled()) {
+                finish("canceled-at-delivery");
+                return;
+            }
+
+            // Deliver a normal response or error, depending.
+            if (response.isSuccess()) {
+                deliverResponse(response.result);
+            } else {
+                deliverError(response.error);
+            }
+
+            // If this is an intermediate response, add a marker, otherwise we're done
+            // and the request can be finished.
+            if (response.intermediate) {
+                addMarker("intermediate-response");
+            } else {
+                finish("done");
+            }
+
+            // If we have been provided a post-delivery runnable, run it.
+            if (runnable != null) {
+                runnable.run();
+            }
+        }
     }
 
     /**

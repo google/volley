@@ -21,6 +21,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
@@ -43,6 +45,24 @@ public class RequestTest {
         assertTrue(low.compareTo(low2) < 0);
         assertTrue(low.compareTo(immediate) > 0);
         assertTrue(immediate.compareTo(high) < 0);
+    }
+
+    @Test public void cancelListener() {
+        TestRequest request = new TestRequest(Priority.NORMAL);
+        final AtomicBoolean listenerCalled = new AtomicBoolean(false);
+        request.setCancelListener(new Request.CancelListener() {
+            @Override
+            public void onRequestCanceled() {
+                listenerCalled.set(true);
+            }
+        });
+        assertFalse(request.isCanceled());
+        assertFalse(listenerCalled.get());
+
+        request.cancel();
+
+        assertTrue(request.isCanceled());
+        assertTrue(listenerCalled.get());
     }
 
     private class TestRequest extends Request<Object> {
