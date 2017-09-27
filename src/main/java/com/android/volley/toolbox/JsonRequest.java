@@ -39,7 +39,7 @@ public abstract class JsonRequest<T> extends Request<T> {
     private static final String PROTOCOL_CONTENT_TYPE =
         String.format("application/json; charset=%s", PROTOCOL_CHARSET);
 
-    private final Listener<T> mListener;
+    private Listener<T> mListener;
     private final String mRequestBody;
 
     /**
@@ -66,6 +66,11 @@ public abstract class JsonRequest<T> extends Request<T> {
         if (mListener != null) {
             mListener.onResponse(response);
         }
+    }
+
+    @Override
+    protected void onCanceled() {
+        mListener = null;
     }
 
     @Override

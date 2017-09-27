@@ -17,9 +17,14 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Request;
+import com.android.volley.mock.MockRequest;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -31,5 +36,27 @@ public class RequestFutureTest {
         // Catch-all test to find API-breaking changes.
         assertNotNull(RequestFuture.class.getMethod("newFuture"));
         assertNotNull(RequestFuture.class.getMethod("setRequest", Request.class));
+    }
+
+    @Test(expected = CancellationException.class)
+    public void cancelRequest() throws Exception {
+        MockRequest request = new MockRequest();
+        RequestFuture<String> future = RequestFuture.newFuture();
+        future.setRequest(request);
+
+        request.cancel();
+
+        future.get(5, TimeUnit.SECONDS);
+    }
+
+    @Test(expected = CancellationException.class)
+    public void cancelFuture() throws Exception {
+        MockRequest request = new MockRequest();
+        RequestFuture<String> future = RequestFuture.newFuture();
+        future.setRequest(request);
+
+        future.cancel(true);
+
+        future.get(5, TimeUnit.SECONDS);
     }
 }

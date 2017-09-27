@@ -20,6 +20,7 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -35,8 +36,8 @@ import java.util.concurrent.TimeoutException;
  *
  * // If you want to be able to cancel the request:
  * future.setRequest(requestQueue.add(request));
+ * // Also be sure not to call Request.setCancelListener.
  *
- * // Otherwise:
  * requestQueue.add(request);
  *
  * try {
@@ -51,9 +52,10 @@ import java.util.concurrent.TimeoutException;
  *
  * @param <T> The type of parsed response this future expects.
  */
-public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
-       Response.ErrorListener {
+public class RequestFuture<T> implements Future<T>, Response.Listener<T>, Response.ErrorListener,
+        Request.CancelListener {
     private Request<?> mRequest;
+    private boolean mRequestCanceled = false;
     private boolean mResultReceived = false;
     private T mResult;
     private VolleyError mException;
@@ -66,6 +68,11 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
 
     public void setRequest(Request<?> request) {
         mRequest = request;
+        if (mRequest.getCancelListener() != null) {
+            throw new IllegalArgumentException("Provided request already has a cancel listener");
+        }
+        mRequest.setCancelListener(this);
+        // Not much we can do if a different cancel listener is set after this point.
     }
 
     @Override
@@ -107,6 +114,10 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
             return mResult;
         }
 
+        if (isCancelled()) {
+            throw new CancellationException();
+        }
+
         if (timeoutMs == null) {
             wait(0);
         } else if (timeoutMs > 0) {
@@ -121,6 +132,10 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
             throw new TimeoutException();
         }
 
+        if (isCancelled()) {
+            throw new CancellationException();
+        }
+
         return mResult;
     }
 
@@ -129,7 +144,7 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
         if (mRequest == null) {
             return false;
         }
-        return mRequest.isCanceled();
+        return mRequestCanceled;
     }
 
     @Override
@@ -147,6 +162,12 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
     @Override
     public synchronized void onErrorResponse(VolleyError error) {
         mException = error;
+        notifyAll();
+    }
+
+    @Override
+    public synchronized void onRequestCanceled() {
+        mRequestCanceled = true;
         notifyAll();
     }
 }

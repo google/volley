@@ -42,7 +42,7 @@ public class ImageRequest extends Request<Bitmap> {
     /** Default backoff multiplier for image requests */
     public static final float DEFAULT_IMAGE_BACKOFF_MULT = 2f;
 
-    private final Response.Listener<Bitmap> mListener;
+    private Response.Listener<Bitmap> mListener;
     private final Config mDecodeConfig;
     private final int mMaxWidth;
     private final int mMaxHeight;
@@ -219,6 +219,11 @@ public class ImageRequest extends Request<Bitmap> {
         if (mListener != null) {
             mListener.onResponse(response);
         }
+    }
+
+    @Override
+    protected void onCanceled() {
+        mListener = null;
     }
 
     /**
