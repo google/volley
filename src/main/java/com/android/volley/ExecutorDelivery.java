@@ -88,6 +88,13 @@ public class ExecutorDelivery implements ResponseDelivery {
         @SuppressWarnings("unchecked")
         @Override
         public void run() {
+            // NOTE: If cancel() is called off the thread that we're currently running in (by
+            // default, the main thread), we cannot guarantee that deliverResponse()/deliverError()
+            // won't be called, since it may be canceled after we check isCanceled() but before we
+            // deliver the response. Apps concerned about this guarantee must either call cancel()
+            // from the same thread or implement their own guarantee about not invoking their
+            // listener after cancel() has been called.
+
             // If this request has canceled, finish it and don't deliver.
             if (mRequest.isCanceled()) {
                 mRequest.finish("canceled-at-delivery");

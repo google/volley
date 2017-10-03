@@ -39,7 +39,11 @@ public abstract class JsonRequest<T> extends Request<T> {
     private static final String PROTOCOL_CONTENT_TYPE =
         String.format("application/json; charset=%s", PROTOCOL_CHARSET);
 
-    private final Listener<T> mListener;
+    /** Lock to guard mListener as it is cleared on cancel() and read on delivery. */
+    private final Object mLock = new Object();
+
+    // @GuardedBy("mLock")
+    private Listener<T> mListener;
     private final String mRequestBody;
 
     /**
@@ -62,9 +66,21 @@ public abstract class JsonRequest<T> extends Request<T> {
     }
 
     @Override
+    public void cancel() {
+        super.cancel();
+        synchronized (mLock) {
+            mListener = null;
+        }
+    }
+
+    @Override
     protected void deliverResponse(T response) {
-        if (mListener != null) {
-            mListener.onResponse(response);
+        Response.Listener<T> listener;
+        synchronized (mLock) {
+            listener = mListener;
+        }
+        if (listener != null) {
+            listener.onResponse(response);
         }
     }
 
