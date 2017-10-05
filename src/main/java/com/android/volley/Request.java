@@ -100,6 +100,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     private boolean mShouldCache = true;
 
     /** Whether or not this request has been canceled. */
+    // @GuardedBy("mLock")
     private boolean mCanceled = false;
 
     /** Whether or not a response has been delivered for this request yet. */
@@ -647,10 +648,12 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * @param response received from the network
      */
     /* package */ void notifyListenerResponseReceived(Response<?> response) {
+        NetworkRequestCompleteListener listener;
         synchronized (mLock) {
-            if (mRequestCompleteListener != null) {
-               mRequestCompleteListener.onResponseReceived(this, response);
-            }
+            listener = mRequestCompleteListener;
+        }
+        if (listener != null) {
+            listener.onResponseReceived(this, response);
         }
     }
 
@@ -659,10 +662,12 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * a response which can be used for other, waiting requests.
      */
     /* package */ void notifyListenerResponseNotUsable() {
+        NetworkRequestCompleteListener listener;
         synchronized (mLock) {
-            if (mRequestCompleteListener != null) {
-                mRequestCompleteListener.onNoUsableResponseReceived(this);
-            }
+            listener = mRequestCompleteListener;
+        }
+        if (listener != null) {
+            listener.onNoUsableResponseReceived(this);
         }
     }
 
