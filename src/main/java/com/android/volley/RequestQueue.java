@@ -38,7 +38,7 @@ public class RequestQueue<T> {
     /** Callback interface for completed requests. */
     public interface RequestFinishedListener<S> {
         /** Called when a request has finished processing. */
-        void onRequestFinished(Request<S> request);
+        void onRequestFinished(Request<? extends S> request);
     }
 
     /** Used for generating monotonically-increasing sequence numbers for requests. */
@@ -49,7 +49,7 @@ public class RequestQueue<T> {
      * will be in this set if it is waiting in any queue or currently being processed by
      * any dispatcher.
      */
-    private final Set<Request<?>> mCurrentRequests = new HashSet<Request<?>>();
+    private final Set<Request<?>> mCurrentRequests = new HashSet<>();
 
     /** The cache triage queue. */
     private final PriorityBlockingQueue<Request<?>> mCacheQueue =
@@ -77,7 +77,7 @@ public class RequestQueue<T> {
     /** The cache dispatcher. */
     private CacheDispatcher mCacheDispatcher;
 
-    private final List<RequestFinishedListener> mFinishedListeners =
+    private final List<RequestFinishedListener<? super T>> mFinishedListeners =
             new ArrayList<>();
 
     /**
@@ -237,14 +237,14 @@ public class RequestQueue<T> {
             mCurrentRequests.remove(request);
         }
         synchronized (mFinishedListeners) {
-          for (RequestFinishedListener listener : mFinishedListeners) {
+          for (RequestFinishedListener<? super T> listener : mFinishedListeners) {
             listener.onRequestFinished(request);
           }
         }
 
     }
 
-    public void addRequestFinishedListener(RequestFinishedListener<? extends T> listener) {
+    public void addRequestFinishedListener(RequestFinishedListener<? super T> listener) {
       synchronized (mFinishedListeners) {
         mFinishedListeners.add(listener);
       }
@@ -253,7 +253,7 @@ public class RequestQueue<T> {
     /**
      * Remove a RequestFinishedListener. Has no effect if listener was not previously added.
      */
-    public void removeRequestFinishedListener(RequestFinishedListener<? extends T> listener) {
+    public void removeRequestFinishedListener(RequestFinishedListener<? super T> listener) {
       synchronized (mFinishedListeners) {
         mFinishedListeners.remove(listener);
       }
