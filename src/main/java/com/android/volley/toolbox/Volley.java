@@ -39,11 +39,11 @@ public class Volley {
      * @param stack A {@link BaseHttpStack} to use for the network, or null for default.
      * @return A started {@link RequestQueue} instance.
      */
-    public static RequestQueue newRequestQueue(Context context, BaseHttpStack stack) {
+    public static RequestQueue newRequestQueue(Context context, BaseHttpStack stack,boolean isRetry) {
         BasicNetwork network;
         if (stack == null) {
             if (Build.VERSION.SDK_INT >= 9) {
-                network = new BasicNetwork(new HurlStack());
+                network = new BasicNetwork(new HurlStack(isRetry));
             } else {
                 // Prior to Gingerbread, HttpUrlConnection was unreliable.
                 // See: http://android-developers.blogspot.com/2011/09/androids-http-clients.html
@@ -98,7 +98,11 @@ public class Volley {
      * @param context A {@link Context} to use for creating the cache dir.
      * @return A started {@link RequestQueue} instance.
      */
+    public static RequestQueue newRequestQueue(Context context, boolean isRetry) {
+        return newRequestQueue(context, (BaseHttpStack) null,isRetry);
+    }
+
     public static RequestQueue newRequestQueue(Context context) {
-        return newRequestQueue(context, (BaseHttpStack) null);
+        return newRequestQueue(context, (BaseHttpStack) null,true);
     }
 }

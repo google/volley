@@ -90,12 +90,14 @@ public class CacheDispatcher extends Thread {
 
         // Make a blocking call to initialize the cache.
         mCache.initialize();
-
+        Request<?> request;
         while (true) {
+            // release previous request object to avoid leaking request object when mQueue is drained.
+            request = null;
             try {
                 // Get a request from the cache triage queue, blocking until
                 // at least one is available.
-                final Request<?> request = mCacheQueue.take();
+                request = mCacheQueue.take();
                 request.addMarker("cache-queue-take");
 
                 // If the request has been canceled, don't bother dispatching it.
@@ -142,7 +144,7 @@ public class CacheDispatcher extends Thread {
                     request.setCacheEntry(entry);
                     // Mark the response as intermediate.
                     response.intermediate = true;
-
+                    final Request<?> finalRequest = request;
                     if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
                         // Post the intermediate response back to the user and have
                         // the delivery then forward the request along to the network.
@@ -150,7 +152,7 @@ public class CacheDispatcher extends Thread {
                             @Override
                             public void run() {
                                 try {
-                                    mNetworkQueue.put(request);
+                                    mNetworkQueue.put(finalRequest);
                                 } catch (InterruptedException e) {
                                     // Restore the interrupted status
                                     Thread.currentThread().interrupt();
@@ -164,11 +166,8 @@ public class CacheDispatcher extends Thread {
                     }
                 }
 
-            } catch (InterruptedException e) {
-                // We may have been interrupted because it was time to quit.
-                if (mQuit) {
-                    return;
-                }
+            } catch (Exception e) {
+                VolleyLog.e(e, "Unhandled exception %s", e.toString());
             }
         }
     }

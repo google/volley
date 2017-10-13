@@ -54,25 +54,27 @@ public class HurlStack extends BaseHttpStack {
 
     private final UrlRewriter mUrlRewriter;
     private final SSLSocketFactory mSslSocketFactory;
+    private boolean misRetry;
 
-    public HurlStack() {
-        this(null);
+    public HurlStack(boolean isRetry) {
+        this(null,isRetry);
     }
 
     /**
      * @param urlRewriter Rewriter to use for request URLs
      */
-    public HurlStack(UrlRewriter urlRewriter) {
-        this(urlRewriter, null);
+    public HurlStack(UrlRewriter urlRewriter,boolean isRetry) {
+        this(urlRewriter, null,isRetry);
     }
 
     /**
      * @param urlRewriter Rewriter to use for request URLs
      * @param sslSocketFactory SSL factory to use for HTTPS connections
      */
-    public HurlStack(UrlRewriter urlRewriter, SSLSocketFactory sslSocketFactory) {
+    public HurlStack(UrlRewriter urlRewriter, SSLSocketFactory sslSocketFactory,boolean isRetry) {
         mUrlRewriter = urlRewriter;
         mSslSocketFactory = sslSocketFactory;
+        misRetry = isRetry;
     }
 
     @Override
@@ -90,7 +92,7 @@ public class HurlStack extends BaseHttpStack {
             url = rewritten;
         }
         URL parsedUrl = new URL(url);
-        HttpURLConnection connection = openConnection(parsedUrl, request);
+        HttpURLConnection connection = openConnection(parsedUrl, request,misRetry);
         for (String headerName : map.keySet()) {
             connection.addRequestProperty(headerName, map.get(headerName));
         }
@@ -175,7 +177,7 @@ public class HurlStack extends BaseHttpStack {
      * @return an open connection
      * @throws IOException
      */
-    private HttpURLConnection openConnection(URL url, Request<?> request) throws IOException {
+    private HttpURLConnection openConnection(URL url, Request<?> request,boolean retryEnable) throws IOException {
         HttpURLConnection connection = createConnection(url);
 
         int timeoutMs = request.getTimeoutMs();
@@ -183,6 +185,8 @@ public class HurlStack extends BaseHttpStack {
         connection.setReadTimeout(timeoutMs);
         connection.setUseCaches(false);
         connection.setDoInput(true);
+        if (!retryEnable)
+            connection.setChunkedStreamingMode(0);
 
         // use caller-provided custom SslSocketFactory, if any, for HTTPS
         if ("https".equals(url.getProtocol()) && mSslSocketFactory != null) {
