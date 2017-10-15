@@ -33,12 +33,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * resolving from either cache or network on a worker thread, and then delivering
  * a parsed response on the main thread.
  */
-public class RequestQueue {
+public class RequestQueue<T> {
 
     /** Callback interface for completed requests. */
-    public interface RequestFinishedListener<T> {
+    public interface RequestFinishedListener<S> {
         /** Called when a request has finished processing. */
-        void onRequestFinished(Request<T> request);
+        void onRequestFinished(Request<? extends S> request);
     }
 
     /** Used for generating monotonically-increasing sequence numbers for requests. */
@@ -49,7 +49,7 @@ public class RequestQueue {
      * will be in this set if it is waiting in any queue or currently being processed by
      * any dispatcher.
      */
-    private final Set<Request<?>> mCurrentRequests = new HashSet<Request<?>>();
+    private final Set<Request<?>> mCurrentRequests = new HashSet<>();
 
     /** The cache triage queue. */
     private final PriorityBlockingQueue<Request<?>> mCacheQueue =
@@ -77,7 +77,7 @@ public class RequestQueue {
     /** The cache dispatcher. */
     private CacheDispatcher mCacheDispatcher;
 
-    private final List<RequestFinishedListener> mFinishedListeners =
+    private final List<RequestFinishedListener<? super T>> mFinishedListeners =
             new ArrayList<>();
 
     /**
@@ -207,7 +207,7 @@ public class RequestQueue {
      * @param request The request to service
      * @return The passed-in request
      */
-    public <T> Request<T> add(Request<T> request) {
+    public Request<? extends T> add(Request<? extends T> request) {
         // Tag the request as belonging to this queue and add it to the set of current requests.
         request.setRequestQueue(this);
         synchronized (mCurrentRequests) {
@@ -231,20 +231,20 @@ public class RequestQueue {
      * Called from {@link Request#finish(String)}, indicating that processing of the given request
      * has finished.
      */
-    <T> void finish(Request<T> request) {
+     void finish(Request<? extends T> request) {
         // Remove from the set of requests currently being processed.
         synchronized (mCurrentRequests) {
             mCurrentRequests.remove(request);
         }
         synchronized (mFinishedListeners) {
-          for (RequestFinishedListener<T> listener : mFinishedListeners) {
+          for (RequestFinishedListener<? super T> listener : mFinishedListeners) {
             listener.onRequestFinished(request);
           }
         }
 
     }
 
-    public  <T> void addRequestFinishedListener(RequestFinishedListener<T> listener) {
+    public void addRequestFinishedListener(RequestFinishedListener<? super T> listener) {
       synchronized (mFinishedListeners) {
         mFinishedListeners.add(listener);
       }
@@ -253,7 +253,7 @@ public class RequestQueue {
     /**
      * Remove a RequestFinishedListener. Has no effect if listener was not previously added.
      */
-    public  <T> void removeRequestFinishedListener(RequestFinishedListener<T> listener) {
+    public void removeRequestFinishedListener(RequestFinishedListener<? super T> listener) {
       synchronized (mFinishedListeners) {
         mFinishedListeners.remove(listener);
       }
