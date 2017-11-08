@@ -93,9 +93,15 @@ public class CacheDispatcher extends Thread {
 
         while (true) {
             try {
-                // Get a request from the cache triage queue, blocking until
-                // at least one is available.
-                final Request<?> request = mCacheQueue.take();
+                // Get a request from the cache triage queue, blocking until at least one is
+                // available. Polling before the call to take is a workaround for an Android
+                // platform issue where the previous request is not GC'd until take() returns, which
+                // can take indefinitely long if no new requests are added to the queue. See also
+                // https://github.com/google/volley/issues/114
+                Request<?> request = mCacheQueue.poll();
+                if (request == null) {
+                    request = mCacheQueue.take();
+                }
                 request.addMarker("cache-queue-take");
 
                 // If the request has been canceled, don't bother dispatching it.
@@ -146,17 +152,8 @@ public class CacheDispatcher extends Thread {
                     if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
                         // Post the intermediate response back to the user and have
                         // the delivery then forward the request along to the network.
-                        mDelivery.postResponse(request, response, new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    mNetworkQueue.put(request);
-                                } catch (InterruptedException e) {
-                                    // Restore the interrupted status
-                                    Thread.currentThread().interrupt();
-                                }
-                            }
-                        });
+                        mDelivery.postResponse(request, response,
+                                new PostToNetworkQueueRunnable(request));
                     } else {
                         // request has been added to list of waiting requests
                         // to receive the network response from the first request once it returns.
@@ -169,6 +166,24 @@ public class CacheDispatcher extends Thread {
                 if (mQuit) {
                     return;
                 }
+            }
+        }
+    }
+
+    private class PostToNetworkQueueRunnable implements Runnable {
+        private final Request<?> mRequest;
+
+        PostToNetworkQueueRunnable(Request<?> request) {
+            mRequest = request;
+        }
+
+        @Override
+        public void run() {
+            try {
+                mNetworkQueue.put(mRequest);
+            } catch (InterruptedException e) {
+                // Restore the interrupted status
+                Thread.currentThread().interrupt();
             }
         }
     }

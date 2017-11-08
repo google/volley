@@ -84,16 +84,21 @@ public class NetworkDispatcher extends Thread {
         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
         while (true) {
             long startTimeMs = SystemClock.elapsedRealtime();
-            Request<?> request;
-            try {
-                // Take a request from the queue.
-                request = mQueue.take();
-            } catch (InterruptedException e) {
-                // We may have been interrupted because it was time to quit.
-                if (mQuit) {
-                    return;
+            // Take a request from the queue. Polling before the call to take is a workaround for an
+            // Android platform issue where the previous request is not GC'd until take() returns,
+            // which can take indefinitely long if no new requests are added to the queue. See also
+            // https://github.com/google/volley/issues/114
+            Request<?> request = mQueue.poll();
+            if (request == null) {
+                try {
+                    request = mQueue.take();
+                } catch (InterruptedException e) {
+                    // We may have been interrupted because it was time to quit.
+                    if (mQuit) {
+                        return;
+                    }
+                    continue;
                 }
-                continue;
             }
 
             try {
