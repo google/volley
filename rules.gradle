@@ -9,6 +9,10 @@ android {
     sourceCompatibility JavaVersion.VERSION_1_7
     targetCompatibility JavaVersion.VERSION_1_7
   }
+
+  defaultConfig {
+    consumerProguardFiles 'consumer-proguard-rules.pro'
+  }
 }
 
 // Check if the android plugin version supports unit testing.

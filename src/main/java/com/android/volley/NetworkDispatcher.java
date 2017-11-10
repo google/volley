@@ -96,7 +96,8 @@ public class NetworkDispatcher extends Thread {
 
     // Extracted to its own method to ensure locals have a constrained liveness scope by the GC.
     // This is needed to avoid keeping previous request references alive for an indeterminate amount
-    // of time. See also https://github.com/google/volley/issues/114
+    // of time. Update consumer-proguard-rules.pro when modifying this. See also
+    // https://github.com/google/volley/issues/114
     private void processRequest() throws InterruptedException {
         long startTimeMs = SystemClock.elapsedRealtime();
         // Take a request from the queue.
