@@ -93,82 +93,89 @@ public class CacheDispatcher extends Thread {
 
         while (true) {
             try {
-                // Get a request from the cache triage queue, blocking until
-                // at least one is available.
-                final Request<?> request = mCacheQueue.take();
-                request.addMarker("cache-queue-take");
-
-                // If the request has been canceled, don't bother dispatching it.
-                if (request.isCanceled()) {
-                    request.finish("cache-discard-canceled");
-                    continue;
-                }
-
-                // Attempt to retrieve this item from cache.
-                Cache.Entry entry = mCache.get(request.getCacheKey());
-                if (entry == null) {
-                    request.addMarker("cache-miss");
-                    // Cache miss; send off to the network dispatcher.
-                    if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
-                        mNetworkQueue.put(request);
-                    }
-                    continue;
-                }
-
-                // If it is completely expired, just send it to the network.
-                if (entry.isExpired()) {
-                    request.addMarker("cache-hit-expired");
-                    request.setCacheEntry(entry);
-                    if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
-                        mNetworkQueue.put(request);
-                    }
-                    continue;
-                }
-
-                // We have a cache hit; parse its data for delivery back to the request.
-                request.addMarker("cache-hit");
-                Response<?> response = request.parseNetworkResponse(
-                        new NetworkResponse(entry.data, entry.responseHeaders));
-                request.addMarker("cache-hit-parsed");
-
-                if (!entry.refreshNeeded()) {
-                    // Completely unexpired cache hit. Just deliver the response.
-                    mDelivery.postResponse(request, response);
-                } else {
-                    // Soft-expired cache hit. We can deliver the cached response,
-                    // but we need to also send the request to the network for
-                    // refreshing.
-                    request.addMarker("cache-hit-refresh-needed");
-                    request.setCacheEntry(entry);
-                    // Mark the response as intermediate.
-                    response.intermediate = true;
-
-                    if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
-                        // Post the intermediate response back to the user and have
-                        // the delivery then forward the request along to the network.
-                        mDelivery.postResponse(request, response, new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    mNetworkQueue.put(request);
-                                } catch (InterruptedException e) {
-                                    // Restore the interrupted status
-                                    Thread.currentThread().interrupt();
-                                }
-                            }
-                        });
-                    } else {
-                        // request has been added to list of waiting requests
-                        // to receive the network response from the first request once it returns.
-                        mDelivery.postResponse(request, response);
-                    }
-                }
-
+                processRequest();
             } catch (InterruptedException e) {
                 // We may have been interrupted because it was time to quit.
                 if (mQuit) {
                     return;
                 }
+            }
+        }
+    }
+
+    // Extracted to its own method to ensure locals have a constrained liveness scope by the GC.
+    // This is needed to avoid keeping previous request references alive for an indeterminate amount
+    // of time. Update consumer-proguard-rules.pro when modifying this. See also
+    // https://github.com/google/volley/issues/114
+    private void processRequest() throws InterruptedException {
+        // Get a request from the cache triage queue, blocking until
+        // at least one is available.
+        final Request<?> request = mCacheQueue.take();
+        request.addMarker("cache-queue-take");
+
+        // If the request has been canceled, don't bother dispatching it.
+        if (request.isCanceled()) {
+            request.finish("cache-discard-canceled");
+            return;
+        }
+
+        // Attempt to retrieve this item from cache.
+        Cache.Entry entry = mCache.get(request.getCacheKey());
+        if (entry == null) {
+            request.addMarker("cache-miss");
+            // Cache miss; send off to the network dispatcher.
+            if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
+                mNetworkQueue.put(request);
+            }
+            return;
+        }
+
+        // If it is completely expired, just send it to the network.
+        if (entry.isExpired()) {
+            request.addMarker("cache-hit-expired");
+            request.setCacheEntry(entry);
+            if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
+                mNetworkQueue.put(request);
+            }
+            return;
+        }
+
+        // We have a cache hit; parse its data for delivery back to the request.
+        request.addMarker("cache-hit");
+        Response<?> response = request.parseNetworkResponse(
+                new NetworkResponse(entry.data, entry.responseHeaders));
+        request.addMarker("cache-hit-parsed");
+
+        if (!entry.refreshNeeded()) {
+            // Completely unexpired cache hit. Just deliver the response.
+            mDelivery.postResponse(request, response);
+        } else {
+            // Soft-expired cache hit. We can deliver the cached response,
+            // but we need to also send the request to the network for
+            // refreshing.
+            request.addMarker("cache-hit-refresh-needed");
+            request.setCacheEntry(entry);
+            // Mark the response as intermediate.
+            response.intermediate = true;
+
+            if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
+                // Post the intermediate response back to the user and have
+                // the delivery then forward the request along to the network.
+                mDelivery.postResponse(request, response, new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            mNetworkQueue.put(request);
+                        } catch (InterruptedException e) {
+                            // Restore the interrupted status
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                });
+            } else {
+                // request has been added to list of waiting requests
+                // to receive the network response from the first request once it returns.
+                mDelivery.postResponse(request, response);
             }
         }
     }
