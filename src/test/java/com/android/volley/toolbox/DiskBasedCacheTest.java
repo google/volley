@@ -280,25 +280,26 @@ public class DiskBasedCacheTest {
 
     @Test
     public void testReadHeaderListWithNegativeSize() throws IOException {
-        // Assume cached header list begins with int size
+        // If a cached header list is corrupted and begins with a negative size,
+        // verify that readHeaderList will throw an IOException.
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DiskBasedCache.writeInt(baos, -1); // size
+        DiskBasedCache.writeInt(baos, -1); // negative size
         CountingInputStream cis = new CountingInputStream(
                 new ByteArrayInputStream(baos.toByteArray()), Integer.MAX_VALUE);
-        // Expect IOException due to the negative size
+        // Expect IOException due to negative size
         exception.expect(IOException.class);
         DiskBasedCache.readHeaderList(cis);
     }
 
     @Test
     public void testReadHeaderListWithGinormousSize() throws IOException {
-        // Assume cached header list begins with int size
+        // If a cached header list is corrupted and begins with 2GB size, verify
+        // that readHeaderList will throw EOFException rather than OutOfMemoryError.
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DiskBasedCache.writeInt(baos, Integer.MAX_VALUE); // size
-        // Create CountingInputStream that is only long enough to hold the size entry
+        DiskBasedCache.writeInt(baos, Integer.MAX_VALUE); // 2GB size
         CountingInputStream cis = new CountingInputStream(
                 new ByteArrayInputStream(baos.toByteArray()), baos.size());
-        // Expect EOFException when the end of the stream is reached
+        // Expect EOFException when end of stream is reached
         exception.expect(EOFException.class);
         DiskBasedCache.readHeaderList(cis);
     }
