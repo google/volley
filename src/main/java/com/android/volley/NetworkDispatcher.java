@@ -33,6 +33,7 @@ import java.util.concurrent.BlockingQueue;
  * errors are posted back to the caller via a {@link ResponseDelivery}.
  */
 public class NetworkDispatcher extends Thread {
+
     /** The queue of requests to service. */
     private final BlockingQueue<Request<?>> mQueue;
     /** The network interface for processing requests. */
@@ -54,8 +55,7 @@ public class NetworkDispatcher extends Thread {
      * @param delivery Delivery interface to use for posting responses
      */
     public NetworkDispatcher(BlockingQueue<Request<?>> queue,
-            Network network, Cache cache,
-            ResponseDelivery delivery) {
+            Network network, Cache cache, ResponseDelivery delivery) {
         mQueue = queue;
         mNetwork = network;
         mCache = cache;
@@ -83,65 +83,76 @@ public class NetworkDispatcher extends Thread {
     public void run() {
         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
         while (true) {
-            long startTimeMs = SystemClock.elapsedRealtime();
-            Request<?> request;
             try {
-                // Take a request from the queue.
-                request = mQueue.take();
+                processRequest();
             } catch (InterruptedException e) {
                 // We may have been interrupted because it was time to quit.
                 if (mQuit) {
                     return;
                 }
-                continue;
+            }
+        }
+    }
+
+    // Extracted to its own method to ensure locals have a constrained liveness scope by the GC.
+    // This is needed to avoid keeping previous request references alive for an indeterminate amount
+    // of time. Update consumer-proguard-rules.pro when modifying this. See also
+    // https://github.com/google/volley/issues/114
+    private void processRequest() throws InterruptedException {
+        long startTimeMs = SystemClock.elapsedRealtime();
+        // Take a request from the queue.
+        Request<?> request = mQueue.take();
+
+        try {
+            request.addMarker("network-queue-take");
+
+            // If the request was cancelled already, do not perform the
+            // network request.
+            if (request.isCanceled()) {
+                request.finish("network-discard-cancelled");
+                request.notifyListenerResponseNotUsable();
+                return;
             }
 
-            try {
-                request.addMarker("network-queue-take");
+            addTrafficStatsTag(request);
 
-                // If the request was cancelled already, do not perform the
-                // network request.
-                if (request.isCanceled()) {
-                    request.finish("network-discard-cancelled");
-                    continue;
-                }
+            // Perform the network request.
+            NetworkResponse networkResponse = mNetwork.performRequest(request);
+            request.addMarker("network-http-complete");
 
-                addTrafficStatsTag(request);
-
-                // Perform the network request.
-                NetworkResponse networkResponse = mNetwork.performRequest(request);
-                request.addMarker("network-http-complete");
-
-                // If the server returned 304 AND we delivered a response already,
-                // we're done -- don't deliver a second identical response.
-                if (networkResponse.notModified && request.hasHadResponseDelivered()) {
-                    request.finish("not-modified");
-                    continue;
-                }
-
-                // Parse the response here on the worker thread.
-                Response<?> response = request.parseNetworkResponse(networkResponse);
-                request.addMarker("network-parse-complete");
-
-                // Write to cache if applicable.
-                // TODO: Only update cache metadata instead of entire record for 304s.
-                if (request.shouldCache() && response.cacheEntry != null) {
-                    mCache.put(request.getCacheKey(), response.cacheEntry);
-                    request.addMarker("network-cache-written");
-                }
-
-                // Post the response back.
-                request.markDelivered();
-                mDelivery.postResponse(request, response);
-            } catch (VolleyError volleyError) {
-                volleyError.setNetworkTimeMs(SystemClock.elapsedRealtime() - startTimeMs);
-                parseAndDeliverNetworkError(request, volleyError);
-            } catch (Exception e) {
-                VolleyLog.e(e, "Unhandled exception %s", e.toString());
-                VolleyError volleyError = new VolleyError(e);
-                volleyError.setNetworkTimeMs(SystemClock.elapsedRealtime() - startTimeMs);
-                mDelivery.postError(request, volleyError);
+            // If the server returned 304 AND we delivered a response already,
+            // we're done -- don't deliver a second identical response.
+            if (networkResponse.notModified && request.hasHadResponseDelivered()) {
+                request.finish("not-modified");
+                request.notifyListenerResponseNotUsable();
+                return;
             }
+
+            // Parse the response here on the worker thread.
+            Response<?> response = request.parseNetworkResponse(networkResponse);
+            request.addMarker("network-parse-complete");
+
+            // Write to cache if applicable.
+            // TODO: Only update cache metadata instead of entire record for 304s.
+            if (request.shouldCache() && response.cacheEntry != null) {
+                mCache.put(request.getCacheKey(), response.cacheEntry);
+                request.addMarker("network-cache-written");
+            }
+
+            // Post the response back.
+            request.markDelivered();
+            mDelivery.postResponse(request, response);
+            request.notifyListenerResponseReceived(response);
+        } catch (VolleyError volleyError) {
+            volleyError.setNetworkTimeMs(SystemClock.elapsedRealtime() - startTimeMs);
+            parseAndDeliverNetworkError(request, volleyError);
+            request.notifyListenerResponseNotUsable();
+        } catch (Exception e) {
+            VolleyLog.e(e, "Unhandled exception %s", e.toString());
+            VolleyError volleyError = new VolleyError(e);
+            volleyError.setNetworkTimeMs(SystemClock.elapsedRealtime() - startTimeMs);
+            mDelivery.postError(request, volleyError);
+            request.notifyListenerResponseNotUsable();
         }
     }
 

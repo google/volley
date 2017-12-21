@@ -35,6 +35,12 @@ public class VolleyLog {
     public static boolean DEBUG = Log.isLoggable(TAG, Log.VERBOSE);
 
     /**
+     * {@link Class#getName()} uses reflection and calling it on a potentially hot code path may
+     * have some cost. To minimize this cost we fetch class name once here and use it later.
+     */
+    private static final String CLASS_NAME = VolleyLog.class.getName();
+
+    /**
      * Customize the log tag for your application, so that other apps
      * using Volley don't mix their logs with yours.
      * <br>
@@ -88,8 +94,8 @@ public class VolleyLog {
         // Walk up the stack looking for the first caller outside of VolleyLog.
         // It will be at least two frames up, so start there.
         for (int i = 2; i < trace.length; i++) {
-            Class<?> clazz = trace[i].getClass();
-            if (!clazz.equals(VolleyLog.class)) {
+            String clazz = trace[i].getClassName();
+            if (!clazz.equals(VolleyLog.CLASS_NAME)) {
                 String callingClass = trace[i].getClassName();
                 callingClass = callingClass.substring(callingClass.lastIndexOf('.') + 1);
                 callingClass = callingClass.substring(callingClass.lastIndexOf('$') + 1);

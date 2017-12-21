@@ -56,6 +56,18 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         int PATCH = 7;
     }
 
+    /**
+     * Callback to notify when the network request returns.
+     */
+    /* package */ interface NetworkRequestCompleteListener {
+
+        /** Callback when a network response has been received. */
+        void onResponseReceived(Request<?> request, Response<?> response);
+
+        /** Callback when request returns from network without valid response. */
+        void onNoUsableResponseReceived(Request<?> request);
+    }
+
     /** An event log tracing the lifetime of this request; for debugging. */
     private final MarkerLog mEventLog = MarkerLog.ENABLED ? new MarkerLog() : null;
 
@@ -71,8 +83,12 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     /** Default tag for {@link TrafficStats}. */
     private final int mDefaultTrafficStatsTag;
 
+    /** Lock to guard state which can be mutated after a request is added to the queue. */
+    private final Object mLock = new Object();
+
     /** Listener interface for errors. */
-    private final Response.ErrorListener mErrorListener;
+    // @GuardedBy("mLock")
+    private Response.ErrorListener mErrorListener;
 
     /** Sequence number of this request, used to enforce FIFO ordering. */
     private Integer mSequence;
@@ -84,9 +100,11 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     private boolean mShouldCache = true;
 
     /** Whether or not this request has been canceled. */
+    // @GuardedBy("mLock")
     private boolean mCanceled = false;
 
     /** Whether or not a response has been delivered for this request yet. */
+    // @GuardedBy("mLock")
     private boolean mResponseDelivered = false;
 
     /** Whether the request should be retried in the event of an HTTP 5xx (server) error. */
@@ -104,6 +122,10 @@ public abstract class Request<T> implements Comparable<Request<T>> {
 
     /** An opaque token tagging this request; used for bulk cancellation. */
     private Object mTag;
+
+    /** Listener that will be notified when a response has been delivered. */
+    // @GuardedBy("mLock")
+    private NetworkRequestCompleteListener mRequestCompleteListener;
 
     /**
      * Creates a new request with the given URL and error listener.  Note that
@@ -227,7 +249,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
                     @Override
                     public void run() {
                         mEventLog.add(tag, threadId);
-                        mEventLog.finish(this.toString());
+                        mEventLog.finish(Request.this.toString());
                     }
                 });
                 return;
@@ -302,17 +324,34 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     }
 
     /**
-     * Mark this request as canceled.  No callback will be delivered.
+     * Mark this request as canceled.
+     *
+     * <p>No callback will be delivered as long as either:
+     * <ul>
+     *     <li>This method is called on the same thread as the {@link ResponseDelivery} is running
+     *     on. By default, this is the main thread.
+     *     <li>The request subclass being used overrides cancel() and ensures that it does not
+     *     invoke the listener in {@link #deliverResponse} after cancel() has been called in a
+     *     thread-safe manner.
+     * </ul>
+     *
+     * <p>There are no guarantees if both of these conditions aren't met.
      */
+    // @CallSuper
     public void cancel() {
-        mCanceled = true;
+        synchronized (mLock) {
+            mCanceled = true;
+            mErrorListener = null;
+        }
     }
 
     /**
      * Returns true if this request has been canceled.
      */
     public boolean isCanceled() {
-        return mCanceled;
+        synchronized (mLock) {
+            return mCanceled;
+        }
     }
 
     /**
@@ -531,14 +570,18 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * later in the request's lifetime for suppressing identical responses.
      */
     public void markDelivered() {
-        mResponseDelivered = true;
+        synchronized (mLock) {
+            mResponseDelivered = true;
+        }
     }
 
     /**
      * Returns true if this request has had a response delivered for it.
      */
     public boolean hasHadResponseDelivered() {
-        return mResponseDelivered;
+        synchronized (mLock) {
+            return mResponseDelivered;
+        }
     }
 
     /**
@@ -579,8 +622,52 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * @param error Error details
      */
     public void deliverError(VolleyError error) {
-        if (mErrorListener != null) {
-            mErrorListener.onErrorResponse(error);
+        Response.ErrorListener listener;
+        synchronized (mLock) {
+            listener = mErrorListener;
+        }
+        if (listener != null) {
+            listener.onErrorResponse(error);
+        }
+    }
+
+    /**
+     * {@link NetworkRequestCompleteListener} that will receive callbacks when the request
+     * returns from the network.
+     */
+    /* package */ void setNetworkRequestCompleteListener(
+            NetworkRequestCompleteListener requestCompleteListener) {
+        synchronized (mLock) {
+            mRequestCompleteListener = requestCompleteListener;
+        }
+    }
+
+    /**
+     * Notify NetworkRequestCompleteListener that a valid response has been received
+     * which can be used for other, waiting requests.
+     * @param response received from the network
+     */
+    /* package */ void notifyListenerResponseReceived(Response<?> response) {
+        NetworkRequestCompleteListener listener;
+        synchronized (mLock) {
+            listener = mRequestCompleteListener;
+        }
+        if (listener != null) {
+            listener.onResponseReceived(this, response);
+        }
+    }
+
+    /**
+     * Notify NetworkRequestCompleteListener that the network request did not result in
+     * a response which can be used for other, waiting requests.
+     */
+    /* package */ void notifyListenerResponseNotUsable() {
+        NetworkRequestCompleteListener listener;
+        synchronized (mLock) {
+            listener = mRequestCompleteListener;
+        }
+        if (listener != null) {
+            listener.onNoUsableResponseReceived(this);
         }
     }
 
