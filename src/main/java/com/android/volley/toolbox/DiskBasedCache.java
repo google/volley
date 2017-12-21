@@ -602,9 +602,12 @@ public class DiskBasedCache implements Cache {
 
     static List<Header> readHeaderList(CountingInputStream cis) throws IOException {
         int size = readInt(cis);
+        if (size < 0) {
+            throw new IOException("readHeaderList size=" + size);
+        }
         List<Header> result = (size == 0)
                 ? Collections.<Header>emptyList()
-                : new ArrayList<Header>(size);
+                : new ArrayList<Header>();
         for (int i = 0; i < size; i++) {
             String name = readString(cis).intern();
             String value = readString(cis).intern();
