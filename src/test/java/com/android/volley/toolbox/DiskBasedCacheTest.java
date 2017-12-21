@@ -42,7 +42,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import static org.hamcrest.Matchers.arrayWithSize;
@@ -277,6 +276,31 @@ public class DiskBasedCacheTest {
                 new CountingInputStream(new ByteArrayInputStream(data), 0x100000000L);
         exception.expect(IOException.class);
         DiskBasedCache.streamToBytes(cis, 0x100000000L); // int value is 0
+    }
+
+    @Test
+    public void testReadHeaderListWithNegativeSize() throws IOException {
+        // Assume cached header list begins with int size
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DiskBasedCache.writeInt(baos, -1); // size
+        CountingInputStream cis = new CountingInputStream(
+                new ByteArrayInputStream(baos.toByteArray()), Integer.MAX_VALUE);
+        // Expect IOException due to the negative size
+        exception.expect(IOException.class);
+        DiskBasedCache.readHeaderList(cis);
+    }
+
+    @Test
+    public void testReadHeaderListWithGinormousSize() throws IOException {
+        // Assume cached header list begins with int size
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DiskBasedCache.writeInt(baos, Integer.MAX_VALUE); // size
+        // Create CountingInputStream that is only large enough to hold the size entry
+        CountingInputStream cis = new CountingInputStream(
+                new ByteArrayInputStream(baos.toByteArray()), baos.size());
+        // Expect EOFException when the end of the stream is reached
+        exception.expect(EOFException.class);
+        DiskBasedCache.readHeaderList(cis);
     }
 
     @Test
