@@ -68,11 +68,19 @@ public class HurlStack extends BaseHttpStack {
 
     /**
      * @param urlRewriter Rewriter to use for request URLs
-     * @param sslSocketFactory SSL factory to use for HTTPS connections
+     * @param sslSocketFactory SSL factory to use for HTTPS connections. If none is provided, the
+     *                         system default will generally be used. However, support for TLSv1.1
+     *                         and 1.2 will be forcefully enabled on devices which support them even
+     *                         if they are not on by default. If this behavior is undesired, provide
+     *                         a custom SSLSocketFactory.
      */
     public HurlStack(UrlRewriter urlRewriter, SSLSocketFactory sslSocketFactory) {
         mUrlRewriter = urlRewriter;
-        mSslSocketFactory = sslSocketFactory;
+        if (sslSocketFactory != null) {
+            mSslSocketFactory = sslSocketFactory;
+        } else {
+            mSslSocketFactory = TlsEnabledSSLSocketFactory.newTlsEnabledSSLSocketFactoryIfNeeded();
+        }
     }
 
     @Override
