@@ -88,7 +88,7 @@ public class HurlStack extends BaseHttpStack {
         boolean keepConnectionOpen = false;
         try {
             for (String headerName : map.keySet()) {
-                connection.addRequestProperty(headerName, map.get(headerName));
+                connection.setRequestProperty(headerName, map.get(headerName));
             }
             setConnectionParametersForRequest(connection, request);
             // Initialize HttpResponse with data from the HttpURLConnection.
@@ -281,7 +281,7 @@ public class HurlStack extends BaseHttpStack {
         // since this is handled by HttpURLConnection using the size of the prepared
         // output stream.
         connection.setDoOutput(true);
-        connection.addRequestProperty(
+        connection.setRequestProperty(
                 HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         DataOutputStream out = new DataOutputStream(connection.getOutputStream());
         out.write(body);
