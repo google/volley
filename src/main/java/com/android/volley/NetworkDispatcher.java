@@ -99,10 +99,10 @@ public class NetworkDispatcher extends Thread {
     // of time. Update consumer-proguard-rules.pro when modifying this. See also
     // https://github.com/google/volley/issues/114
     private void processRequest() throws InterruptedException {
-        long startTimeMs = SystemClock.elapsedRealtime();
         // Take a request from the queue.
         Request<?> request = mQueue.take();
 
+        long startTimeMs = SystemClock.elapsedRealtime();
         try {
             request.addMarker("network-queue-take");
 
