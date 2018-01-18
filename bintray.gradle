@@ -15,8 +15,6 @@ buildscript {
 apply plugin: org.jfrog.gradle.plugin.artifactory.ArtifactoryPlugin
 apply plugin: 'maven-publish'
 
-def bintrayInfoFilePath = "$buildDir/outputs/bintray-descriptor.bintray-info.json"
-
 task sourcesJar(type: Jar) {
     classifier = 'sources'
     from android.sourceSets.main.java.srcDirs
@@ -30,16 +28,6 @@ task javadoc(type: Javadoc) {
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.destinationDir
-}
-
-task bintrayInfoFile {
-    outputs.file(bintrayInfoFilePath)
-    doLast {
-        println 'Creating bintray-info.json'
-        String fileContent = new File("$rootDir/bintray-info-template.json").getText('UTF-8')
-        fileContent = fileContent.replace('$VERSION$', project.version)
-        ((new File(bintrayInfoFilePath))).write(fileContent)
-    }
 }
 
 artifacts {
@@ -61,10 +49,6 @@ publishing {
             artifact "$buildDir/outputs/aar/volley-release.aar"
             artifact sourcesJar
             artifact javadocJar
-            artifact(bintrayInfoFilePath) {
-                builtBy bintrayInfoFile
-                extension "bintray-info.json"
-            }
         }
     }
 }
