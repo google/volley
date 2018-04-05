@@ -23,6 +23,10 @@ task sourcesJar(type: Jar) {
 task javadoc(type: Javadoc) {
     source = android.sourceSets.main.java.srcDirs
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    // Exclude classes with "Internal" in the name from generated Javadoc, as these are obfuscated
+    // and not part of the Volley API.
+    exclude 'com/android/volley/internal/**'
+
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -45,8 +49,9 @@ publishing {
                 packaging 'aar'
             }
 
-            // Release AAR, Sources, and JavaDoc
+            // Release AAR, sources, javadoc, and proguard mapping
             artifact "$buildDir/outputs/aar/volley-release.aar"
+            artifact "$buildDir/outputs/mapping/release/mapping.txt"
             artifact sourcesJar
             artifact javadocJar
         }
