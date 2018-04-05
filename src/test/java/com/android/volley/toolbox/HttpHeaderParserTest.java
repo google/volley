@@ -18,6 +18,7 @@ package com.android.volley.toolbox;
 
 import com.android.volley.Cache;
 import com.android.volley.Header;
+import com.android.volley.internal.HeaderConversions;
 import com.android.volley.NetworkResponse;
 
 import org.junit.Before;
@@ -287,6 +288,6 @@ public class HttpHeaderParserTest {
         assertEqualsWithin(now + ONE_DAY_MILLIS, entry.ttl, ONE_MINUTE_MILLIS);
         assertEquals(entry.softTtl, entry.ttl);
         assertEquals("ISO-8859-1",
-                HttpHeaderParser.parseCharset(HttpHeaderParser.toHeaderMap(headers)));
+                HttpHeaderParser.parseCharset(HeaderConversions.toHeaderMap(headers)));
     }
 }

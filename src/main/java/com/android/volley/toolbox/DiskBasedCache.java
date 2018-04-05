@@ -21,6 +21,7 @@ import android.text.TextUtils;
 
 import com.android.volley.Cache;
 import com.android.volley.Header;
+import com.android.volley.internal.HeaderConversions;
 import com.android.volley.VolleyLog;
 
 import java.io.BufferedInputStream;
@@ -414,7 +415,7 @@ public class DiskBasedCache implements Cache {
             }
 
             // Legacy fallback - copy headers from the map.
-            return HttpHeaderParser.toAllHeaderList(entry.responseHeaders);
+            return HeaderConversions.toAllHeaderList(entry.responseHeaders);
         }
 
         /**
@@ -450,7 +451,7 @@ public class DiskBasedCache implements Cache {
             e.lastModified = lastModified;
             e.ttl = ttl;
             e.softTtl = softTtl;
-            e.responseHeaders = HttpHeaderParser.toHeaderMap(allResponseHeaders);
+            e.responseHeaders = HeaderConversions.toHeaderMap(allResponseHeaders);
             e.allResponseHeaders = Collections.unmodifiableList(allResponseHeaders);
             return e;
         }
