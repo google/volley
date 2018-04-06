@@ -21,14 +21,16 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.VolleyError;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Helper that handles loading and caching images from remote URLs.
@@ -387,7 +389,7 @@ public class ImageLoader {
      * Wrapper class used to map a Request to the set of active ImageContainer objects that are
      * interested in its results.
      */
-    private class BatchedImageRequest {
+    private static class BatchedImageRequest {
         /** The request being tracked */
         private final Request<?> mRequest;
 
@@ -398,7 +400,7 @@ public class ImageLoader {
         private VolleyError mError;
 
         /** List of all of the active ImageContainers that are interested in the request */
-        private final LinkedList<ImageContainer> mContainers = new LinkedList<ImageContainer>();
+        private final List<ImageContainer> mContainers = new ArrayList<>();
 
         /**
          * Constructs a new BatchedImageRequest object
@@ -433,7 +435,7 @@ public class ImageLoader {
         }
 
         /**
-         * Detatches the bitmap container from the request and cancels the request if no one is
+         * Detaches the bitmap container from the request and cancels the request if no one is
          * left listening.
          * @param container The container to remove from the list
          * @return True if the request was canceled, false otherwise.

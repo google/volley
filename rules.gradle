@@ -15,6 +15,10 @@ android {
   }
 }
 
+tasks.withType(JavaCompile) {
+  options.compilerArgs << "-Werror"
+}
+
 // Check if the android plugin version supports unit testing.
 if (configurations.findByName("testCompile")) {
   dependencies {
