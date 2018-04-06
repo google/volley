@@ -45,7 +45,7 @@ public class RequestTest {
         assertTrue(immediate.compareTo(high) < 0);
     }
 
-    private class TestRequest extends Request<Object> {
+    private static class TestRequest extends Request<Object> {
         private Priority mPriority = Priority.NORMAL;
         public TestRequest(Priority priority) {
             super(Request.Method.GET, "", null);
@@ -80,7 +80,7 @@ public class RequestTest {
         assertFalse(0 == goodProtocol.getTrafficStatsTag());
     }
 
-    private class UrlParseRequest extends Request<Object> {
+    private static class UrlParseRequest extends Request<Object> {
         public UrlParseRequest(String url) {
             super(Request.Method.GET, url, null);
         }

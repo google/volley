@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -68,7 +69,7 @@ public class BasicNetworkTest {
     @Test public void headersAndPostParams() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         InputStream responseStream =
-                new ByteArrayInputStream("foobar".getBytes());
+                new ByteArrayInputStream("foobar".getBytes(StandardCharsets.UTF_8));
         HttpResponse fakeResponse =
                 new HttpResponse(200, Collections.<Header>emptyList(), 6, responseStream);
         mockHttpStack.setResponseToReturn(fakeResponse);
@@ -83,7 +84,8 @@ public class BasicNetworkTest {
         assertEquals("foobar", mockHttpStack.getLastHeaders().get("If-None-Match"));
         assertEquals("Sat, 19 Aug 2017 00:20:02 GMT",
                 mockHttpStack.getLastHeaders().get("If-Modified-Since"));
-        assertEquals("requestpost=foo&", new String(mockHttpStack.getLastPostBody()));
+        assertEquals("requestpost=foo&",
+                new String(mockHttpStack.getLastPostBody(), StandardCharsets.UTF_8));
     }
 
     @Test public void notModified() throws Exception {

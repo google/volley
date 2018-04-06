@@ -31,6 +31,7 @@ import org.robolectric.shadows.ShadowBitmapFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.*;
 
@@ -45,7 +46,7 @@ public class ImageRequestTest {
         // "file:" + name in its lookaside map. I write all this because it will
         // probably break mysteriously at some point and I feel terrible about your
         // having to debug it.
-        byte[] jpegBytes = "file:fake".getBytes();
+        byte[] jpegBytes = "file:fake".getBytes(StandardCharsets.UTF_8);
         ShadowBitmapFactory.provideWidthAndHeightHints("fake", 1024, 500);
         NetworkResponse jpeg = new NetworkResponse(jpegBytes);
 
