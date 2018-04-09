@@ -52,7 +52,7 @@ public class NetworkImageViewTest {
     // // instrumentation test. Write this test once it's figured out.
     // }
 
-    private class MockImageLoader extends ImageLoader {
+    private static class MockImageLoader extends ImageLoader {
         public MockImageLoader() {
             super(null, null);
         }
@@ -61,6 +61,7 @@ public class NetworkImageViewTest {
         public int lastMaxWidth;
         public int lastMaxHeight;
 
+        @Override
         public ImageContainer get(String requestUrl, ImageListener imageListener, int maxWidth,
                 int maxHeight, ScaleType scaleType) {
             lastRequestUrl = requestUrl;

@@ -68,6 +68,7 @@ public class PoolingByteArrayOutputStream extends ByteArrayOutputStream {
     /**
      * Ensures there is enough space in the buffer for the given number of additional bytes.
      */
+    @SuppressWarnings("UnsafeFinalization")
     private void expand(int i) {
         /* Can the buffer handle @i more bytes, if not expand it */
         if (count + i <= buf.length) {

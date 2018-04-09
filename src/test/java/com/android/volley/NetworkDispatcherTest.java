@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
@@ -40,7 +41,8 @@ public class NetworkDispatcherTest {
     private MockCache mCache;
     private MockRequest mRequest;
 
-    private static final byte[] CANNED_DATA = "Ceci n'est pas une vraie reponse".getBytes();
+    private static final byte[] CANNED_DATA =
+            "Ceci n'est pas une vraie reponse".getBytes(StandardCharsets.UTF_8);
     private static final long TIMEOUT_MILLIS = 5000;
 
     @Before public void setUp() throws Exception {

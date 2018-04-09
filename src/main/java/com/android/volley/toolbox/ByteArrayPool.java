@@ -19,7 +19,6 @@ package com.android.volley.toolbox;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -53,7 +52,7 @@ import java.util.List;
  */
 public class ByteArrayPool {
     /** The buffer pool, arranged both by last use and by buffer size */
-    private final List<byte[]> mBuffersByLastUse = new LinkedList<byte[]>();
+    private final List<byte[]> mBuffersByLastUse = new ArrayList<>();
     private final List<byte[]> mBuffersBySize = new ArrayList<byte[]>(64);
 
     /** The total size of the buffers in the pool */
