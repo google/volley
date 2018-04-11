@@ -16,17 +16,15 @@
 
 package com.android.volley;
 
+import static org.junit.Assert.*;
+
 import com.android.volley.mock.MockRequest;
 import com.android.volley.utils.CacheTestUtils;
 import com.android.volley.utils.ImmediateResponseDelivery;
-
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class ResponseDeliveryTest {
@@ -35,7 +33,8 @@ public class ResponseDeliveryTest {
     private MockRequest mRequest;
     private Response<byte[]> mSuccessResponse;
 
-    @Before public void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         // Make the delivery just run its posted responses immediately.
         mDelivery = new ImmediateResponseDelivery();
         mRequest = new MockRequest();
@@ -45,20 +44,23 @@ public class ResponseDeliveryTest {
         mSuccessResponse = Response.success(data, cacheEntry);
     }
 
-    @Test public void postResponseCallsDeliverResponse() {
+    @Test
+    public void postResponseCallsDeliverResponse() {
         mDelivery.postResponse(mRequest, mSuccessResponse);
         assertTrue(mRequest.deliverResponse_called);
         assertFalse(mRequest.deliverError_called);
     }
 
-    @Test public void postResponseSuppressesCanceled() {
+    @Test
+    public void postResponseSuppressesCanceled() {
         mRequest.cancel();
         mDelivery.postResponse(mRequest, mSuccessResponse);
         assertFalse(mRequest.deliverResponse_called);
         assertFalse(mRequest.deliverError_called);
     }
 
-    @Test public void postErrorCallsDeliverError() {
+    @Test
+    public void postErrorCallsDeliverError() {
         Response<byte[]> errorResponse = Response.error(new ServerError());
 
         mDelivery.postResponse(mRequest, errorResponse);

@@ -20,12 +20,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * An interface for a cache keyed by a String with a byte array as data.
- */
+/** An interface for a cache keyed by a String with a byte array as data. */
 public interface Cache {
     /**
      * Retrieves an entry from the cache.
+     *
      * @param key Cache key
      * @return An {@link Entry} or null in the event of a cache miss
      */
@@ -33,19 +32,21 @@ public interface Cache {
 
     /**
      * Adds or replaces an entry to the cache.
+     *
      * @param key Cache key
      * @param entry Data to store and metadata for cache coherency, TTL, etc.
      */
     void put(String key, Entry entry);
 
     /**
-     * Performs any potentially long-running actions needed to initialize the cache;
-     * will be called from a worker thread.
+     * Performs any potentially long-running actions needed to initialize the cache; will be called
+     * from a worker thread.
      */
     void initialize();
 
     /**
      * Invalidates an entry in the cache.
+     *
      * @param key Cache key
      * @param fullExpire True to fully expire the entry, false to soft expire
      */
@@ -53,18 +54,15 @@ public interface Cache {
 
     /**
      * Removes an entry from the cache.
+     *
      * @param key Cache key
      */
     void remove(String key);
 
-    /**
-     * Empties the cache.
-     */
+    /** Empties the cache. */
     void clear();
 
-    /**
-     * Data and metadata for an entry returned by the cache.
-     */
+    /** Data and metadata for an entry returned by the cache. */
     class Entry {
         /** The data returned from cache. */
         public byte[] data;
@@ -110,5 +108,4 @@ public interface Cache {
             return this.softTtl < System.currentTimeMillis();
         }
     }
-
 }

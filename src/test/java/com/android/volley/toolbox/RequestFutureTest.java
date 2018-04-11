@@ -16,12 +16,12 @@
 
 package com.android.volley.toolbox;
 
+import static org.junit.Assert.assertNotNull;
+
 import com.android.volley.Request;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.assertNotNull;
 
 @RunWith(RobolectricTestRunner.class)
 public class RequestFutureTest {

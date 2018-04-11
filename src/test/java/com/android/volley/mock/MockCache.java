@@ -21,6 +21,7 @@ import com.android.volley.Cache;
 public class MockCache implements Cache {
 
     public boolean clearCalled = false;
+
     @Override
     public void clear() {
         clearCalled = true;
@@ -51,15 +52,11 @@ public class MockCache implements Cache {
     }
 
     @Override
-    public void invalidate(String key, boolean fullExpire) {
-    }
+    public void invalidate(String key, boolean fullExpire) {}
 
     @Override
-    public void remove(String key) {
-    }
+    public void remove(String key) {}
 
-	@Override
-	public void initialize() {
-	}
-
+    @Override
+    public void initialize() {}
 }

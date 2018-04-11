@@ -62,8 +62,7 @@ public class MockHttpURLConnection extends HttpURLConnection {
     }
 
     @Override
-    public void disconnect() {
-    }
+    public void disconnect() {}
 
     @Override
     public boolean usingProxy() {
@@ -71,7 +70,5 @@ public class MockHttpURLConnection extends HttpURLConnection {
     }
 
     @Override
-    public void connect() throws IOException {
-    }
-
+    public void connect() throws IOException {}
 }

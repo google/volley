@@ -18,14 +18,12 @@ package com.android.volley.toolbox;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.Request;
-
-import org.apache.http.conn.ConnectTimeoutException;
-
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.conn.ConnectTimeoutException;
 
 /**
  * {@link BaseHttpStack} implementation wrapping a {@link HttpStack}.
@@ -43,12 +41,11 @@ class AdaptedHttpStack extends BaseHttpStack {
     }
 
     @Override
-    public HttpResponse executeRequest(
-            Request<?> request, Map<String, String> additionalHeaders)
+    public HttpResponse executeRequest(Request<?> request, Map<String, String> additionalHeaders)
             throws IOException, AuthFailureError {
         org.apache.http.HttpResponse apacheResp;
         try {
-             apacheResp = mHttpStack.performRequest(request, additionalHeaders);
+            apacheResp = mHttpStack.performRequest(request, additionalHeaders);
         } catch (ConnectTimeoutException e) {
             // BasicNetwork won't know that this exception should be retried like a timeout, since
             // it's an Apache-specific error, so wrap it in a standard timeout exception.

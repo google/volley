@@ -16,44 +16,39 @@
 
 package com.android.volley.toolbox;
 
+import static org.junit.Assert.*;
+
 import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
-import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.JsonObjectRequest;
-
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
-import java.lang.Exception;
-import java.lang.String;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.*;
-
 @RunWith(RobolectricTestRunner.class)
 public class JsonRequestCharsetTest {
 
-    /**
-     * String in Czech - "Retezec v cestine."
-     */
+    /** String in Czech - "Retezec v cestine." */
     private static final String TEXT_VALUE = "\u0158et\u011bzec v \u010de\u0161tin\u011b.";
+
     private static final String TEXT_NAME = "text";
     private static final int TEXT_INDEX = 0;
 
     /**
-     * Copyright symbol has different encoding in utf-8 and ISO-8859-1,
-     * and it doesn't exists in ISO-8859-2
+     * Copyright symbol has different encoding in utf-8 and ISO-8859-1, and it doesn't exists in
+     * ISO-8859-2
      */
     private static final String COPY_VALUE = "\u00a9";
+
     private static final String COPY_NAME = "copyright";
     private static final int COPY_INDEX = 1;
 
-    @Test public void defaultCharsetJsonObject() throws Exception {
+    @Test
+    public void defaultCharsetJsonObject() throws Exception {
         // UTF-8 is default charset for JSON
         byte[] data = jsonObjectString().getBytes(Charset.forName("UTF-8"));
         NetworkResponse network = new NetworkResponse(data);
@@ -66,7 +61,8 @@ public class JsonRequestCharsetTest {
         assertEquals(COPY_VALUE, objectResponse.result.getString(COPY_NAME));
     }
 
-    @Test public void defaultCharsetJsonArray() throws Exception {
+    @Test
+    public void defaultCharsetJsonArray() throws Exception {
         // UTF-8 is default charset for JSON
         byte[] data = jsonArrayString().getBytes(Charset.forName("UTF-8"));
         NetworkResponse network = new NetworkResponse(data);
@@ -79,7 +75,8 @@ public class JsonRequestCharsetTest {
         assertEquals(COPY_VALUE, arrayResponse.result.getString(COPY_INDEX));
     }
 
-    @Test public void specifiedCharsetJsonObject() throws Exception {
+    @Test
+    public void specifiedCharsetJsonObject() throws Exception {
         byte[] data = jsonObjectString().getBytes(Charset.forName("ISO-8859-1"));
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Content-Type", "application/json; charset=iso-8859-1");
@@ -89,11 +86,12 @@ public class JsonRequestCharsetTest {
 
         assertNotNull(objectResponse);
         assertTrue(objectResponse.isSuccess());
-        //don't check the text in Czech, ISO-8859-1 doesn't support some Czech characters
+        // don't check the text in Czech, ISO-8859-1 doesn't support some Czech characters
         assertEquals(COPY_VALUE, objectResponse.result.getString(COPY_NAME));
     }
 
-    @Test public void specifiedCharsetJsonArray() throws Exception {
+    @Test
+    public void specifiedCharsetJsonArray() throws Exception {
         byte[] data = jsonArrayString().getBytes(Charset.forName("ISO-8859-2"));
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Content-Type", "application/json; charset=iso-8859-2");

@@ -21,16 +21,15 @@ import android.net.TrafficStats;
 import android.os.Build;
 import android.os.Process;
 import android.os.SystemClock;
-
 import java.util.concurrent.BlockingQueue;
 
 /**
  * Provides a thread for performing network dispatch from a queue of requests.
  *
- * Requests added to the specified queue are processed from the network via a
- * specified {@link Network} interface. Responses are committed to cache, if
- * eligible, using a specified {@link Cache} interface. Valid responses and
- * errors are posted back to the caller via a {@link ResponseDelivery}.
+ * <p>Requests added to the specified queue are processed from the network via a specified {@link
+ * Network} interface. Responses are committed to cache, if eligible, using a specified {@link
+ * Cache} interface. Valid responses and errors are posted back to the caller via a {@link
+ * ResponseDelivery}.
  */
 public class NetworkDispatcher extends Thread {
 
@@ -46,16 +45,19 @@ public class NetworkDispatcher extends Thread {
     private volatile boolean mQuit = false;
 
     /**
-     * Creates a new network dispatcher thread.  You must call {@link #start()}
-     * in order to begin processing.
+     * Creates a new network dispatcher thread. You must call {@link #start()} in order to begin
+     * processing.
      *
      * @param queue Queue of incoming requests for triage
      * @param network Network interface to use for performing requests
      * @param cache Cache interface to use for writing responses to cache
      * @param delivery Delivery interface to use for posting responses
      */
-    public NetworkDispatcher(BlockingQueue<Request<?>> queue,
-            Network network, Cache cache, ResponseDelivery delivery) {
+    public NetworkDispatcher(
+            BlockingQueue<Request<?>> queue,
+            Network network,
+            Cache cache,
+            ResponseDelivery delivery) {
         mQueue = queue;
         mNetwork = network;
         mCache = cache;
@@ -63,8 +65,8 @@ public class NetworkDispatcher extends Thread {
     }
 
     /**
-     * Forces this dispatcher to quit immediately.  If any requests are still in
-     * the queue, they are not guaranteed to be processed.
+     * Forces this dispatcher to quit immediately. If any requests are still in the queue, they are
+     * not guaranteed to be processed.
      */
     public void quit() {
         mQuit = true;

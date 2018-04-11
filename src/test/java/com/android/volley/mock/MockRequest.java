@@ -22,7 +22,6 @@ import com.android.volley.Response;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.VolleyError;
 import com.android.volley.utils.CacheTestUtils;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -97,5 +96,4 @@ public class MockRequest extends Request<byte[]> {
         parseResponse_called = true;
         return Response.success(response.data, CacheTestUtils.makeRandomCacheEntry(response.data));
     }
-
 }

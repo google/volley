@@ -23,3 +23,19 @@ use GitHub pull requests for this purpose. Consult [GitHub Help] for more
 information on using pull requests.
 
 [GitHub Help]: https://help.github.com/articles/about-pull-requests/
+
+## Preparing a pull request for review
+
+Ensure your change is properly formatted by running:
+
+```console
+$ ./gradlew googleJavaFormat
+```
+
+Then verify that your change builds and passes tests with:
+
+```console
+$ ./gradlew --continue verifyGoogleJavaFormat build connectedCheck
+```
+
+Please correct any failures before requesting a review.

@@ -23,14 +23,14 @@ import com.android.volley.ServerError;
 import com.android.volley.VolleyError;
 
 public class MockNetwork implements Network {
-    public final static int ALWAYS_THROW_EXCEPTIONS = -1;
+    public static final int ALWAYS_THROW_EXCEPTIONS = -1;
 
     private int mNumExceptionsToThrow = 0;
     private byte[] mDataToReturn = null;
 
     /**
-     * @param numExceptionsToThrow number of times to throw an exception or
-     * {@link #ALWAYS_THROW_EXCEPTIONS}
+     * @param numExceptionsToThrow number of times to throw an exception or {@link
+     *     #ALWAYS_THROW_EXCEPTIONS}
      */
     public void setNumExceptionsToThrow(int numExceptionsToThrow) {
         mNumExceptionsToThrow = numExceptionsToThrow;
@@ -54,5 +54,4 @@ public class MockNetwork implements Network {
         requestHandled = request;
         return new NetworkResponse(mDataToReturn);
     }
-
 }

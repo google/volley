@@ -16,21 +16,20 @@
 
 package com.android.volley;
 
+import static org.junit.Assert.*;
+
 import com.android.volley.mock.MockCache;
 import com.android.volley.mock.MockNetwork;
 import com.android.volley.mock.MockRequest;
 import com.android.volley.mock.MockResponseDelivery;
 import com.android.volley.mock.WaitableQueue;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-
-import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class NetworkDispatcherTest {
@@ -45,7 +44,8 @@ public class NetworkDispatcherTest {
             "Ceci n'est pas une vraie reponse".getBytes(StandardCharsets.UTF_8);
     private static final long TIMEOUT_MILLIS = 5000;
 
-    @Before public void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         mDelivery = new MockResponseDelivery();
         mNetworkQueue = new WaitableQueue();
         mNetwork = new MockNetwork();
@@ -55,12 +55,14 @@ public class NetworkDispatcherTest {
         mDispatcher.start();
     }
 
-    @After public void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         mDispatcher.quit();
         mDispatcher.join();
     }
 
-    @Test public void successPostsResponse() throws Exception {
+    @Test
+    public void successPostsResponse() throws Exception {
         mNetwork.setDataToReturn(CANNED_DATA);
         mNetwork.setNumExceptionsToThrow(0);
         mNetworkQueue.add(mRequest);
@@ -70,10 +72,11 @@ public class NetworkDispatcherTest {
         Response<?> response = mDelivery.responsePosted;
         assertNotNull(response);
         assertTrue(response.isSuccess());
-        assertTrue(Arrays.equals((byte[])response.result, CANNED_DATA));
+        assertTrue(Arrays.equals((byte[]) response.result, CANNED_DATA));
     }
 
-    @Test public void exceptionPostsError() throws Exception {
+    @Test
+    public void exceptionPostsError() throws Exception {
         mNetwork.setNumExceptionsToThrow(MockNetwork.ALWAYS_THROW_EXCEPTIONS);
         mNetworkQueue.add(mRequest);
         mNetworkQueue.waitUntilEmpty(TIMEOUT_MILLIS);
@@ -81,14 +84,16 @@ public class NetworkDispatcherTest {
         assertTrue(mDelivery.postError_called);
     }
 
-    @Test public void shouldCacheFalse() throws Exception {
+    @Test
+    public void shouldCacheFalse() throws Exception {
         mRequest.setShouldCache(false);
         mNetworkQueue.add(mRequest);
         mNetworkQueue.waitUntilEmpty(TIMEOUT_MILLIS);
         assertFalse(mCache.putCalled);
     }
 
-    @Test public void shouldCacheTrue() throws Exception {
+    @Test
+    public void shouldCacheTrue() throws Exception {
         mNetwork.setDataToReturn(CANNED_DATA);
         mRequest.setShouldCache(true);
         mRequest.setCacheKey("bananaphone");

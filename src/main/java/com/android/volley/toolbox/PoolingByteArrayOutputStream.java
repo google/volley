@@ -46,7 +46,7 @@ public class PoolingByteArrayOutputStream extends ByteArrayOutputStream {
      * expand.
      *
      * @param size initial size for the underlying byte array. The value will be pinned to a default
-     *        minimum size.
+     *     minimum size.
      */
     public PoolingByteArrayOutputStream(ByteArrayPool pool, int size) {
         mPool = pool;
@@ -65,9 +65,7 @@ public class PoolingByteArrayOutputStream extends ByteArrayOutputStream {
         mPool.returnBuf(buf);
     }
 
-    /**
-     * Ensures there is enough space in the buffer for the given number of additional bytes.
-     */
+    /** Ensures there is enough space in the buffer for the given number of additional bytes. */
     @SuppressWarnings("UnsafeFinalization")
     private void expand(int i) {
         /* Can the buffer handle @i more bytes, if not expand it */

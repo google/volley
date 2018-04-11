@@ -1,18 +1,17 @@
 package com.android.volley;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class NetworkResponseTest {
@@ -30,7 +29,8 @@ public class NetworkResponseTest {
         expectedHeaders.add(new Header("key1", "value1"));
         expectedHeaders.add(new Header("key2", "value2"));
 
-        assertThat(expectedHeaders,
+        assertThat(
+                expectedHeaders,
                 containsInAnyOrder(resp.allHeaders.toArray(new Header[resp.allHeaders.size()])));
     }
 
