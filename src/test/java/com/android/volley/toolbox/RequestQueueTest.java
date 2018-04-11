@@ -16,12 +16,12 @@
 
 package com.android.volley.toolbox;
 
+import static org.junit.Assert.assertNotNull;
+
 import com.android.volley.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.assertNotNull;
 
 @RunWith(RobolectricTestRunner.class)
 public class RequestQueueTest {
@@ -29,8 +29,9 @@ public class RequestQueueTest {
     @Test
     public void publicMethods() throws Exception {
         // Catch-all test to find API-breaking changes.
-        assertNotNull(RequestQueue.class.getConstructor(Cache.class, Network.class, int.class,
-                ResponseDelivery.class));
+        assertNotNull(
+                RequestQueue.class.getConstructor(
+                        Cache.class, Network.class, int.class, ResponseDelivery.class));
         assertNotNull(RequestQueue.class.getConstructor(Cache.class, Network.class, int.class));
         assertNotNull(RequestQueue.class.getConstructor(Cache.class, Network.class));
 

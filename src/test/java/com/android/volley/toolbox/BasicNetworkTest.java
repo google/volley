@@ -16,6 +16,16 @@
 
 package com.android.volley.toolbox;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.MockitoAnnotations.initMocks;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.Cache.Entry;
 import com.android.volley.Header;
@@ -27,13 +37,6 @@ import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.mock.MockHttpStack;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.robolectric.RobolectricTestRunner;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,16 +48,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.MockitoAnnotations.initMocks;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class BasicNetworkTest {
@@ -62,11 +60,13 @@ public class BasicNetworkTest {
     @Mock private Request<String> mMockRequest;
     @Mock private RetryPolicy mMockRetryPolicy;
 
-    @Before public void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         initMocks(this);
     }
 
-    @Test public void headersAndPostParams() throws Exception {
+    @Test
+    public void headersAndPostParams() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         InputStream responseStream =
                 new ByteArrayInputStream("foobar".getBytes(StandardCharsets.UTF_8));
@@ -82,13 +82,16 @@ public class BasicNetworkTest {
         httpNetwork.performRequest(request);
         assertEquals("foo", mockHttpStack.getLastHeaders().get("requestheader"));
         assertEquals("foobar", mockHttpStack.getLastHeaders().get("If-None-Match"));
-        assertEquals("Sat, 19 Aug 2017 00:20:02 GMT",
+        assertEquals(
+                "Sat, 19 Aug 2017 00:20:02 GMT",
                 mockHttpStack.getLastHeaders().get("If-Modified-Since"));
-        assertEquals("requestpost=foo&",
+        assertEquals(
+                "requestpost=foo&",
                 new String(mockHttpStack.getLastPostBody(), StandardCharsets.UTF_8));
     }
 
-    @Test public void notModified() throws Exception {
+    @Test
+    public void notModified() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         List<Header> headers = new ArrayList<>();
         headers.add(new Header("ServerKeyA", "ServerValueA"));
@@ -96,8 +99,7 @@ public class BasicNetworkTest {
         headers.add(new Header("SharedKey", "ServerValueShared"));
         headers.add(new Header("sharedcaseinsensitivekey", "ServerValueShared1"));
         headers.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
-        HttpResponse fakeResponse =
-                new HttpResponse(HttpURLConnection.HTTP_NOT_MODIFIED, headers);
+        HttpResponse fakeResponse = new HttpResponse(HttpURLConnection.HTTP_NOT_MODIFIED, headers);
         mockHttpStack.setResponseToReturn(fakeResponse);
         BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
         Request<String> request = buildRequest();
@@ -119,11 +121,14 @@ public class BasicNetworkTest {
         expectedHeaders.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
         expectedHeaders.add(new Header("CachedKeyA", "CachedValueA"));
         expectedHeaders.add(new Header("CachedKeyB", "CachedValueB"));
-        assertThat(expectedHeaders, containsInAnyOrder(
-                response.allHeaders.toArray(new Header[response.allHeaders.size()])));
+        assertThat(
+                expectedHeaders,
+                containsInAnyOrder(
+                        response.allHeaders.toArray(new Header[response.allHeaders.size()])));
     }
 
-    @Test public void notModified_legacyCache() throws Exception {
+    @Test
+    public void notModified_legacyCache() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         List<Header> headers = new ArrayList<>();
         headers.add(new Header("ServerKeyA", "ServerValueA"));
@@ -131,8 +136,7 @@ public class BasicNetworkTest {
         headers.add(new Header("SharedKey", "ServerValueShared"));
         headers.add(new Header("sharedcaseinsensitivekey", "ServerValueShared1"));
         headers.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
-        HttpResponse fakeResponse =
-                new HttpResponse(HttpURLConnection.HTTP_NOT_MODIFIED, headers);
+        HttpResponse fakeResponse = new HttpResponse(HttpURLConnection.HTTP_NOT_MODIFIED, headers);
         mockHttpStack.setResponseToReturn(fakeResponse);
         BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
         Request<String> request = buildRequest();
@@ -154,11 +158,14 @@ public class BasicNetworkTest {
         expectedHeaders.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
         expectedHeaders.add(new Header("CachedKeyA", "CachedValueA"));
         expectedHeaders.add(new Header("CachedKeyB", "CachedValueB"));
-        assertThat(expectedHeaders, containsInAnyOrder(
-                response.allHeaders.toArray(new Header[response.allHeaders.size()])));
+        assertThat(
+                expectedHeaders,
+                containsInAnyOrder(
+                        response.allHeaders.toArray(new Header[response.allHeaders.size()])));
     }
 
-    @Test public void socketTimeout() throws Exception {
+    @Test
+    public void socketTimeout() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         mockHttpStack.setExceptionToThrow(new SocketTimeoutException());
         BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
@@ -174,7 +181,8 @@ public class BasicNetworkTest {
         verify(mMockRetryPolicy).retry(any(TimeoutError.class));
     }
 
-    @Test public void noConnection() throws Exception {
+    @Test
+    public void noConnection() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         mockHttpStack.setExceptionToThrow(new IOException());
         BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
@@ -190,7 +198,8 @@ public class BasicNetworkTest {
         verify(mMockRetryPolicy, never()).retry(any(VolleyError.class));
     }
 
-    @Test public void unauthorized() throws Exception {
+    @Test
+    public void unauthorized() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         HttpResponse fakeResponse = new HttpResponse(401, Collections.<Header>emptyList());
         mockHttpStack.setResponseToReturn(fakeResponse);
@@ -207,7 +216,8 @@ public class BasicNetworkTest {
         verify(mMockRetryPolicy).retry(any(AuthFailureError.class));
     }
 
-    @Test public void forbidden() throws Exception {
+    @Test
+    public void forbidden() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         HttpResponse fakeResponse = new HttpResponse(403, Collections.<Header>emptyList());
         mockHttpStack.setResponseToReturn(fakeResponse);
@@ -224,7 +234,8 @@ public class BasicNetworkTest {
         verify(mMockRetryPolicy).retry(any(AuthFailureError.class));
     }
 
-    @Test public void redirect() throws Exception {
+    @Test
+    public void redirect() throws Exception {
         for (int i = 300; i <= 399; i++) {
             MockHttpStack mockHttpStack = new MockHttpStack();
             HttpResponse fakeResponse = new HttpResponse(i, Collections.<Header>emptyList());
@@ -244,7 +255,8 @@ public class BasicNetworkTest {
         }
     }
 
-    @Test public void otherClientError() throws Exception {
+    @Test
+    public void otherClientError() throws Exception {
         for (int i = 400; i <= 499; i++) {
             if (i == 401 || i == 403) {
                 // covered above.
@@ -268,13 +280,13 @@ public class BasicNetworkTest {
         }
     }
 
-    @Test public void serverError_enableRetries() throws Exception {
+    @Test
+    public void serverError_enableRetries() throws Exception {
         for (int i = 500; i <= 599; i++) {
             MockHttpStack mockHttpStack = new MockHttpStack();
             HttpResponse fakeResponse = new HttpResponse(i, Collections.<Header>emptyList());
             mockHttpStack.setResponseToReturn(fakeResponse);
-            BasicNetwork httpNetwork =
-                    new BasicNetwork(mockHttpStack, new ByteArrayPool(4096));
+            BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack, new ByteArrayPool(4096));
             Request<String> request = buildRequest();
             request.setRetryPolicy(mMockRetryPolicy);
             request.setShouldRetryServerErrors(true);
@@ -290,7 +302,8 @@ public class BasicNetworkTest {
         }
     }
 
-    @Test public void serverError_disableRetries() throws Exception {
+    @Test
+    public void serverError_disableRetries() throws Exception {
         for (int i = 500; i <= 599; i++) {
             MockHttpStack mockHttpStack = new MockHttpStack();
             HttpResponse fakeResponse = new HttpResponse(i, Collections.<Header>emptyList());
@@ -319,8 +332,7 @@ public class BasicNetworkTest {
             }
 
             @Override
-            protected void deliverResponse(String response) {
-            }
+            protected void deliverResponse(String response) {}
 
             @Override
             public Map<String, String> getHeaders() {

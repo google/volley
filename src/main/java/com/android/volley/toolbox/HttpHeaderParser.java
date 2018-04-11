@@ -20,7 +20,6 @@ import com.android.volley.Cache;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 import com.android.volley.VolleyLog;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,9 +30,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
-/**
- * Utility methods for parsing HTTP headers.
- */
+/** Utility methods for parsing HTTP headers. */
 public class HttpHeaderParser {
 
     static final String HEADER_CONTENT_TYPE = "Content-Type";
@@ -111,9 +108,7 @@ public class HttpHeaderParser {
         // is more restrictive.
         if (hasCacheControl) {
             softExpire = now + maxAge * 1000;
-            finalExpire = mustRevalidate
-                    ? softExpire
-                    : softExpire + staleWhileRevalidate * 1000;
+            finalExpire = mustRevalidate ? softExpire : softExpire + staleWhileRevalidate * 1000;
         } else if (serverDate > 0 && serverExpires >= serverDate) {
             // Default semantic for Expire header in HTTP specification is softExpire.
             softExpire = now + (serverExpires - serverDate);
@@ -133,9 +128,7 @@ public class HttpHeaderParser {
         return entry;
     }
 
-    /**
-     * Parse date in RFC1123 format, and return its value as epoch
-     */
+    /** Parse date in RFC1123 format, and return its value as epoch */
     public static long parseDateAsEpoch(String dateStr) {
         try {
             // Parse date in RFC1123 format if this header contains one
@@ -153,8 +146,7 @@ public class HttpHeaderParser {
     }
 
     private static SimpleDateFormat newRfc1123Formatter() {
-        SimpleDateFormat formatter =
-                new SimpleDateFormat(RFC1123_FORMAT, Locale.US);
+        SimpleDateFormat formatter = new SimpleDateFormat(RFC1123_FORMAT, Locale.US);
         formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
         return formatter;
     }
@@ -164,8 +156,8 @@ public class HttpHeaderParser {
      *
      * @param headers An {@link java.util.Map} of headers
      * @param defaultCharset Charset to return if none can be found
-     * @return Returns the charset specified in the Content-Type of this header,
-     * or the defaultCharset if none can be found.
+     * @return Returns the charset specified in the Content-Type of this header, or the
+     *     defaultCharset if none can be found.
      */
     public static String parseCharset(Map<String, String> headers, String defaultCharset) {
         String contentType = headers.get(HEADER_CONTENT_TYPE);
@@ -185,8 +177,8 @@ public class HttpHeaderParser {
     }
 
     /**
-     * Returns the charset specified in the Content-Type of this header,
-     * or the HTTP default (ISO-8859-1) if none can be found.
+     * Returns the charset specified in the Content-Type of this header, or the HTTP default
+     * (ISO-8859-1) if none can be found.
      */
     public static String parseCharset(Map<String, String> headers) {
         return parseCharset(headers, DEFAULT_CONTENT_CHARSET);

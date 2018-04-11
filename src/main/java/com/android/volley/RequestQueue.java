@@ -18,7 +18,6 @@ package com.android.volley;
 
 import android.os.Handler;
 import android.os.Looper;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,9 +28,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * A request dispatch queue with a thread pool of dispatchers.
  *
- * Calling {@link #add(Request)} will enqueue the given Request for dispatch,
- * resolving from either cache or network on a worker thread, and then delivering
- * a parsed response on the main thread.
+ * <p>Calling {@link #add(Request)} will enqueue the given Request for dispatch, resolving from
+ * either cache or network on a worker thread, and then delivering a parsed response on the main
+ * thread.
  */
 public class RequestQueue {
 
@@ -45,19 +44,16 @@ public class RequestQueue {
     private final AtomicInteger mSequenceGenerator = new AtomicInteger();
 
     /**
-     * The set of all requests currently being processed by this RequestQueue. A Request
-     * will be in this set if it is waiting in any queue or currently being processed by
-     * any dispatcher.
+     * The set of all requests currently being processed by this RequestQueue. A Request will be in
+     * this set if it is waiting in any queue or currently being processed by any dispatcher.
      */
     private final Set<Request<?>> mCurrentRequests = new HashSet<Request<?>>();
 
     /** The cache triage queue. */
-    private final PriorityBlockingQueue<Request<?>> mCacheQueue =
-            new PriorityBlockingQueue<>();
+    private final PriorityBlockingQueue<Request<?>> mCacheQueue = new PriorityBlockingQueue<>();
 
     /** The queue of requests that are actually going out to the network. */
-    private final PriorityBlockingQueue<Request<?>> mNetworkQueue =
-            new PriorityBlockingQueue<>();
+    private final PriorityBlockingQueue<Request<?>> mNetworkQueue = new PriorityBlockingQueue<>();
 
     /** Number of network request dispatcher threads to start. */
     private static final int DEFAULT_NETWORK_THREAD_POOL_SIZE = 4;
@@ -77,8 +73,7 @@ public class RequestQueue {
     /** The cache dispatcher. */
     private CacheDispatcher mCacheDispatcher;
 
-    private final List<RequestFinishedListener> mFinishedListeners =
-            new ArrayList<>();
+    private final List<RequestFinishedListener> mFinishedListeners = new ArrayList<>();
 
     /**
      * Creates the worker pool. Processing will not begin until {@link #start()} is called.
@@ -88,8 +83,8 @@ public class RequestQueue {
      * @param threadPoolSize Number of network dispatcher threads to create
      * @param delivery A ResponseDelivery interface for posting responses and errors
      */
-    public RequestQueue(Cache cache, Network network, int threadPoolSize,
-            ResponseDelivery delivery) {
+    public RequestQueue(
+            Cache cache, Network network, int threadPoolSize, ResponseDelivery delivery) {
         mCache = cache;
         mNetwork = network;
         mDispatchers = new NetworkDispatcher[threadPoolSize];
@@ -104,7 +99,10 @@ public class RequestQueue {
      * @param threadPoolSize Number of network dispatcher threads to create
      */
     public RequestQueue(Cache cache, Network network, int threadPoolSize) {
-        this(cache, network, threadPoolSize,
+        this(
+                cache,
+                network,
+                threadPoolSize,
                 new ExecutorDelivery(new Handler(Looper.getMainLooper())));
     }
 
@@ -118,27 +116,23 @@ public class RequestQueue {
         this(cache, network, DEFAULT_NETWORK_THREAD_POOL_SIZE);
     }
 
-    /**
-     * Starts the dispatchers in this queue.
-     */
+    /** Starts the dispatchers in this queue. */
     public void start() {
-        stop();  // Make sure any currently running dispatchers are stopped.
+        stop(); // Make sure any currently running dispatchers are stopped.
         // Create the cache dispatcher and start it.
         mCacheDispatcher = new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
         mCacheDispatcher.start();
 
         // Create network dispatchers (and corresponding threads) up to the pool size.
         for (int i = 0; i < mDispatchers.length; i++) {
-            NetworkDispatcher networkDispatcher = new NetworkDispatcher(mNetworkQueue, mNetwork,
-                    mCache, mDelivery);
+            NetworkDispatcher networkDispatcher =
+                    new NetworkDispatcher(mNetworkQueue, mNetwork, mCache, mDelivery);
             mDispatchers[i] = networkDispatcher;
             networkDispatcher.start();
         }
     }
 
-    /**
-     * Stops the cache and network dispatchers.
-     */
+    /** Stops the cache and network dispatchers. */
     public void stop() {
         if (mCacheDispatcher != null) {
             mCacheDispatcher.quit();
@@ -150,23 +144,19 @@ public class RequestQueue {
         }
     }
 
-    /**
-     * Gets a sequence number.
-     */
+    /** Gets a sequence number. */
     public int getSequenceNumber() {
         return mSequenceGenerator.incrementAndGet();
     }
 
-    /**
-     * Gets the {@link Cache} instance being used.
-     */
+    /** Gets the {@link Cache} instance being used. */
     public Cache getCache() {
         return mCache;
     }
 
     /**
-     * A simple predicate or filter interface for Requests, for use by
-     * {@link RequestQueue#cancelAll(RequestFilter)}.
+     * A simple predicate or filter interface for Requests, for use by {@link
+     * RequestQueue#cancelAll(RequestFilter)}.
      */
     public interface RequestFilter {
         boolean apply(Request<?> request);
@@ -174,6 +164,7 @@ public class RequestQueue {
 
     /**
      * Cancels all requests in this queue for which the given filter applies.
+     *
      * @param filter The filtering function to use
      */
     public void cancelAll(RequestFilter filter) {
@@ -187,23 +178,25 @@ public class RequestQueue {
     }
 
     /**
-     * Cancels all requests in this queue with the given tag. Tag must be non-null
-     * and equality is by identity.
+     * Cancels all requests in this queue with the given tag. Tag must be non-null and equality is
+     * by identity.
      */
     public void cancelAll(final Object tag) {
         if (tag == null) {
             throw new IllegalArgumentException("Cannot cancelAll with a null tag");
         }
-        cancelAll(new RequestFilter() {
-            @Override
-            public boolean apply(Request<?> request) {
-                return request.getTag() == tag;
-            }
-        });
+        cancelAll(
+                new RequestFilter() {
+                    @Override
+                    public boolean apply(Request<?> request) {
+                        return request.getTag() == tag;
+                    }
+                });
     }
 
     /**
      * Adds a Request to the dispatch queue.
+     *
      * @param request The request to service
      * @return The passed-in request
      */
@@ -225,7 +218,7 @@ public class RequestQueue {
         }
         mCacheQueue.add(request);
         return request;
-     }
+    }
 
     /**
      * Called from {@link Request#finish(String)}, indicating that processing of the given request
@@ -237,25 +230,22 @@ public class RequestQueue {
             mCurrentRequests.remove(request);
         }
         synchronized (mFinishedListeners) {
-          for (RequestFinishedListener<T> listener : mFinishedListeners) {
-            listener.onRequestFinished(request);
-          }
+            for (RequestFinishedListener<T> listener : mFinishedListeners) {
+                listener.onRequestFinished(request);
+            }
         }
-
     }
 
-    public  <T> void addRequestFinishedListener(RequestFinishedListener<T> listener) {
-      synchronized (mFinishedListeners) {
-        mFinishedListeners.add(listener);
-      }
+    public <T> void addRequestFinishedListener(RequestFinishedListener<T> listener) {
+        synchronized (mFinishedListeners) {
+            mFinishedListeners.add(listener);
+        }
     }
 
-    /**
-     * Remove a RequestFinishedListener. Has no effect if listener was not previously added.
-     */
-    public  <T> void removeRequestFinishedListener(RequestFinishedListener<T> listener) {
-      synchronized (mFinishedListeners) {
-        mFinishedListeners.remove(listener);
-      }
+    /** Remove a RequestFinishedListener. Has no effect if listener was not previously added. */
+    public <T> void removeRequestFinishedListener(RequestFinishedListener<T> listener) {
+        synchronized (mFinishedListeners) {
+            mFinishedListeners.remove(listener);
+        }
     }
 }

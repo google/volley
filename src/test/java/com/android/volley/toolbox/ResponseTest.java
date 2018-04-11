@@ -16,17 +16,16 @@
 
 package com.android.volley.toolbox;
 
+import static org.junit.Assert.assertNotNull;
+
 import com.android.volley.Cache;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import java.util.Map;
-
-import static org.junit.Assert.assertNotNull;
 
 @RunWith(RobolectricTestRunner.class)
 public class ResponseTest {
@@ -40,13 +39,16 @@ public class ResponseTest {
 
         assertNotNull(Response.Listener.class.getDeclaredMethod("onResponse", Object.class));
 
-        assertNotNull(Response.ErrorListener.class.getDeclaredMethod("onErrorResponse",
-                VolleyError.class));
+        assertNotNull(
+                Response.ErrorListener.class.getDeclaredMethod(
+                        "onErrorResponse", VolleyError.class));
 
-        assertNotNull(NetworkResponse.class.getConstructor(int.class, byte[].class, Map.class,
-                boolean.class, long.class));
-        assertNotNull(NetworkResponse.class.getConstructor(int.class, byte[].class, Map.class,
-                boolean.class));
+        assertNotNull(
+                NetworkResponse.class.getConstructor(
+                        int.class, byte[].class, Map.class, boolean.class, long.class));
+        assertNotNull(
+                NetworkResponse.class.getConstructor(
+                        int.class, byte[].class, Map.class, boolean.class));
         assertNotNull(NetworkResponse.class.getConstructor(byte[].class));
         assertNotNull(NetworkResponse.class.getConstructor(byte[].class, Map.class));
     }

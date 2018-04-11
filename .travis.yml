@@ -33,4 +33,4 @@ env:
 
 # Publish a SNAPSHOT build for all commits to master.
 script:
-  - ./gradlew build connectedCheck && ./publish-snapshot-on-commit.sh
+  - ./gradlew --continue verifyGoogleJavaFormat build connectedCheck && ./publish-snapshot-on-commit.sh

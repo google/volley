@@ -18,20 +18,18 @@ package com.android.volley.toolbox;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.Request;
-
-import org.apache.http.ProtocolVersion;
-import org.apache.http.StatusLine;
-import org.apache.http.entity.BasicHttpEntity;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.StatusLine;
+import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 
 /** An HTTP stack abstraction. */
 @SuppressWarnings("deprecation") // for HttpStack
@@ -44,8 +42,8 @@ public abstract class BaseHttpStack implements HttpStack {
      * and the Content-Type header is set to request.getPostBodyContentType().
      *
      * @param request the request to perform
-     * @param additionalHeaders additional headers to be sent together with
-     *         {@link Request#getHeaders()}
+     * @param additionalHeaders additional headers to be sent together with {@link
+     *     Request#getHeaders()}
      * @return the {@link HttpResponse}
      * @throws SocketTimeoutException if the request times out
      * @throws IOException if another I/O error occurs during the request
@@ -57,10 +55,10 @@ public abstract class BaseHttpStack implements HttpStack {
 
     /**
      * @deprecated use {@link #executeRequest} instead to avoid a dependency on the deprecated
-     * Apache HTTP library. Nothing in Volley's own source calls this method. However, since
-     * {@link BasicNetwork#mHttpStack} is exposed to subclasses, we provide this implementation in
-     * case legacy client apps are dependent on that field. This method may be removed in a future
-     * release of Volley.
+     *     Apache HTTP library. Nothing in Volley's own source calls this method. However, since
+     *     {@link BasicNetwork#mHttpStack} is exposed to subclasses, we provide this implementation
+     *     in case legacy client apps are dependent on that field. This method may be removed in a
+     *     future release of Volley.
      */
     @Deprecated
     @Override
@@ -70,8 +68,9 @@ public abstract class BaseHttpStack implements HttpStack {
         HttpResponse response = executeRequest(request, additionalHeaders);
 
         ProtocolVersion protocolVersion = new ProtocolVersion("HTTP", 1, 1);
-        StatusLine statusLine = new BasicStatusLine(
-                protocolVersion, response.getStatusCode(), "" /* reasonPhrase */);
+        StatusLine statusLine =
+                new BasicStatusLine(
+                        protocolVersion, response.getStatusCode(), "" /* reasonPhrase */);
         BasicHttpResponse apacheResponse = new BasicHttpResponse(statusLine);
 
         List<org.apache.http.Header> headers = new ArrayList<>();

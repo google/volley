@@ -17,11 +17,9 @@
 package com.android.volley.toolbox;
 
 import android.os.SystemClock;
-
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +28,8 @@ import java.util.concurrent.TimeoutException;
 /**
  * A Future that represents a Volley request.
  *
- * Used by providing as your response and error listeners. For example:
+ * <p>Used by providing as your response and error listeners. For example:
+ *
  * <pre>
  * RequestFuture&lt;JSONObject&gt; future = RequestFuture.newFuture();
  * MyRequest request = new MyRequest(URL, future, future);
@@ -53,8 +52,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @param <T> The type of parsed response this future expects.
  */
-public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
-       Response.ErrorListener {
+public class RequestFuture<T> implements Future<T>, Response.Listener<T>, Response.ErrorListener {
     private Request<?> mRequest;
     private boolean mResultReceived = false;
     private T mResult;
@@ -159,4 +157,3 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
         notifyAll();
     }
 }
-

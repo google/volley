@@ -16,19 +16,18 @@
 
 package com.android.volley;
 
+import static org.junit.Assert.*;
+
 import com.android.volley.mock.MockCache;
 import com.android.volley.mock.MockRequest;
 import com.android.volley.mock.MockResponseDelivery;
 import com.android.volley.mock.WaitableQueue;
 import com.android.volley.utils.CacheTestUtils;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 @SuppressWarnings("rawtypes")
@@ -42,7 +41,8 @@ public class CacheDispatcherTest {
 
     private static final long TIMEOUT_MILLIS = 5000;
 
-    @Before public void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         mCacheQueue = new WaitableQueue();
         mNetworkQueue = new WaitableQueue();
         mCache = new MockCache();
@@ -54,13 +54,15 @@ public class CacheDispatcherTest {
         mDispatcher.start();
     }
 
-    @After public void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         mDispatcher.quit();
         mDispatcher.join();
     }
 
     // A cancelled request should not be processed at all.
-    @Test public void cancelledRequest() throws Exception {
+    @Test
+    public void cancelledRequest() throws Exception {
         mRequest.cancel();
         mCacheQueue.add(mRequest);
         mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
@@ -69,7 +71,8 @@ public class CacheDispatcherTest {
     }
 
     // A cache miss does not post a response and puts the request on the network queue.
-    @Test public void cacheMiss() throws Exception {
+    @Test
+    public void cacheMiss() throws Exception {
         mCacheQueue.add(mRequest);
         mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
         assertFalse(mDelivery.wasEitherResponseCalled());
@@ -79,7 +82,8 @@ public class CacheDispatcherTest {
     }
 
     // A non-expired cache hit posts a response and does not queue to the network.
-    @Test public void nonExpiredCacheHit() throws Exception {
+    @Test
+    public void nonExpiredCacheHit() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, false);
         mCache.setEntryToReturn(entry);
         mCacheQueue.add(mRequest);
@@ -89,7 +93,8 @@ public class CacheDispatcherTest {
     }
 
     // A soft-expired cache hit posts a response and queues to the network.
-    @Test public void softExpiredCacheHit() throws Exception {
+    @Test
+    public void softExpiredCacheHit() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
         mCache.setEntryToReturn(entry);
         mCacheQueue.add(mRequest);
@@ -102,7 +107,8 @@ public class CacheDispatcherTest {
     }
 
     // An expired cache hit does not post a response and queues to the network.
-    @Test public void expiredCacheHit() throws Exception {
+    @Test
+    public void expiredCacheHit() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, true, true);
         mCache.setEntryToReturn(entry);
         mCacheQueue.add(mRequest);
@@ -113,7 +119,8 @@ public class CacheDispatcherTest {
         assertSame(entry, request.getCacheEntry());
     }
 
-    @Test public void duplicateCacheMiss() throws Exception {
+    @Test
+    public void duplicateCacheMiss() throws Exception {
         MockRequest secondRequest = new MockRequest();
         mRequest.setSequence(1);
         secondRequest.setSequence(2);
@@ -124,7 +131,8 @@ public class CacheDispatcherTest {
         assertFalse(mDelivery.postResponse_called);
     }
 
-    @Test public void tripleCacheMiss_networkErrorOnFirst() throws Exception {
+    @Test
+    public void tripleCacheMiss_networkErrorOnFirst() throws Exception {
         MockRequest secondRequest = new MockRequest();
         MockRequest thirdRequest = new MockRequest();
         mRequest.setSequence(1);
@@ -151,7 +159,8 @@ public class CacheDispatcherTest {
         assertTrue(request.equals(thirdRequest));
     }
 
-    @Test public void duplicateSoftExpiredCacheHit_failedRequest() throws Exception {
+    @Test
+    public void duplicateSoftExpiredCacheHit_failedRequest() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
         mCache.setEntryToReturn(entry);
 
@@ -174,7 +183,8 @@ public class CacheDispatcherTest {
         assertTrue(request.equals(secondRequest));
     }
 
-    @Test public void duplicateSoftExpiredCacheHit_successfulRequest() throws Exception {
+    @Test
+    public void duplicateSoftExpiredCacheHit_successfulRequest() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
         mCache.setEntryToReturn(entry);
 

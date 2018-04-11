@@ -1,16 +1,14 @@
 /**
  * Copyright (C) 2013 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ * <p>Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
 package com.android.volley.toolbox;
@@ -20,27 +18,19 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageView;
-
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageLoader.ImageContainer;
 import com.android.volley.toolbox.ImageLoader.ImageListener;
 
-/**
- * Handles fetching an image from a URL as well as the life-cycle of the
- * associated request.
- */
+/** Handles fetching an image from a URL as well as the life-cycle of the associated request. */
 public class NetworkImageView extends ImageView {
     /** The URL of the network image to load */
     private String mUrl;
 
-    /**
-     * Resource ID of the image to be used as a placeholder until the network image is loaded.
-     */
+    /** Resource ID of the image to be used as a placeholder until the network image is loaded. */
     private int mDefaultImageId;
 
-    /**
-     * Resource ID of the image to be used if the network response fails.
-     */
+    /** Resource ID of the image to be used if the network response fails. */
     private int mErrorImageId;
 
     /** Local copy of the ImageLoader. */
@@ -66,9 +56,8 @@ public class NetworkImageView extends ImageView {
      * immediately either set the cached image (if available) or the default image specified by
      * {@link NetworkImageView#setDefaultImageResId(int)} on the view.
      *
-     * NOTE: If applicable, {@link NetworkImageView#setDefaultImageResId(int)} and
-     * {@link NetworkImageView#setErrorImageResId(int)} should be called prior to calling
-     * this function.
+     * <p>NOTE: If applicable, {@link NetworkImageView#setDefaultImageResId(int)} and {@link
+     * NetworkImageView#setErrorImageResId(int)} should be called prior to calling this function.
      *
      * @param url The URL that should be loaded into this ImageView.
      * @param imageLoader ImageLoader that will be used to make the request.
@@ -98,6 +87,7 @@ public class NetworkImageView extends ImageView {
 
     /**
      * Loads the image for the view if it isn't already loaded.
+     *
      * @param isInLayoutPass True if this was invoked from a layout pass, false otherwise.
      */
     void loadImageIfNecessary(final boolean isInLayoutPass) {
@@ -149,45 +139,54 @@ public class NetworkImageView extends ImageView {
         // from the network.
 
         // update the ImageContainer to be the new bitmap container.
-        mImageContainer = mImageLoader.get(mUrl,
-                new ImageListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        if (mErrorImageId != 0) {
-                            setImageResource(mErrorImageId);
-                        }
-                    }
-
-                    @Override
-                    public void onResponse(final ImageContainer response, boolean isImmediate) {
-                        // If this was an immediate response that was delivered inside of a layout
-                        // pass do not set the image immediately as it will trigger a requestLayout
-                        // inside of a layout. Instead, defer setting the image by posting back to
-                        // the main thread.
-                        if (isImmediate && isInLayoutPass) {
-                            post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    onResponse(response, false);
+        mImageContainer =
+                mImageLoader.get(
+                        mUrl,
+                        new ImageListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                if (mErrorImageId != 0) {
+                                    setImageResource(mErrorImageId);
                                 }
-                            });
-                            return;
-                        }
+                            }
 
-                        if (response.getBitmap() != null) {
-                            setImageBitmap(response.getBitmap());
-                        } else if (mDefaultImageId != 0) {
-                            setImageResource(mDefaultImageId);
-                        }
-                    }
-                }, maxWidth, maxHeight, scaleType);
+                            @Override
+                            public void onResponse(
+                                    final ImageContainer response, boolean isImmediate) {
+                                // If this was an immediate response that was delivered inside of a
+                                // layout
+                                // pass do not set the image immediately as it will trigger a
+                                // requestLayout
+                                // inside of a layout. Instead, defer setting the image by posting
+                                // back to
+                                // the main thread.
+                                if (isImmediate && isInLayoutPass) {
+                                    post(
+                                            new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    onResponse(response, false);
+                                                }
+                                            });
+                                    return;
+                                }
+
+                                if (response.getBitmap() != null) {
+                                    setImageBitmap(response.getBitmap());
+                                } else if (mDefaultImageId != 0) {
+                                    setImageResource(mDefaultImageId);
+                                }
+                            }
+                        },
+                        maxWidth,
+                        maxHeight,
+                        scaleType);
     }
 
     private void setDefaultImageOrNull() {
-        if(mDefaultImageId != 0) {
+        if (mDefaultImageId != 0) {
             setImageResource(mDefaultImageId);
-        }
-        else {
+        } else {
             setImageBitmap(null);
         }
     }

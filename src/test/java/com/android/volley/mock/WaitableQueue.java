@@ -19,7 +19,6 @@ package com.android.volley.mock;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
-
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -32,8 +31,7 @@ public class WaitableQueue extends PriorityBlockingQueue<Request<?>> {
     private final Semaphore mStopEvent = new Semaphore(0);
 
     // TODO: this isn't really "until empty" it's "until next call to take() after empty"
-    public void waitUntilEmpty(long timeoutMillis)
-            throws TimeoutException, InterruptedException {
+    public void waitUntilEmpty(long timeoutMillis) throws TimeoutException, InterruptedException {
         add(mStopRequest);
         if (!mStopEvent.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS)) {
             throw new TimeoutException();
@@ -66,7 +64,6 @@ public class WaitableQueue extends PriorityBlockingQueue<Request<?>> {
         }
 
         @Override
-        protected void deliverResponse(Object response) {
-        }
+        protected void deliverResponse(Object response) {}
     }
 }

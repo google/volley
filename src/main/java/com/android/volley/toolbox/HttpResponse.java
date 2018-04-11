@@ -16,7 +16,6 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Header;
-
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;

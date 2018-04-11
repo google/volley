@@ -16,13 +16,19 @@
 
 package com.android.volley;
 
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
+
 import com.android.volley.Request.Priority;
 import com.android.volley.RequestQueue.RequestFinishedListener;
 import com.android.volley.mock.MockRequest;
 import com.android.volley.mock.ShadowSystemClock;
 import com.android.volley.toolbox.NoCache;
 import com.android.volley.utils.ImmediateResponseDelivery;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,14 +38,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
-
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
-
 
 /**
  * Integration tests for {@link RequestQueue} that verify its behavior in conjunction with real
@@ -56,12 +54,14 @@ public class RequestQueueIntegrationTest {
     @Mock private RequestFinishedListener<byte[]> mMockListener;
     @Mock private RequestFinishedListener<byte[]> mMockListener2;
 
-    @Before public void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         mDelivery = new ImmediateResponseDelivery();
         initMocks(this);
     }
 
-    @Test public void add_requestProcessedInCorrectOrder() throws Exception {
+    @Test
+    public void add_requestProcessedInCorrectOrder() throws Exception {
         // Enqueue 2 requests with different cache keys, and different priorities. The second,
         // higher priority request takes 20ms.
         // Assert that the first request is only handled after the first one has been parsed and
@@ -73,13 +73,15 @@ public class RequestQueueIntegrationTest {
         lowerPriorityReq.setPriority(Priority.LOW);
         higherPriorityReq.setPriority(Priority.HIGH);
 
-        Answer<NetworkResponse> delayAnswer = new Answer<NetworkResponse>() {
-            @Override
-            public NetworkResponse answer(InvocationOnMock invocationOnMock) throws Throwable {
-                Thread.sleep(20);
-                return mock(NetworkResponse.class);
-            }
-        };
+        Answer<NetworkResponse> delayAnswer =
+                new Answer<NetworkResponse>() {
+                    @Override
+                    public NetworkResponse answer(InvocationOnMock invocationOnMock)
+                            throws Throwable {
+                        Thread.sleep(20);
+                        return mock(NetworkResponse.class);
+                    }
+                };
         // delay only for higher request
         when(mMockNetwork.performRequest(higherPriorityReq)).thenAnswer(delayAnswer);
         when(mMockNetwork.performRequest(lowerPriorityReq)).thenReturn(mock(NetworkResponse.class));
@@ -100,19 +102,22 @@ public class RequestQueueIntegrationTest {
     }
 
     /** Asserts that requests with same cache key are processed in order. */
-    @Test public void add_dedupeByCacheKey() throws Exception {
+    @Test
+    public void add_dedupeByCacheKey() throws Exception {
         // Enqueue 2 requests with the same cache key. The first request takes 20ms. Assert that the
         // second request is only handled after the first one has been parsed and delivered.
         MockRequest req1 = new MockRequest();
         MockRequest req2 = new MockRequest();
-        Answer<NetworkResponse> delayAnswer = new Answer<NetworkResponse>() {
-            @Override
-            public NetworkResponse answer(InvocationOnMock invocationOnMock) throws Throwable {
-                Thread.sleep(20);
-                return mock(NetworkResponse.class);
-            }
-        };
-        //delay only for first
+        Answer<NetworkResponse> delayAnswer =
+                new Answer<NetworkResponse>() {
+                    @Override
+                    public NetworkResponse answer(InvocationOnMock invocationOnMock)
+                            throws Throwable {
+                        Thread.sleep(20);
+                        return mock(NetworkResponse.class);
+                    }
+                };
+        // delay only for first
         when(mMockNetwork.performRequest(req1)).thenAnswer(delayAnswer);
         when(mMockNetwork.performRequest(req2)).thenReturn(mock(NetworkResponse.class));
 
@@ -131,16 +136,19 @@ public class RequestQueueIntegrationTest {
         queue.stop();
     }
 
-    /** Verify RequestFinishedListeners are informed when requests are canceled.  */
-    @Test public void add_requestFinishedListenerCanceled() throws Exception {
+    /** Verify RequestFinishedListeners are informed when requests are canceled. */
+    @Test
+    public void add_requestFinishedListenerCanceled() throws Exception {
         MockRequest request = new MockRequest();
-        Answer<NetworkResponse> delayAnswer = new Answer<NetworkResponse>() {
-            @Override
-            public NetworkResponse answer(InvocationOnMock invocationOnMock) throws Throwable {
-                Thread.sleep(200);
-                return mock(NetworkResponse.class);
-            }
-        };
+        Answer<NetworkResponse> delayAnswer =
+                new Answer<NetworkResponse>() {
+                    @Override
+                    public NetworkResponse answer(InvocationOnMock invocationOnMock)
+                            throws Throwable {
+                        Thread.sleep(200);
+                        return mock(NetworkResponse.class);
+                    }
+                };
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 1, mDelivery);
 
         when(mMockNetwork.performRequest(request)).thenAnswer(delayAnswer);
@@ -155,7 +163,8 @@ public class RequestQueueIntegrationTest {
     }
 
     /** Verify RequestFinishedListeners are informed when requests are successfully delivered. */
-    @Test public void add_requestFinishedListenerSuccess() throws Exception {
+    @Test
+    public void add_requestFinishedListenerSuccess() throws Exception {
         MockRequest request = new MockRequest();
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 1, mDelivery);
 
@@ -171,7 +180,8 @@ public class RequestQueueIntegrationTest {
     }
 
     /** Verify RequestFinishedListeners are informed when request errors. */
-    @Test public void add_requestFinishedListenerError() throws Exception {
+    @Test
+    public void add_requestFinishedListenerError() throws Exception {
         MockRequest request = new MockRequest();
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 1, mDelivery);
 

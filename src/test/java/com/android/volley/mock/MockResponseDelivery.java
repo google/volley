@@ -32,6 +32,7 @@ public class MockResponseDelivery implements ResponseDelivery {
     }
 
     public Response<?> responsePosted = null;
+
     @Override
     public void postResponse(Request<?> request, Response<?> response) {
         postResponse_called = true;

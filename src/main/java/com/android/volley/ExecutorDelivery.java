@@ -17,33 +17,32 @@
 package com.android.volley;
 
 import android.os.Handler;
-
 import java.util.concurrent.Executor;
 
-/**
- * Delivers responses and errors.
- */
+/** Delivers responses and errors. */
 public class ExecutorDelivery implements ResponseDelivery {
     /** Used for posting responses, typically to the main thread. */
     private final Executor mResponsePoster;
 
     /**
      * Creates a new response delivery interface.
+     *
      * @param handler {@link Handler} to post responses on
      */
     public ExecutorDelivery(final Handler handler) {
         // Make an Executor that just wraps the handler.
-        mResponsePoster = new Executor() {
-            @Override
-            public void execute(Runnable command) {
-                handler.post(command);
-            }
-        };
+        mResponsePoster =
+                new Executor() {
+                    @Override
+                    public void execute(Runnable command) {
+                        handler.post(command);
+                    }
+                };
     }
 
     /**
-     * Creates a new response delivery interface, mockable version
-     * for testing.
+     * Creates a new response delivery interface, mockable version for testing.
+     *
      * @param executor For running delivery tasks
      */
     public ExecutorDelivery(Executor executor) {
@@ -69,10 +68,7 @@ public class ExecutorDelivery implements ResponseDelivery {
         mResponsePoster.execute(new ResponseDeliveryRunnable(request, response, null));
     }
 
-    /**
-     * A Runnable used for delivering network responses to a listener on the
-     * main thread.
-     */
+    /** A Runnable used for delivering network responses to a listener on the main thread. */
     @SuppressWarnings("rawtypes")
     private static class ResponseDeliveryRunnable implements Runnable {
         private final Request mRequest;
@@ -120,6 +116,6 @@ public class ExecutorDelivery implements ResponseDelivery {
             if (mRunnable != null) {
                 mRunnable.run();
             }
-       }
+        }
     }
 }

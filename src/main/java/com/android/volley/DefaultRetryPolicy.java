@@ -16,9 +16,7 @@
 
 package com.android.volley;
 
-/**
- * Default retry policy for requests.
- */
+/** Default retry policy for requests. */
 public class DefaultRetryPolicy implements RetryPolicy {
     /** The current timeout in milliseconds. */
     private int mCurrentTimeoutMs;
@@ -41,15 +39,14 @@ public class DefaultRetryPolicy implements RetryPolicy {
     /** The default backoff multiplier */
     public static final float DEFAULT_BACKOFF_MULT = 1f;
 
-    /**
-     * Constructs a new retry policy using the default timeouts.
-     */
+    /** Constructs a new retry policy using the default timeouts. */
     public DefaultRetryPolicy() {
         this(DEFAULT_TIMEOUT_MS, DEFAULT_MAX_RETRIES, DEFAULT_BACKOFF_MULT);
     }
 
     /**
      * Constructs a new retry policy.
+     *
      * @param initialTimeoutMs The initial timeout for the policy.
      * @param maxNumRetries The maximum number of retries.
      * @param backoffMultiplier Backoff multiplier for the policy.
@@ -60,31 +57,26 @@ public class DefaultRetryPolicy implements RetryPolicy {
         mBackoffMultiplier = backoffMultiplier;
     }
 
-    /**
-     * Returns the current timeout.
-     */
+    /** Returns the current timeout. */
     @Override
     public int getCurrentTimeout() {
         return mCurrentTimeoutMs;
     }
 
-    /**
-     * Returns the current retry count.
-     */
+    /** Returns the current retry count. */
     @Override
     public int getCurrentRetryCount() {
         return mCurrentRetryCount;
     }
 
-    /**
-     * Returns the backoff multiplier for the policy.
-     */
+    /** Returns the backoff multiplier for the policy. */
     public float getBackoffMultiplier() {
         return mBackoffMultiplier;
     }
 
     /**
      * Prepares for the next retry by applying a backoff to the timeout.
+     *
      * @param error The error code of the last attempt.
      */
     @Override
@@ -96,9 +88,7 @@ public class DefaultRetryPolicy implements RetryPolicy {
         }
     }
 
-    /**
-     * Returns true if this policy has attempts remaining, false otherwise.
-     */
+    /** Returns true if this policy has attempts remaining, false otherwise. */
     protected boolean hasAttemptRemaining() {
         return mCurrentRetryCount <= mMaxNumRetries;
     }

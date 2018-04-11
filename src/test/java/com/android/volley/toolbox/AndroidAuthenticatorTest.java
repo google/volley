@@ -16,6 +16,8 @@
 
 package com.android.volley.toolbox;
 
+import static org.mockito.Mockito.*;
+
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerFuture;
@@ -26,14 +28,9 @@ import android.os.Bundle;
 import com.android.volley.AuthFailureError;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class AndroidAuthenticatorTest {
@@ -52,7 +49,8 @@ public class AndroidAuthenticatorTest {
 
     @Test(expected = AuthFailureError.class)
     public void failedGetAuthToken() throws Exception {
-        when(mAccountManager.getAuthToken(mAccount, "cooltype", false, null, null)).thenReturn(mFuture);
+        when(mAccountManager.getAuthToken(mAccount, "cooltype", false, null, null))
+                .thenReturn(mFuture);
         when(mFuture.getResult()).thenThrow(new AuthenticatorException("sadness!"));
         mAuthenticator.getAuthToken();
     }
@@ -62,7 +60,8 @@ public class AndroidAuthenticatorTest {
         Intent intent = new Intent();
         Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);
-        when(mAccountManager.getAuthToken(mAccount, "cooltype", false, null, null)).thenReturn(mFuture);
+        when(mAccountManager.getAuthToken(mAccount, "cooltype", false, null, null))
+                .thenReturn(mFuture);
         when(mFuture.getResult()).thenReturn(bundle);
         when(mFuture.isDone()).thenReturn(true);
         when(mFuture.isCancelled()).thenReturn(false);
@@ -72,7 +71,8 @@ public class AndroidAuthenticatorTest {
     @Test(expected = AuthFailureError.class)
     public void missingAuthToken() throws Exception {
         Bundle bundle = new Bundle();
-        when(mAccountManager.getAuthToken(mAccount, "cooltype", false, null, null)).thenReturn(mFuture);
+        when(mAccountManager.getAuthToken(mAccount, "cooltype", false, null, null))
+                .thenReturn(mFuture);
         when(mFuture.getResult()).thenReturn(bundle);
         when(mFuture.isDone()).thenReturn(true);
         when(mFuture.isCancelled()).thenReturn(false);
@@ -89,7 +89,8 @@ public class AndroidAuthenticatorTest {
     public void goodToken() throws Exception {
         Bundle bundle = new Bundle();
         bundle.putString(AccountManager.KEY_AUTHTOKEN, "monkey");
-        when(mAccountManager.getAuthToken(mAccount, "cooltype", false, null, null)).thenReturn(mFuture);
+        when(mAccountManager.getAuthToken(mAccount, "cooltype", false, null, null))
+                .thenReturn(mFuture);
         when(mFuture.getResult()).thenReturn(bundle);
         when(mFuture.isDone()).thenReturn(true);
         when(mFuture.isCancelled()).thenReturn(false);

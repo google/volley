@@ -24,7 +24,13 @@ buildscript {
 }
 
 plugins {
+    id "com.github.sherter.google-java-format" version "0.6"
     id "net.ltgt.errorprone" version "0.0.13"
+}
+
+googleJavaFormat {
+    toolVersion = '1.5'
+    options style: 'AOSP'
 }
 
 apply plugin: 'com.android.library'
