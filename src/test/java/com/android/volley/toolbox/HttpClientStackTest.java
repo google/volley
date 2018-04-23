@@ -16,7 +16,8 @@
 
 package com.android.volley.toolbox;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.volley.Request.Method;
 import com.android.volley.mock.TestRequest;

@@ -16,7 +16,9 @@
 
 package com.android.volley.toolbox;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.volley.NetworkResponse;
 import com.android.volley.Response;

@@ -16,7 +16,8 @@
 
 package com.android.volley.toolbox;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import android.content.Context;
 import android.util.AttributeSet;

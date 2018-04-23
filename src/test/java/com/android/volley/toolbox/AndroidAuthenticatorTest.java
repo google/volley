@@ -16,7 +16,9 @@
 
 package com.android.volley.toolbox;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
