@@ -16,6 +16,7 @@
 
 package com.android.volley.toolbox;
 
+import android.support.annotation.GuardedBy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -29,7 +30,7 @@ public class StringRequest extends Request<String> {
     /** Lock to guard mListener as it is cleared on cancel() and read on delivery. */
     private final Object mLock = new Object();
 
-    // @GuardedBy("mLock")
+    @GuardedBy("mLock")
     private Listener<String> mListener;
 
     /**

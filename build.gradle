@@ -37,6 +37,10 @@ apply plugin: 'com.android.library'
 
 repositories {
     jcenter()
+    maven {
+        url 'https://maven.google.com/'
+        name 'Google'
+    }
 }
 
 group = 'com.android.volley'

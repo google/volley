@@ -20,6 +20,8 @@ import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.CallSuper;
+import android.support.annotation.GuardedBy;
 import android.text.TextUtils;
 import com.android.volley.VolleyLog.MarkerLog;
 import java.io.UnsupportedEncodingException;
@@ -79,7 +81,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     private final Object mLock = new Object();
 
     /** Listener interface for errors. */
-    // @GuardedBy("mLock")
+    @GuardedBy("mLock")
     private Response.ErrorListener mErrorListener;
 
     /** Sequence number of this request, used to enforce FIFO ordering. */
@@ -92,11 +94,11 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     private boolean mShouldCache = true;
 
     /** Whether or not this request has been canceled. */
-    // @GuardedBy("mLock")
+    @GuardedBy("mLock")
     private boolean mCanceled = false;
 
     /** Whether or not a response has been delivered for this request yet. */
-    // @GuardedBy("mLock")
+    @GuardedBy("mLock")
     private boolean mResponseDelivered = false;
 
     /** Whether the request should be retried in the event of an HTTP 5xx (server) error. */
@@ -116,7 +118,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     private Object mTag;
 
     /** Listener that will be notified when a response has been delivered. */
-    // @GuardedBy("mLock")
+    @GuardedBy("mLock")
     private NetworkRequestCompleteListener mRequestCompleteListener;
 
     /**
@@ -173,7 +175,9 @@ public abstract class Request<T> implements Comparable<Request<T>> {
 
     /** @return this request's {@link com.android.volley.Response.ErrorListener}. */
     public Response.ErrorListener getErrorListener() {
-        return mErrorListener;
+        synchronized (mLock) {
+            return mErrorListener;
+        }
     }
 
     /** @return A tag for use with {@link TrafficStats#setThreadStatsTag(int)} */
@@ -313,7 +317,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      *
      * <p>There are no guarantees if both of these conditions aren't met.
      */
-    // @CallSuper
+    @CallSuper
     public void cancel() {
         synchronized (mLock) {
             mCanceled = true;
@@ -649,7 +653,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     @Override
     public String toString() {
         String trafficStatsTag = "0x" + Integer.toHexString(getTrafficStatsTag());
-        return (mCanceled ? "[X] " : "[ ] ")
+        return (isCanceled() ? "[X] " : "[ ] ")
                 + getUrl()
                 + " "
                 + trafficStatsTag

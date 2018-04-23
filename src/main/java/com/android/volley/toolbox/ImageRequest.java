@@ -19,6 +19,8 @@ package com.android.volley.toolbox;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
+import android.support.annotation.GuardedBy;
+import android.support.annotation.VisibleForTesting;
 import android.widget.ImageView.ScaleType;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
@@ -41,8 +43,9 @@ public class ImageRequest extends Request<Bitmap> {
     /** Lock to guard mListener as it is cleared on cancel() and read on delivery. */
     private final Object mLock = new Object();
 
-    // @GuardedBy("mLock")
+    @GuardedBy("mLock")
     private Response.Listener<Bitmap> mListener;
+
     private final Config mDecodeConfig;
     private final int mMaxWidth;
     private final int mMaxHeight;
@@ -262,7 +265,7 @@ public class ImageRequest extends Request<Bitmap> {
      * @param desiredWidth Desired width of the bitmap
      * @param desiredHeight Desired height of the bitmap
      */
-    // Visible for testing.
+    @VisibleForTesting
     static int findBestSampleSize(
             int actualWidth, int actualHeight, int desiredWidth, int desiredHeight) {
         double wr = (double) actualWidth / desiredWidth;
