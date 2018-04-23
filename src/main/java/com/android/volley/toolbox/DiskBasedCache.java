@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import android.os.SystemClock;
+import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import com.android.volley.Cache;
 import com.android.volley.Header;
@@ -482,7 +483,7 @@ public class DiskBasedCache implements Cache {
         }
     }
 
-    // VisibleForTesting
+    @VisibleForTesting
     static class CountingInputStream extends FilterInputStream {
         private final long length;
         private long bytesRead;
@@ -510,7 +511,7 @@ public class DiskBasedCache implements Cache {
             return result;
         }
 
-        // VisibleForTesting
+        @VisibleForTesting
         long bytesRead() {
             return bytesRead;
         }

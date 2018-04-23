@@ -23,6 +23,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.VisibleForTesting;
 import com.android.volley.AuthFailureError;
 
 /**
@@ -61,7 +62,7 @@ public class AndroidAuthenticator implements Authenticator {
         this(AccountManager.get(context), account, authTokenType, notifyAuthFailure);
     }
 
-    // Visible for testing. Allows injection of a mock AccountManager.
+    @VisibleForTesting
     AndroidAuthenticator(
             AccountManager accountManager,
             Account account,
