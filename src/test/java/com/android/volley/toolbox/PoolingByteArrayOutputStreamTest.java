@@ -16,7 +16,7 @@
 
 package com.android.volley.toolbox;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
