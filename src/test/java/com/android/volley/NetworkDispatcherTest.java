@@ -17,94 +17,83 @@
 package com.android.volley;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 
-import com.android.volley.mock.MockCache;
-import com.android.volley.mock.MockNetwork;
-import com.android.volley.mock.MockRequest;
-import com.android.volley.mock.MockResponseDelivery;
-import com.android.volley.mock.WaitableQueue;
+import com.android.volley.toolbox.StringRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import org.junit.After;
+import java.util.concurrent.BlockingQueue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class NetworkDispatcherTest {
     private NetworkDispatcher mDispatcher;
-    private MockResponseDelivery mDelivery;
-    private WaitableQueue mNetworkQueue;
-    private MockNetwork mNetwork;
-    private MockCache mCache;
-    private MockRequest mRequest;
+    private @Mock ResponseDelivery mDelivery;
+    private @Mock BlockingQueue<Request<?>> mNetworkQueue;
+    private @Mock Network mNetwork;
+    private @Mock Cache mCache;
+    private StringRequest mRequest;
 
     private static final byte[] CANNED_DATA =
             "Ceci n'est pas une vraie reponse".getBytes(StandardCharsets.UTF_8);
-    private static final long TIMEOUT_MILLIS = 5000;
 
     @Before
     public void setUp() throws Exception {
-        mDelivery = new MockResponseDelivery();
-        mNetworkQueue = new WaitableQueue();
-        mNetwork = new MockNetwork();
-        mCache = new MockCache();
-        mRequest = new MockRequest();
+        initMocks(this);
+        mRequest = new StringRequest(Request.Method.GET, "http://foo", null, null);
         mDispatcher = new NetworkDispatcher(mNetworkQueue, mNetwork, mCache, mDelivery);
-        mDispatcher.start();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        mDispatcher.quit();
-        mDispatcher.join();
     }
 
     @Test
     public void successPostsResponse() throws Exception {
-        mNetwork.setDataToReturn(CANNED_DATA);
-        mNetwork.setNumExceptionsToThrow(0);
-        mNetworkQueue.add(mRequest);
-        mNetworkQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertFalse(mDelivery.postError_called);
-        assertTrue(mDelivery.postResponse_called);
-        Response<?> response = mDelivery.responsePosted;
-        assertNotNull(response);
-        assertTrue(response.isSuccess());
-        assertTrue(Arrays.equals((byte[]) response.result, CANNED_DATA));
+        when(mNetwork.performRequest(any(Request.class)))
+                .thenReturn(new NetworkResponse(CANNED_DATA));
+        mDispatcher.processRequest(mRequest);
+
+        ArgumentCaptor<Response> response = ArgumentCaptor.forClass(Response.class);
+        verify(mDelivery).postResponse(any(Request.class), response.capture());
+        assertTrue(response.getValue().isSuccess());
+        assertEquals(response.getValue().result, new String(CANNED_DATA, StandardCharsets.UTF_8));
+
+        verify(mDelivery, never()).postError(any(Request.class), any(VolleyError.class));
     }
 
     @Test
     public void exceptionPostsError() throws Exception {
-        mNetwork.setNumExceptionsToThrow(MockNetwork.ALWAYS_THROW_EXCEPTIONS);
-        mNetworkQueue.add(mRequest);
-        mNetworkQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertFalse(mDelivery.postResponse_called);
-        assertTrue(mDelivery.postError_called);
+        when(mNetwork.performRequest(any(Request.class))).thenThrow(new ServerError());
+        mDispatcher.processRequest(mRequest);
+
+        verify(mDelivery).postError(any(Request.class), any(VolleyError.class));
+        verify(mDelivery, never()).postResponse(any(Request.class), any(Response.class));
     }
 
     @Test
     public void shouldCacheFalse() throws Exception {
         mRequest.setShouldCache(false);
-        mNetworkQueue.add(mRequest);
-        mNetworkQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertFalse(mCache.putCalled);
+        mDispatcher.processRequest(mRequest);
+        verify(mCache, never()).put(anyString(), any(Cache.Entry.class));
     }
 
     @Test
     public void shouldCacheTrue() throws Exception {
-        mNetwork.setDataToReturn(CANNED_DATA);
+        when(mNetwork.performRequest(any(Request.class)))
+                .thenReturn(new NetworkResponse(CANNED_DATA));
         mRequest.setShouldCache(true);
-        mRequest.setCacheKey("bananaphone");
-        mNetworkQueue.add(mRequest);
-        mNetworkQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertTrue(mCache.putCalled);
-        assertNotNull(mCache.entryPut);
-        assertTrue(Arrays.equals(mCache.entryPut.data, CANNED_DATA));
-        assertEquals("bananaphone", mCache.keyPut);
+        mDispatcher.processRequest(mRequest);
+        ArgumentCaptor<Cache.Entry> entry = ArgumentCaptor.forClass(Cache.Entry.class);
+        verify(mCache).put(eq(mRequest.getCacheKey()), entry.capture());
+        assertTrue(Arrays.equals(entry.getValue().data, CANNED_DATA));
     }
 }

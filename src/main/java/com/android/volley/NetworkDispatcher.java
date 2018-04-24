@@ -21,6 +21,7 @@ import android.net.TrafficStats;
 import android.os.Build;
 import android.os.Process;
 import android.os.SystemClock;
+import android.support.annotation.VisibleForTesting;
 import java.util.concurrent.BlockingQueue;
 
 /**
@@ -103,7 +104,11 @@ public class NetworkDispatcher extends Thread {
     private void processRequest() throws InterruptedException {
         // Take a request from the queue.
         Request<?> request = mQueue.take();
+        processRequest(request);
+    }
 
+    @VisibleForTesting
+    void processRequest(Request<?> request) {
         long startTimeMs = SystemClock.elapsedRealtime();
         try {
             request.addMarker("network-queue-take");
