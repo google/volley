@@ -51,5 +51,9 @@ android {
     buildToolsVersion = '25.0.2'
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xep:ParameterComment:ERROR"
+}
+
 apply from: 'rules.gradle'
 apply from: 'bintray.gradle'

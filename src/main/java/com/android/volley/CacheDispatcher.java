@@ -271,7 +271,7 @@ public class CacheDispatcher extends Thread {
                 // There is already a request in flight. Queue up.
                 List<Request<?>> stagedRequests = mWaitingRequests.get(cacheKey);
                 if (stagedRequests == null) {
-                    stagedRequests = new ArrayList<Request<?>>();
+                    stagedRequests = new ArrayList<>();
                 }
                 request.addMarker("waiting-for-response");
                 stagedRequests.add(request);

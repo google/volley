@@ -70,7 +70,7 @@ public abstract class BaseHttpStack implements HttpStack {
         ProtocolVersion protocolVersion = new ProtocolVersion("HTTP", 1, 1);
         StatusLine statusLine =
                 new BasicStatusLine(
-                        protocolVersion, response.getStatusCode(), "" /* reasonPhrase */);
+                        protocolVersion, response.getStatusCode(), /* reasonPhrase= */ "");
         BasicHttpResponse apacheResponse = new BasicHttpResponse(statusLine);
 
         List<org.apache.http.Header> headers = new ArrayList<>();

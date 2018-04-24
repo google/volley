@@ -50,7 +50,8 @@ public class Volley {
                 String userAgent = "volley/0";
                 try {
                     String packageName = context.getPackageName();
-                    PackageInfo info = context.getPackageManager().getPackageInfo(packageName, 0);
+                    PackageInfo info =
+                            context.getPackageManager().getPackageInfo(packageName, /* flags= */ 0);
                     userAgent = packageName + "/" + info.versionCode;
                 } catch (NameNotFoundException e) {
                 }

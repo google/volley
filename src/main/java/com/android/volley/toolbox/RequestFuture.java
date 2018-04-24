@@ -59,7 +59,7 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>, Respon
     private VolleyError mException;
 
     public static <E> RequestFuture<E> newFuture() {
-        return new RequestFuture<E>();
+        return new RequestFuture<>();
     }
 
     private RequestFuture() {}
@@ -85,7 +85,7 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>, Respon
     @Override
     public T get() throws InterruptedException, ExecutionException {
         try {
-            return doGet(null);
+            return doGet(/* timeoutMs= */ null);
         } catch (TimeoutException e) {
             throw new AssertionError(e);
         }

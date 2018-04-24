@@ -130,8 +130,8 @@ public class BasicNetwork implements Network {
                     if (entry == null) {
                         return new NetworkResponse(
                                 HttpURLConnection.HTTP_NOT_MODIFIED,
-                                null,
-                                true,
+                                /* data= */ null,
+                                /* notModified= */ true,
                                 SystemClock.elapsedRealtime() - requestStart,
                                 responseHeaders);
                     }
@@ -140,7 +140,7 @@ public class BasicNetwork implements Network {
                     return new NetworkResponse(
                             HttpURLConnection.HTTP_NOT_MODIFIED,
                             entry.data,
-                            true,
+                            /* notModified= */ true,
                             SystemClock.elapsedRealtime() - requestStart,
                             combinedHeaders);
                 }
@@ -166,7 +166,7 @@ public class BasicNetwork implements Network {
                 return new NetworkResponse(
                         statusCode,
                         responseContents,
-                        false,
+                        /* notModified= */ false,
                         SystemClock.elapsedRealtime() - requestStart,
                         responseHeaders);
             } catch (SocketTimeoutException e) {
@@ -187,7 +187,7 @@ public class BasicNetwork implements Network {
                             new NetworkResponse(
                                     statusCode,
                                     responseContents,
-                                    false,
+                                    /* notModified= */ false,
                                     SystemClock.elapsedRealtime() - requestStart,
                                     responseHeaders);
                     if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED

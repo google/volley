@@ -123,7 +123,7 @@ public class VolleyLog {
             }
         }
 
-        private final List<Marker> mMarkers = new ArrayList<Marker>();
+        private final List<Marker> mMarkers = new ArrayList<>();
         private boolean mFinished = false;
 
         /** Adds a marker to this log with the specified name. */

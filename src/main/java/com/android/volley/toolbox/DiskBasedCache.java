@@ -50,8 +50,7 @@ import java.util.Map;
 public class DiskBasedCache implements Cache {
 
     /** Map of the Key, CacheHeader pairs */
-    private final Map<String, CacheHeader> mEntries =
-            new LinkedHashMap<String, CacheHeader>(16, .75f, true);
+    private final Map<String, CacheHeader> mEntries = new LinkedHashMap<>(16, .75f, true);
 
     /** Total amount of space currently used by the cache in bytes. */
     private long mTotalSize = 0;
