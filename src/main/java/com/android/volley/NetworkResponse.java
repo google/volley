@@ -80,7 +80,7 @@ public class NetworkResponse {
     @Deprecated
     public NetworkResponse(
             int statusCode, byte[] data, Map<String, String> headers, boolean notModified) {
-        this(statusCode, data, headers, notModified, 0);
+        this(statusCode, data, headers, notModified, /* networkTimeMs= */ 0);
     }
 
     /**
@@ -89,7 +89,12 @@ public class NetworkResponse {
      * @param data Response body
      */
     public NetworkResponse(byte[] data) {
-        this(HttpURLConnection.HTTP_OK, data, false, 0, Collections.<Header>emptyList());
+        this(
+                HttpURLConnection.HTTP_OK,
+                data,
+                /* notModified= */ false,
+                /* networkTimeMs= */ 0,
+                Collections.<Header>emptyList());
     }
 
     /**
@@ -103,7 +108,12 @@ public class NetworkResponse {
      */
     @Deprecated
     public NetworkResponse(byte[] data, Map<String, String> headers) {
-        this(HttpURLConnection.HTTP_OK, data, headers, false, 0);
+        this(
+                HttpURLConnection.HTTP_OK,
+                data,
+                headers,
+                /* notModified= */ false,
+                /* networkTimeMs= */ 0);
     }
 
     private NetworkResponse(

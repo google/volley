@@ -47,7 +47,7 @@ public class RequestQueue {
      * The set of all requests currently being processed by this RequestQueue. A Request will be in
      * this set if it is waiting in any queue or currently being processed by any dispatcher.
      */
-    private final Set<Request<?>> mCurrentRequests = new HashSet<Request<?>>();
+    private final Set<Request<?>> mCurrentRequests = new HashSet<>();
 
     /** The cache triage queue. */
     private final PriorityBlockingQueue<Request<?>> mCacheQueue = new PriorityBlockingQueue<>();

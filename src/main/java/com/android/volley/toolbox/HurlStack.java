@@ -51,12 +51,12 @@ public class HurlStack extends BaseHttpStack {
     private final SSLSocketFactory mSslSocketFactory;
 
     public HurlStack() {
-        this(null);
+        this(/* urlRewriter = */ null);
     }
 
     /** @param urlRewriter Rewriter to use for request URLs */
     public HurlStack(UrlRewriter urlRewriter) {
-        this(urlRewriter, null);
+        this(urlRewriter, /* sslSocketFactory = */ null);
     }
 
     /**

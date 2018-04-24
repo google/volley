@@ -66,7 +66,7 @@ public class NetworkImageView extends ImageView {
         mUrl = url;
         mImageLoader = imageLoader;
         // The URL has potentially changed. See if we need to load it.
-        loadImageIfNecessary(false);
+        loadImageIfNecessary(/* isInLayoutPass= */ false);
     }
 
     /**
@@ -165,7 +165,7 @@ public class NetworkImageView extends ImageView {
                                             new Runnable() {
                                                 @Override
                                                 public void run() {
-                                                    onResponse(response, false);
+                                                    onResponse(response, /* isImmediate= */ false);
                                                 }
                                             });
                                     return;
@@ -194,7 +194,7 @@ public class NetworkImageView extends ImageView {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
-        loadImageIfNecessary(true);
+        loadImageIfNecessary(/* isInLayoutPass= */ true);
     }
 
     @Override
