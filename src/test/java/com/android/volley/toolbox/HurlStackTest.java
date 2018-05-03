@@ -17,13 +17,22 @@
 package com.android.volley.toolbox;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.android.volley.Header;
 import com.android.volley.Request.Method;
-import com.android.volley.mock.MockHttpURLConnection;
 import com.android.volley.mock.TestRequest;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,16 +41,28 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class HurlStackTest {
 
-    private MockHttpURLConnection mMockConnection;
+    @Mock private HttpURLConnection mMockConnection;
+    private HurlStack mHurlStack;
 
     @Before
     public void setUp() throws Exception {
-        mMockConnection = new MockHttpURLConnection();
+        MockitoAnnotations.initMocks(this);
+        when(mMockConnection.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+        mHurlStack =
+                new HurlStack() {
+                    @Override
+                    protected HttpURLConnection createConnection(URL url) {
+                        return mMockConnection;
+                    }
+                };
     }
 
     @Test
@@ -50,8 +71,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.DEPRECATED_GET_OR_POST);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("GET", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection, never()).setRequestMethod(anyString());
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -60,8 +81,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.DEPRECATED_GET_OR_POST);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("POST", mMockConnection.getRequestMethod());
-        assertTrue(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("POST");
+        verify(mMockConnection).setDoOutput(true);
     }
 
     @Test
@@ -70,8 +91,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.GET);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("GET", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("GET");
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -80,8 +101,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.POST);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("POST", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("POST");
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -90,8 +111,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.POST);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("POST", mMockConnection.getRequestMethod());
-        assertTrue(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("POST");
+        verify(mMockConnection).setDoOutput(true);
     }
 
     @Test
@@ -100,8 +121,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.PUT);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("PUT", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("PUT");
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -110,8 +131,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.PUT);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("PUT", mMockConnection.getRequestMethod());
-        assertTrue(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("PUT");
+        verify(mMockConnection).setDoOutput(true);
     }
 
     @Test
@@ -120,8 +141,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.DELETE);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("DELETE", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("DELETE");
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -130,8 +151,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.HEAD);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("HEAD", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("HEAD");
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -140,8 +161,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.OPTIONS);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("OPTIONS", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("OPTIONS");
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -150,8 +171,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.TRACE);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("TRACE", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("TRACE");
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -160,8 +181,8 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.PATCH);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("PATCH", mMockConnection.getRequestMethod());
-        assertFalse(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("PATCH");
+        verify(mMockConnection, never()).setDoOutput(true);
     }
 
     @Test
@@ -170,8 +191,53 @@ public class HurlStackTest {
         assertEquals(request.getMethod(), Method.PATCH);
 
         HurlStack.setConnectionParametersForRequest(mMockConnection, request);
-        assertEquals("PATCH", mMockConnection.getRequestMethod());
-        assertTrue(mMockConnection.getDoOutput());
+        verify(mMockConnection).setRequestMethod("PATCH");
+        verify(mMockConnection).setDoOutput(true);
+    }
+
+    @Test
+    public void executeRequestClosesConnection_connectionError() throws Exception {
+        when(mMockConnection.getResponseCode()).thenThrow(new SocketTimeoutException());
+        try {
+            mHurlStack.executeRequest(
+                    new TestRequest.Get(), Collections.<String, String>emptyMap());
+            fail("Should have thrown exception");
+        } catch (IOException e) {
+            verify(mMockConnection).disconnect();
+        }
+    }
+
+    @Test
+    public void executeRequestClosesConnection_invalidResponseCode() throws Exception {
+        when(mMockConnection.getResponseCode()).thenReturn(-1);
+        try {
+            mHurlStack.executeRequest(
+                    new TestRequest.Get(), Collections.<String, String>emptyMap());
+            fail("Should have thrown exception");
+        } catch (IOException e) {
+            verify(mMockConnection).disconnect();
+        }
+    }
+
+    @Test
+    public void executeRequestClosesConnection_noResponseBody() throws Exception {
+        when(mMockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_NO_CONTENT);
+        mHurlStack.executeRequest(new TestRequest.Get(), Collections.<String, String>emptyMap());
+        verify(mMockConnection).disconnect();
+    }
+
+    @Test
+    public void executeRequestClosesConnection_hasResponseBody() throws Exception {
+        when(mMockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(mMockConnection.getInputStream())
+                .thenReturn(new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8)));
+        HttpResponse response =
+                mHurlStack.executeRequest(
+                        new TestRequest.Get(), Collections.<String, String>emptyMap());
+        // Shouldn't be disconnected until the stream is consumed.
+        verify(mMockConnection, never()).disconnect();
+        response.getContent().close();
+        verify(mMockConnection).disconnect();
     }
 
     @Test
