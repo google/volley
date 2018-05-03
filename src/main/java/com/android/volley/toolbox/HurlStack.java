@@ -22,6 +22,7 @@ import com.android.volley.Header;
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
 import java.io.DataOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -33,7 +34,7 @@ import java.util.Map;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
-/** An {@link HttpStack} based on {@link HttpURLConnection}. */
+/** A {@link BaseHttpStack} based on {@link HttpURLConnection}. */
 public class HurlStack extends BaseHttpStack {
 
     private static final int HTTP_CONTINUE = 100;
@@ -84,27 +85,37 @@ public class HurlStack extends BaseHttpStack {
         }
         URL parsedUrl = new URL(url);
         HttpURLConnection connection = openConnection(parsedUrl, request);
-        for (String headerName : map.keySet()) {
-            connection.addRequestProperty(headerName, map.get(headerName));
-        }
-        setConnectionParametersForRequest(connection, request);
-        // Initialize HttpResponse with data from the HttpURLConnection.
-        int responseCode = connection.getResponseCode();
-        if (responseCode == -1) {
-            // -1 is returned by getResponseCode() if the response code could not be retrieved.
-            // Signal to the caller that something was wrong with the connection.
-            throw new IOException("Could not retrieve response code from HttpUrlConnection.");
-        }
+        boolean keepConnectionOpen = false;
+        try {
+            for (String headerName : map.keySet()) {
+                connection.addRequestProperty(headerName, map.get(headerName));
+            }
+            setConnectionParametersForRequest(connection, request);
+            // Initialize HttpResponse with data from the HttpURLConnection.
+            int responseCode = connection.getResponseCode();
+            if (responseCode == -1) {
+                // -1 is returned by getResponseCode() if the response code could not be retrieved.
+                // Signal to the caller that something was wrong with the connection.
+                throw new IOException("Could not retrieve response code from HttpUrlConnection.");
+            }
 
-        if (!hasResponseBody(request.getMethod(), responseCode)) {
-            return new HttpResponse(responseCode, convertHeaders(connection.getHeaderFields()));
-        }
+            if (!hasResponseBody(request.getMethod(), responseCode)) {
+                return new HttpResponse(responseCode, convertHeaders(connection.getHeaderFields()));
+            }
 
-        return new HttpResponse(
-                responseCode,
-                convertHeaders(connection.getHeaderFields()),
-                connection.getContentLength(),
-                inputStreamFromConnection(connection));
+            // Need to keep the connection open until the stream is consumed by the caller. Wrap the
+            // stream such that close() will disconnect the connection.
+            keepConnectionOpen = true;
+            return new HttpResponse(
+                    responseCode,
+                    convertHeaders(connection.getHeaderFields()),
+                    connection.getContentLength(),
+                    new UrlConnectionInputStream(connection));
+        } finally {
+            if (!keepConnectionOpen) {
+                connection.disconnect();
+            }
+        }
     }
 
     @VisibleForTesting
@@ -135,6 +146,25 @@ public class HurlStack extends BaseHttpStack {
                 && !(HTTP_CONTINUE <= responseCode && responseCode < HttpURLConnection.HTTP_OK)
                 && responseCode != HttpURLConnection.HTTP_NO_CONTENT
                 && responseCode != HttpURLConnection.HTTP_NOT_MODIFIED;
+    }
+
+    /**
+     * Wrapper for a {@link HttpURLConnection}'s InputStream which disconnects the connection on
+     * stream close.
+     */
+    static class UrlConnectionInputStream extends FilterInputStream {
+        private final HttpURLConnection mConnection;
+
+        UrlConnectionInputStream(HttpURLConnection connection) {
+            super(inputStreamFromConnection(connection));
+            mConnection = connection;
+        }
+
+        @Override
+        public void close() throws IOException {
+            super.close();
+            mConnection.disconnect();
+        }
     }
 
     /**
