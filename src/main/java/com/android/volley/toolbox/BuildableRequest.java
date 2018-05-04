@@ -1,6 +1,7 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -40,6 +41,11 @@ public class BuildableRequest<T> extends Request<T> {
                 .onSuccess(listener)
                 .onError(errorListener)
                 .priority(Priority.NORMAL)
+                .tag("tag")
+                .marker("debugMarker")
+                .retryPolicy(new DefaultRetryPolicy())
+                .retryOnServerErrors(true)
+                .shouldCache(true)
                 .buildAndSend(Volley.newRequestQueue(null));
     }
 
