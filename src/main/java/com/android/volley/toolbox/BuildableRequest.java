@@ -1,5 +1,7 @@
 package com.android.volley.toolbox;
 
+import android.os.Bundle;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
@@ -8,23 +10,48 @@ import com.android.volley.Response;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Exchanger;
 
 /**
  * TODO
  */
 public class BuildableRequest<T> extends Request<T> {
 
-    private final Object mLock = new Object();
+    /**
+     * TODO remove this (this is just for planning)
+     */
+    public static void example() {
+        Response.Listener<Object> listener = null;
+        Response.ErrorListener errorListener = null;
+        //noinspection ConstantConditions
+        RequestBuilder.start()
+                .url("url")
+                .header("Key", "Val")
+                .header("Key2", "Val2")
+                .headers(new HashMap<String, String>())
+                .range("name", 0, 100)
+                .param("Key", "Val")
+                .params(new HashMap<String, String>())
+                .body(Bodies.forJSONObject(new JSONObject()))
+                .parseResponse(ResponseParsers.forJSONObject()) // todo force generic
+                .onSuccess(listener)
+                .onSuccess(listener)
+                .onError(errorListener)
+                .buildAndSend(Volley.newRequestQueue(null));
+    }
+
     private final ResponseParser<T> parser;
     private final String bodyContentType;
     private final byte[] body;
-
-    private Response.Listener<T> mListener; // Mutable to be consistent with other Requests
+    private final List<Response.Listener<T>> mListeners;
 
     public BuildableRequest(
             int method,
             String url,
-            Response.Listener<T> listener,
+            List<Response.Listener<T>> listeners,
             Response.ErrorListener errorListener,
             ResponseParser<T> parser,
             String bodyContentType,
@@ -32,7 +59,7 @@ public class BuildableRequest<T> extends Request<T> {
     ) {
         super(method, url, errorListener);
         // TODO Null checks for listeners
-        this.mListener = listener;
+        this.mListeners = new CopyOnWriteArrayList<>(listeners);
         this.parser = parser;
         this.bodyContentType = bodyContentType;
         this.body = body;
@@ -41,9 +68,7 @@ public class BuildableRequest<T> extends Request<T> {
     @Override
     public void cancel() {
         super.cancel();
-        synchronized (mLock) {
-            mListener = null;
-        }
+        mListeners.clear();
     }
 
     @Override
@@ -53,11 +78,7 @@ public class BuildableRequest<T> extends Request<T> {
 
     @Override
     protected void deliverResponse(T response) {
-        Response.Listener<T> listener;
-        synchronized (mLock) {
-            listener = mListener;
-        }
-        if (listener != null) {
+        for (Response.Listener<T> listener : mListeners) {
             listener.onResponse(response);
         }
     }
@@ -73,18 +94,13 @@ public class BuildableRequest<T> extends Request<T> {
     }
 }
 
-/**
- * TODO make methods for all of the other kinds of stuff
- * TODO desc
- * TODO move
- */
-class Body {
-    public static byte[] forJSONObject(JSONObject jsonObject) {
-        try {
-            return jsonObject.toString().getBytes(JsonRequest.PROTOCOL_CHARSET);
-        } catch (UnsupportedEncodingException e) {
-            throw new Error();
-            // TODO
-        }
+class ExampleCustomRequestBuilder<T> extends RequestBuilder<T> {
+    public static ExampleCustomRequestBuilder<Void> start() {
+        return new ExampleCustomRequestBuilder<>();
+    }
+
+    public static ExampleCustomRequestBuilder<Void> startCustom() {
+        return start()
+                .header("", "");
     }
 }

@@ -1,8 +1,10 @@
 package com.android.volley.toolbox;
 
 /**
- * Created by Dylan on 4/05/18.
+ * TODO
  */
-
-public class RequestBuilder {
+public class RequestBuilder<T> {
+    public static RequestBuilder<Void> start() {
+        return new RequestBuilder<Void>();
+    }
 }
