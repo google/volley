@@ -26,6 +26,7 @@ public class BuildableRequest<T> extends Request<T> {
         //noinspection ConstantConditions
         RequestBuilder.start()
                 .url("url")
+                .method(Method.GET)
                 .header("Key", "Val")
                 .header("Key2", "Val2")
                 .headers(new HashMap<String, String>())
@@ -33,6 +34,7 @@ public class BuildableRequest<T> extends Request<T> {
                 .param("Key", "Val")
                 .params(new HashMap<String, String>())
                 .body(Bodies.forJSONObject(new JSONObject()))
+                .bodyContentsType("application/json")
                 .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing
                 .onSuccess(listener)
                 .onSuccess(listener)
