@@ -32,19 +32,20 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class AndroidAuthenticatorTest {
-    private AccountManager mAccountManager;
+    @Mock private AccountManager mAccountManager;
+    @Mock private AccountManagerFuture<Bundle> mFuture;
     private Account mAccount;
-    private AccountManagerFuture<Bundle> mFuture;
     private AndroidAuthenticator mAuthenticator;
 
     @Before
     public void setUp() {
-        mAccountManager = mock(AccountManager.class);
-        mFuture = mock(AccountManagerFuture.class);
+        MockitoAnnotations.initMocks(this);
         mAccount = new Account("coolperson", "cooltype");
         mAuthenticator = new AndroidAuthenticator(mAccountManager, mAccount, "cooltype", false);
     }

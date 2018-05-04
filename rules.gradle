@@ -16,7 +16,7 @@ android {
 }
 
 tasks.withType(JavaCompile) {
-  options.compilerArgs << "-Werror"
+  options.compilerArgs << "-Xlint:unchecked" << "-Werror"
 }
 
 dependencies {
