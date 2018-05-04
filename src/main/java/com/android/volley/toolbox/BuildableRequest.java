@@ -106,14 +106,3 @@ public class BuildableRequest<T> extends Request<T> {
         return body;
     }
 }
-
-class ExampleCustomRequestBuilder<T> extends RequestBuilder<T> {
-    public static ExampleCustomRequestBuilder<Void> start() {
-        return new ExampleCustomRequestBuilder<>();
-    }
-
-    public static ExampleCustomRequestBuilder<Void> startCustom() {
-        return start()
-                .header("", "");
-    }
-}
