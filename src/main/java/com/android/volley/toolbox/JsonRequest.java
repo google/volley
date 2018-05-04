@@ -35,7 +35,7 @@ public abstract class JsonRequest<T> extends Request<T> {
     protected static final String PROTOCOL_CHARSET = "utf-8";
 
     /** Content type for request. */
-    private static final String PROTOCOL_CONTENT_TYPE =
+    public static final String PROTOCOL_CONTENT_TYPE =
             String.format("application/json; charset=%s", PROTOCOL_CHARSET);
 
     /** Lock to guard mListener as it is cleared on cancel() and read on delivery. */
