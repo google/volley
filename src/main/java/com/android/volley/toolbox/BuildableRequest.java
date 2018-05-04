@@ -1,19 +1,16 @@
 package com.android.volley.toolbox;
 
-import android.os.Bundle;
-
 import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
+import com.android.volley.VolleyError;
 
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Exchanger;
 
 /**
  * TODO
@@ -36,10 +33,11 @@ public class BuildableRequest<T> extends Request<T> {
                 .param("Key", "Val")
                 .params(new HashMap<String, String>())
                 .body(Bodies.forJSONObject(new JSONObject()))
-                .parseResponse(ResponseParsers.forJSONObject()) // todo force generic
+                .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing
                 .onSuccess(listener)
                 .onSuccess(listener)
                 .onError(errorListener)
+                .priority(Priority.NORMAL)
                 .buildAndSend(Volley.newRequestQueue(null));
     }
 
@@ -52,12 +50,19 @@ public class BuildableRequest<T> extends Request<T> {
             int method,
             String url,
             List<Response.Listener<T>> listeners,
-            Response.ErrorListener errorListener,
+            final List<Response.ErrorListener> errorListeners,
             ResponseParser<T> parser,
             String bodyContentType,
             byte[] body
     ) {
-        super(method, url, errorListener);
+        super(method, url, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                for (Response.ErrorListener errorListener : errorListeners) {
+                    errorListener.onErrorResponse(error);
+                }
+            }
+        });
         // TODO Null checks for listeners
         this.mListeners = new CopyOnWriteArrayList<>(listeners);
         this.parser = parser;
