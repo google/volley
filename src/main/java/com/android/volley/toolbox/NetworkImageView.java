@@ -14,6 +14,7 @@
 package com.android.volley.toolbox;
 
 import android.content.Context;
+import android.support.annotation.MainThread;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.ViewGroup.LayoutParams;
@@ -59,10 +60,14 @@ public class NetworkImageView extends ImageView {
      * <p>NOTE: If applicable, {@link NetworkImageView#setDefaultImageResId(int)} and {@link
      * NetworkImageView#setErrorImageResId(int)} should be called prior to calling this function.
      *
+     * <p>Must be called from the main thread.
+     *
      * @param url The URL that should be loaded into this ImageView.
      * @param imageLoader ImageLoader that will be used to make the request.
      */
+    @MainThread
     public void setImageUrl(String url, ImageLoader imageLoader) {
+        Threads.throwIfNotOnMainThread();
         mUrl = url;
         mImageLoader = imageLoader;
         // The URL has potentially changed. See if we need to load it.
