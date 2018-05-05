@@ -3,11 +3,11 @@ package com.android.volley.toolbox;
 /**
  * TODO
  *
- * @param <T> The type of the response
- * @param <B> The type of this {@link RequestBuilder}. This type parameter allows creating
+ * @param <ResponseT> The type of the response
+ * @param <ThisT> The type of this {@link RequestBuilder}. This type parameter allows creating
  *            subclasses, where each method on the builder is able to itself.
  */
-public class RequestBuilder<T, B extends RequestBuilder<T, B>> {
+public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, ThisT>> {
 
     public static RequestBuilder<Void, ? extends RequestBuilder> start() {
         return new RequestBuilder<>();
@@ -15,7 +15,7 @@ public class RequestBuilder<T, B extends RequestBuilder<T, B>> {
 
     protected String url = "";
 
-    public B url(String url) {
+    public ThisT url(String url) {
         this.url = url;
         return getThis();
     }
@@ -26,33 +26,38 @@ public class RequestBuilder<T, B extends RequestBuilder<T, B>> {
      * @return Casted this.
      */
     @SuppressWarnings("unchecked")
-    protected B getThis() {
-        return (B) this;
+    protected ThisT getThis() {
+        return (ThisT) this;
     }
 
-    // TODO set url
+    // TODO append url
 }
 
 /**
  * TODO
  *
- * @param <T>
- * @param <B>
+ * @param <ResponseT>
+ * @param <ThisT>
  */
-class ExampleCustomRequestBuilder<T, B extends ExampleCustomRequestBuilder<T, B>> extends RequestBuilder<T, B> {
+class ExampleCustomRequestBuilder
+        <ResponseT, ThisT extends ExampleCustomRequestBuilder<ResponseT, ThisT>>
+        extends RequestBuilder<ResponseT, ThisT> {
+
     public static ExampleCustomRequestBuilder<Void, ? extends ExampleCustomRequestBuilder> start() {
         return new ExampleCustomRequestBuilder<>();
     }
 
-    public static ExampleCustomRequestBuilder<Void, ? extends ExampleCustomRequestBuilder> startWithMyBusinessHeaders() {
+    public static ExampleCustomRequestBuilder<Void, ? extends ExampleCustomRequestBuilder>
+    startWithMyBusinessHeaders() {
         return start()
                 .customSetSomething("")
                 .url("a")
                 .customSetSomething("")
+                // TODO Make this a test example
                 ;
     }
 
-    public B customSetSomething(String something) {
+    public ThisT customSetSomething(String something) {
         // this.something = something
         return getThis();
     }

@@ -35,7 +35,7 @@ public class BuildableRequest<T> extends Request<T> {
                 .param("Key", "Val")
                 .params(new HashMap<String, String>())
                 .body(Bodies.forJSONObject(new JSONObject()))
-                .bodyContentsType("application/json")
+                .bodyContentsType(BodyContents.forJSON())
                 .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing
                 .onSuccess(listener)
                 .onSuccess(listener)
