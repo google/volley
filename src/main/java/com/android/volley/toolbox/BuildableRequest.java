@@ -47,7 +47,7 @@ public class BuildableRequest<T> extends Request<T> {
                 .retryOnServerErrors(true)
                 .shouldCache(true)
                 .build()
-                .queue(Volley.newRequestQueue(null));
+                .addTo(Volley.newRequestQueue(null));
     }
 
     private final ResponseParser<T> parser;
