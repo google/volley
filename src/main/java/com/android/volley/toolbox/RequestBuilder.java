@@ -9,7 +9,7 @@ package com.android.volley.toolbox;
  */
 public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, ThisT>> {
 
-    public static RequestBuilder<Void, ? extends RequestBuilder> start() {
+    public static RequestBuilder<Void, ? extends RequestBuilder> create() {
         return new RequestBuilder<>();
     }
 
@@ -43,13 +43,13 @@ class ExampleCustomRequestBuilder
         <ResponseT, ThisT extends ExampleCustomRequestBuilder<ResponseT, ThisT>>
         extends RequestBuilder<ResponseT, ThisT> {
 
-    public static ExampleCustomRequestBuilder<Void, ? extends ExampleCustomRequestBuilder> start() {
+    public static ExampleCustomRequestBuilder<Void, ? extends ExampleCustomRequestBuilder> create() {
         return new ExampleCustomRequestBuilder<>();
     }
 
     public static ExampleCustomRequestBuilder<Void, ? extends ExampleCustomRequestBuilder>
-    startWithMyBusinessHeaders() {
-        return start()
+    createWithMyBusinessHeaders(/* your params here */) {
+        return create()
                 .customSetSomething("")
                 .url("a")
                 .customSetSomething("")

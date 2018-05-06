@@ -25,7 +25,7 @@ public class BuildableRequest<T> extends Request<T> {
         Response.Listener<Object> listener = null;
         Response.ErrorListener errorListener = null;
         //noinspection ConstantConditions
-        RequestBuilder.start()
+        RequestBuilder.create()
                 .url("url")
                 .method(Method.GET)
                 .header("Key", "Val")
@@ -46,7 +46,8 @@ public class BuildableRequest<T> extends Request<T> {
                 .retryPolicy(new DefaultRetryPolicy())
                 .retryOnServerErrors(true)
                 .shouldCache(true)
-                .buildAndSend(Volley.newRequestQueue(null));
+                .build()
+                .queue(Volley.newRequestQueue(null));
     }
 
     private final ResponseParser<T> parser;
