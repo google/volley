@@ -48,12 +48,16 @@ class ResponseParsers {
  * TODO move
  */
 class Bodies {
-    public static byte[] forJSONObject(JSONObject jsonObject) {
-        try {
-            return jsonObject.toString().getBytes(JsonRequest.PROTOCOL_CHARSET);
-        } catch (UnsupportedEncodingException e) {
-            throw new Error();
-            // TODO
-        }
+    public static Body forJSONObject(final JSONObject jsonObject) {
+        return new Body() {
+            public byte[] getBytes() {
+                try {
+                    return jsonObject.toString().getBytes(JsonRequest.PROTOCOL_CHARSET);
+                } catch (UnsupportedEncodingException e) {
+                    throw new Error();
+                    // TODO
+                }
+            }
+        };
     }
 }
