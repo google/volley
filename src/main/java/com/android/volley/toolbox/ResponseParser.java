@@ -5,8 +5,6 @@ import com.android.volley.Response;
 
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
-
 /**
  * TODO
  */
@@ -47,17 +45,17 @@ class ResponseParsers {
  * TODO desc
  * TODO move
  */
-class Bodies {
-    public static Body forJSONObject(final JSONObject jsonObject) {
-        return new Body() {
-            public byte[] getBytes() {
-                try {
-                    return jsonObject.toString().getBytes(JsonRequest.PROTOCOL_CHARSET);
-                } catch (UnsupportedEncodingException e) {
-                    throw new Error();
-                    // TODO
-                }
-            }
-        };
-    }
-}
+//class Bodies {
+//    public static Body forJSONObject(final JSONObject jsonObject) {
+//        return new Body() {
+//            public byte[] getBytes() {
+//                try {
+//                    return jsonObject.toString().getBytes(JsonRequest.PROTOCOL_CHARSET);
+//                } catch (UnsupportedEncodingException e) {
+//                    throw new Error();
+//                    // TODO
+//                }
+//            }
+//        };
+//    }
+//}

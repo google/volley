@@ -1,7 +1,8 @@
 package com.android.volley.toolbox;
 
 /**
- * TODO
+ * TODO Documentation for this classed
+ * TODO Documentation for this the methods
  *
  * @param <ResponseT> The type of the response
  * @param <ThisT> The type of this {@link RequestBuilder}. This type parameter allows creating
@@ -13,10 +14,15 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return new RequestBuilder<>();
     }
 
-    protected String url = "";
+    protected String url = null;
 
     public ThisT url(String url) {
         this.url = url;
+        return getThis();
+    }
+
+    public ThisT appendUrl(String append) {
+        this.url += append;
         return getThis();
     }
 
@@ -30,35 +36,5 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return (ThisT) this;
     }
 
-    // TODO append url
 }
 
-/**
- * TODO
- *
- * @param <ResponseT>
- * @param <ThisT>
- */
-class ExampleCustomRequestBuilder
-        <ResponseT, ThisT extends ExampleCustomRequestBuilder<ResponseT, ThisT>>
-        extends RequestBuilder<ResponseT, ThisT> {
-
-    public static ExampleCustomRequestBuilder<Void, ? extends ExampleCustomRequestBuilder> create() {
-        return new ExampleCustomRequestBuilder<>();
-    }
-
-    public static ExampleCustomRequestBuilder<Void, ? extends ExampleCustomRequestBuilder>
-    createWithMyBusinessHeaders(/* your params here */) {
-        return create()
-                .customSetSomething("")
-                .url("a")
-                .customSetSomething("")
-                // TODO Make this a test example
-                ;
-    }
-
-    public ThisT customSetSomething(String something) {
-        // this.something = something
-        return getThis();
-    }
-}
