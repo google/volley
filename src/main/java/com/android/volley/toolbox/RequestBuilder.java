@@ -1,5 +1,10 @@
 package com.android.volley.toolbox;
 
+import com.android.volley.Request;
+
+import static com.android.volley.Request.Method;
+import static java.util.Objects.requireNonNull;
+
 /**
  * TODO Documentation for this classed
  * TODO Documentation for this the methods
@@ -17,13 +22,25 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected String url = null;
 
     public ThisT url(String url) {
-        this.url = url;
+        this.url = requireNonNull(url);
         return getThis();
     }
 
     public ThisT appendUrl(String append) {
         this.url += append;
         return getThis();
+    }
+
+    public Request<ResponseT> build() {
+        return new BuildableRequest<>(
+                Method.GET,
+                url,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**
@@ -35,6 +52,5 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected ThisT getThis() {
         return (ThisT) this;
     }
-
 }
 

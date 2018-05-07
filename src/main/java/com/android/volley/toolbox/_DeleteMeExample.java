@@ -29,7 +29,7 @@ public class _DeleteMeExample {
 //                .paramsEncoding("")
 //                .body(Bodies.forJSONObject(new JSONObject())) // todo also Bodies.forParams(map)
 //                .bodyContentType(BodyContents.forJSON()) // todo include this in the body,
-//                .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing
+//                .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing, default
 //                .onSuccess(listener) // TODO parsing cannot be done after adding listeners
 //                .onError(errorListener) // TODO null check, don't accept a list
 //                .priority(Request.Priority.NORMAL)
@@ -38,7 +38,7 @@ public class _DeleteMeExample {
 //                .retryPolicy(new DefaultRetryPolicy())
 //                .retryOnServerErrors(true)
 //                .shouldCache(true)
-//                .build() // TODO don't build twice
+                .build() // TODO don't build twice
 //                .addTo(Volley.newRequestQueue(null))
         ;
     }

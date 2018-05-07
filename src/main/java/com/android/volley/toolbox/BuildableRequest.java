@@ -7,10 +7,11 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 
 import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
+
+import static java.util.Objects.requireNonNull;
 
 /**
- * TODO
+ * TODO documentation for this class, and for the constructor and methods
  */
 public class BuildableRequest<T> extends Request<T> {
 
@@ -28,7 +29,7 @@ public class BuildableRequest<T> extends Request<T> {
             String bodyContentType,
             byte[] body
     ) {
-        super(method, url, new Response.ErrorListener() {
+        super(method, requireNonNull(url, "Missing url"), new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 for (Response.ErrorListener errorListener : errorListeners) {
@@ -37,7 +38,7 @@ public class BuildableRequest<T> extends Request<T> {
             }
         });
         // TODO Null checks for listeners
-        this.mListeners = new CopyOnWriteArrayList<>(listeners);
+        this.mListeners = null; // new CopyOnWriteArrayList<>(listeners);
         this.parser = parser;
         this.bodyContentType = bodyContentType;
         this.body = body;
