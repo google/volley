@@ -17,12 +17,14 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.MainThread;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
+import com.android.volley.ResponseDelivery;
 import com.android.volley.VolleyError;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,8 +35,9 @@ import java.util.List;
  *
  * <p>The simple way to use this class is to call {@link ImageLoader#get(String, ImageListener)} and
  * to pass in the default image listener provided by {@link ImageLoader#getImageListener(ImageView,
- * int, int)}. Note that all function calls to this class must be made from the main thead, and all
- * responses will be delivered to the main thread as well.
+ * int, int)}. Note that all function calls to this class must be made from the main thread, and all
+ * responses will be delivered to the main thread as well. Custom {@link ResponseDelivery}s which
+ * don't use the main thread are not supported.
  */
 public class ImageLoader {
     /** RequestQueue for dispatching ImageRequests onto. */
@@ -152,14 +155,17 @@ public class ImageLoader {
     /**
      * Checks if the item is available in the cache.
      *
+     * <p>Must be called from the main thread.
+     *
      * @param requestUrl The url of the remote image
      * @param maxWidth The maximum width of the returned image.
      * @param maxHeight The maximum height of the returned image.
      * @param scaleType The scaleType of the imageView.
      * @return True if the item exists in cache, false otherwise.
      */
+    @MainThread
     public boolean isCached(String requestUrl, int maxWidth, int maxHeight, ScaleType scaleType) {
-        throwIfNotOnMainThread();
+        Threads.throwIfNotOnMainThread();
 
         String cacheKey = getCacheKey(requestUrl, maxWidth, maxHeight, scaleType);
         return mCache.getBitmap(cacheKey) != null;
@@ -192,6 +198,8 @@ public class ImageLoader {
      * returns a bitmap container that contains all of the data relating to the request (as well as
      * the default image if the requested image is not available).
      *
+     * <p>Must be called from the main thread.
+     *
      * @param requestUrl The url of the remote image
      * @param imageListener The listener to call when the remote image is loaded
      * @param maxWidth The maximum width of the returned image.
@@ -200,6 +208,7 @@ public class ImageLoader {
      * @return A container object that contains all of the properties of the request, as well as the
      *     currently available image (default if remote is not loaded).
      */
+    @MainThread
     public ImageContainer get(
             String requestUrl,
             ImageListener imageListener,
@@ -208,7 +217,7 @@ public class ImageLoader {
             ScaleType scaleType) {
 
         // only fulfill requests that were initiated from the main thread.
-        throwIfNotOnMainThread();
+        Threads.throwIfNotOnMainThread();
 
         final String cacheKey = getCacheKey(requestUrl, maxWidth, maxHeight, scaleType);
 
@@ -358,8 +367,13 @@ public class ImageLoader {
 
         /**
          * Releases interest in the in-flight request (and cancels it if no one else is listening).
+         *
+         * <p>Must be called from the main thread.
          */
+        @MainThread
         public void cancelRequest() {
+            Threads.throwIfNotOnMainThread();
+
             if (mListener == null) {
                 return;
             }
@@ -499,11 +513,6 @@ public class ImageLoader {
         }
     }
 
-    private void throwIfNotOnMainThread() {
-        if (Looper.myLooper() != Looper.getMainLooper()) {
-            throw new IllegalStateException("ImageLoader must be invoked from the main thread.");
-        }
-    }
     /**
      * Creates a cache key for use with the L1 cache.
      *
