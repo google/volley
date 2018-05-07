@@ -21,7 +21,6 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
-import java.io.UnsupportedEncodingException;
 
 /** A canned request for retrieving the response body at a given URL as a String. */
 public class StringRequest extends Request<String> {
@@ -77,17 +76,7 @@ public class StringRequest extends Request<String> {
     }
 
     @Override
-    @SuppressWarnings("DefaultCharset")
     protected Response<String> parseNetworkResponse(NetworkResponse response) {
-        String parsed;
-        try {
-            parsed = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
-        } catch (UnsupportedEncodingException e) {
-            // Since minSdkVersion = 8, we can't call
-            // new String(response.data, Charset.defaultCharset())
-            // So suppress the warning instead.
-            parsed = new String(response.data);
-        }
-        return Response.success(parsed, HttpHeaderParser.parseCacheHeaders(response));
+        return ResponseParsers.forString().parseNetworkResponse(response);
     }
 }

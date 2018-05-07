@@ -1,6 +1,8 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Request;
+import com.android.volley.Response.ErrorListener;
+import com.android.volley.Response.Listener;
 
 import static com.android.volley.Request.Method;
 import static java.util.Objects.requireNonNull;
@@ -15,11 +17,14 @@ import static java.util.Objects.requireNonNull;
  */
 public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, ThisT>> {
 
-    public static RequestBuilder<Void, ? extends RequestBuilder> create() {
+    public static <T> RequestBuilder<T, ? extends RequestBuilder> create() {
         return new RequestBuilder<>();
     }
 
     protected String url = null;
+    protected Listener<ResponseT> listener = new StubListener<>();
+    protected ErrorListener errorListener;
+    protected ResponseParser<ResponseT> parser;
 
     public ThisT url(String url) {
         this.url = requireNonNull(url);
@@ -31,13 +36,31 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
+    public ThisT onSuccess(Listener<ResponseT> listener) {
+        this.listener = requireNonNull(listener);
+        return getThis();
+    }
+
+    public ThisT onError(ErrorListener errorListener) {
+        this.errorListener = requireNonNull(errorListener);
+        return getThis();
+    }
+
+    public ThisT parseResponse(ResponseParser<ResponseT> parser) {
+        if (parser != null) {
+            throw new IllegalStateException("Not set yet");
+        }
+        this.parser = requireNonNull(parser);
+        return getThis();
+    }
+
     public Request<ResponseT> build() {
         return new BuildableRequest<>(
                 Method.GET,
                 url,
-                null,
-                null,
-                null,
+                listener,
+                errorListener,
+                parser == null ? ResponseParsers.<ResponseT>stub() : parser,
                 null,
                 null
         );
@@ -51,6 +74,13 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     @SuppressWarnings("unchecked")
     protected ThisT getThis() {
         return (ThisT) this;
+    }
+
+    private static class StubListener<ResponseT> implements Listener<ResponseT> {
+        @Override
+        public void onResponse(ResponseT response) {
+            // Stub
+        }
     }
 }
 

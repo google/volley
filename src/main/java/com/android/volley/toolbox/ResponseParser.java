@@ -5,6 +5,8 @@ import com.android.volley.Response;
 
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
+
 /**
  * TODO
  */
@@ -25,6 +27,28 @@ class ResponseParsers {
             @Override
             public Response<T> parseNetworkResponse(NetworkResponse response) {
                 return null;
+            }
+        };
+    }
+
+    public static ResponseParser<String> forString() {
+        return new ResponseParser<String>() {
+            @Override
+            @SuppressWarnings("DefaultCharset")
+            public Response<String> parseNetworkResponse(NetworkResponse response) {
+                String parsed;
+                try {
+                    parsed = new String(
+                            response.data,
+                            HttpHeaderParser.parseCharset(response.headers)
+                    );
+                } catch (UnsupportedEncodingException e) {
+                    // Since minSdkVersion = 8, we can't call
+                    // new String(response.data, Charset.defaultCharset())
+                    // So suppress the warning instead.
+                    parsed = new String(response.data);
+                }
+                return Response.success(parsed, HttpHeaderParser.parseCacheHeaders(response));
             }
         };
     }

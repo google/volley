@@ -4,9 +4,6 @@ import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
-import com.android.volley.VolleyError;
-
-import java.util.Collection;
 
 import static java.util.Objects.requireNonNull;
 
@@ -18,27 +15,23 @@ public class BuildableRequest<T> extends Request<T> {
     private final ResponseParser<T> parser;
     private final String bodyContentType;
     private final byte[] body;
-    private final Collection<Response.Listener<T>> mListeners;
+    private Response.Listener<T> listener;
 
     public BuildableRequest(
             int method,
             String url,
-            Collection<Response.Listener<T>> listeners,
-            final Collection<Response.ErrorListener> errorListeners,
+            Response.Listener<T> listener,
+            Response.ErrorListener errorListener,
             ResponseParser<T> parser,
             String bodyContentType,
             byte[] body
     ) {
-        super(method, requireNonNull(url, "Missing url"), new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                for (Response.ErrorListener errorListener : errorListeners) {
-                    errorListener.onErrorResponse(error);
-                }
-            }
-        });
-        // TODO Null checks for listeners
-        this.mListeners = null; // new CopyOnWriteArrayList<>(listeners);
+        super(
+                method,
+                requireNonNull(url, "Missing url"),
+                requireNonNull(errorListener, "Missing error listener")
+        );
+        this.listener = requireNonNull(listener, "Missing listener");
         this.parser = parser;
         this.bodyContentType = bodyContentType;
         this.body = body;
@@ -47,7 +40,7 @@ public class BuildableRequest<T> extends Request<T> {
     @Override
     public void cancel() {
         super.cancel();
-        mListeners.clear();
+        listener = null;
     }
 
     @Override
@@ -57,9 +50,10 @@ public class BuildableRequest<T> extends Request<T> {
 
     @Override
     protected void deliverResponse(T response) {
-        for (Response.Listener<T> listener : mListeners) {
-            listener.onResponse(response);
+        if (listener == null) {
+            return;
         }
+        listener.onResponse(response);
     }
 
     @Override
