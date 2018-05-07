@@ -33,6 +33,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
@@ -75,7 +76,7 @@ public class ImageLoaderTest {
         // Response callback should be called both times.
         verify(listener, times(2)).onResponse(any(ImageLoader.ImageContainer.class), eq(true));
         // But request should be enqueued only once.
-        verify(mRequestQueue, times(1)).add(any(Request.class));
+        verify(mRequestQueue, times(1)).add(Mockito.<Request<?>>any());
     }
 
     @Test

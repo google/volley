@@ -35,6 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RequestQueue {
 
     /** Callback interface for completed requests. */
+    // TODO: This should not be a generic class, because the request type can't be determined at
+    // compile time, so all calls to onRequestFinished are unsafe. However, changing this would be
+    // an API-breaking change. See also: https://github.com/google/volley/pull/109
     public interface RequestFinishedListener<T> {
         /** Called when a request has finished processing. */
         void onRequestFinished(Request<T> request);
@@ -224,6 +227,7 @@ public class RequestQueue {
      * Called from {@link Request#finish(String)}, indicating that processing of the given request
      * has finished.
      */
+    @SuppressWarnings("unchecked") // see above note on RequestFinishedListener
     <T> void finish(Request<T> request) {
         // Remove from the set of requests currently being processed.
         synchronized (mCurrentRequests) {
