@@ -1,24 +1,25 @@
 package com.android.volley.toolbox;
 
-import com.android.volley.Cache;
-import com.android.volley.Network;
+import android.annotation.SuppressLint;
+
+import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.Response.Listener;
 import com.android.volley.VolleyError;
+import com.android.volley.mock.MockNetwork;
 import com.android.volley.utils.ImmediateResponseDelivery;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.nio.charset.Charset;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -65,40 +66,44 @@ public class RequestBuilderTest {
     }
 
     @Test
-    public void listenerIsCalledOnSuccess() throws ExecutionException, InterruptedException {
-        final AtomicBoolean hasFinished = new AtomicBoolean();
-        Listener<String> listener = spy(new Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                hasFinished.set(true);
-            }
-        });
+    public void listenerAndParserIsCalledOnSuccess() throws Exception {
+        RequestFuture<String> future = RequestFuture.newFuture();
+        ResponseParser<String> parser = spy(ResponseParsers.forString());
 
         Request<String> request = RequestBuilder.<String>create()
                 .url(URL)
-                .onSuccess(listener)
-                .onError(new StubErrorListener())
+                .onSuccess(future)
+                .onError(future)
+                .parseResponse(parser)
                 .build();
 
-        MockedRequestQueue queue = new MockedRequestQueue();
+        String expectedResponse = "Response";
+        MockedRequestQueue queue = new MockedRequestQueue(expectedResponse);
         queue.start();
         queue.add(request);
 
-        long start = System.currentTimeMillis();
-        while (!hasFinished.get()) {
-            long end = System.currentTimeMillis();
-            if (end - start > 3000) {
-                throw new IllegalStateException("Timeout");
-            }
-            Thread.sleep(10);
-        }
+        // Times out if listener (future) does not get called
+        String response = future.get(3, TimeUnit.SECONDS);
+        assertEquals(expectedResponse, response);
 
-        verify(listener, times(1)).onResponse(anyString());
+        verify(parser, times(1)).parseNetworkResponse((NetworkResponse) any());
     }
 
     private static class MockedRequestQueue extends RequestQueue {
-        public MockedRequestQueue() {
-            super(mock(Cache.class), mock(Network.class), 1, new ImmediateResponseDelivery());
+
+        @SuppressLint("NewApi")
+        public MockedRequestQueue(byte[] response) {
+            super(
+                    new NoCache(),
+                    new MockNetwork(response),
+                    1,
+                    new ImmediateResponseDelivery()
+            );
+        }
+
+        @SuppressLint("NewApi")
+        public MockedRequestQueue(String response) {
+            this(response.getBytes(Charset.forName("UTF-8")));
         }
     }
 
