@@ -1,7 +1,5 @@
 package com.android.volley.toolbox;
 
-import android.annotation.SuppressLint;
-
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -11,14 +9,13 @@ import com.android.volley.VolleyError;
 import com.android.volley.mock.MockNetwork;
 import com.android.volley.utils.ImmediateResponseDelivery;
 
-import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
-import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 
+import static com.android.volley.utils.Utils.stringBytes;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
@@ -88,28 +85,6 @@ public class RequestBuilderTest {
         assertEquals(expectedResponse, response);
 
         verify(parser, times(1)).parseNetworkResponse((NetworkResponse) any());
-    }
-
-    // TODO NEXT and move
-    @Test
-    public void correctParsingForJSONObject() throws Exception {
-        String jsonString = new JSONObject()
-                .put("first-key", "first-value")
-                .put("second key", 3)
-                .toString();
-        byte[] data = stringBytes(jsonString);
-
-        JSONObject result = ResponseParsers
-                .forJSONObject()
-                .parseNetworkResponse(new NetworkResponse(data))
-                .result;
-
-        assertEquals(jsonString, result.toString());
-    }
-
-    @SuppressLint("NewApi")
-    private static byte[] stringBytes(String s) {
-        return s.getBytes(Charset.forName("UTF-8"));
     }
 
     private static class MockedRequestQueue extends RequestQueue {
