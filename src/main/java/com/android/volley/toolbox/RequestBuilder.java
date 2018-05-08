@@ -3,6 +3,7 @@ package com.android.volley.toolbox;
 import com.android.volley.Request;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
+import com.android.volley.RetryPolicy;
 
 import static com.android.volley.Request.Method;
 import static java.util.Objects.requireNonNull;
@@ -27,6 +28,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected ErrorListener errorListener;
     protected ResponseParser<ResponseT> parser;
     protected Object tag;
+    protected RetryPolicy retryPolicy;
 
     public ThisT method(int requestMethod) {
         this.requestMethod = requestMethod;
@@ -64,9 +66,15 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
+    public ThisT retryPolicy(RetryPolicy retryPolicy) {
+        this.retryPolicy = retryPolicy;
+        return getThis();
+    }
+
     public Request<ResponseT> build() {
         BuildableRequest<ResponseT> request = buildRequest();
         request.setTag(tag);
+        request.setRetryPolicy(retryPolicy);
         return request;
     }
 

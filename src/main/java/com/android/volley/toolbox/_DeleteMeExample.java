@@ -1,5 +1,6 @@
 package com.android.volley.toolbox;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.Response;
 
@@ -37,8 +38,7 @@ public class _DeleteMeExample {
                 .onError(errorListener)
 //                .priority(Request.Priority.NORMAL)
                 .tag("tag")
-//                .marker("debugMarker")
-//                .retryPolicy(new DefaultRetryPolicy())
+                .retryPolicy(new DefaultRetryPolicy())
 //                .retryOnServerErrors(true)
 //                .shouldCache(true)
                 .build() // TODO don't build twice

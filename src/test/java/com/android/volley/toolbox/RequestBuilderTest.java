@@ -1,10 +1,12 @@
 package com.android.volley.toolbox;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.Response.Listener;
+import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.mock.MockNetwork;
 import com.android.volley.utils.ImmediateResponseDelivery;
@@ -119,6 +121,16 @@ public class RequestBuilderTest {
                 .build()
                 .getTag();
         assertTrue(expected == actual);
+    }
+
+    @Test
+    public void retryPolicyIsSet() {
+        RetryPolicy expected = new DefaultRetryPolicy();
+        RetryPolicy actual = baseValidBuilder()
+                .retryPolicy(expected)
+                .build()
+                .getRetryPolicy();
+        assertEquals(expected, actual);
     }
 
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
