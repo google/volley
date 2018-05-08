@@ -1,11 +1,15 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.NetworkResponse;
+import com.android.volley.ParseError;
 import com.android.volley.Response;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
+
+import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
 
 /**
  * TODO
@@ -57,8 +61,18 @@ class ResponseParsers {
         return new ResponseParser<JSONObject>() {
             @Override
             public Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
-                // TODO ocpy code here
-                return null;
+                try {
+                    String jsonString =
+                            new String(
+                                    response.data,
+                                    HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
+                    return Response.success(
+                            new JSONObject(jsonString), HttpHeaderParser.parseCacheHeaders(response));
+                } catch (UnsupportedEncodingException e) {
+                    return Response.error(new ParseError(e));
+                } catch (JSONException je) {
+                    return Response.error(new ParseError(je));
+                }
             }
         };
     }

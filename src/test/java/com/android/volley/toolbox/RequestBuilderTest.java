@@ -11,6 +11,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.mock.MockNetwork;
 import com.android.volley.utils.ImmediateResponseDelivery;
 
+import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -89,9 +90,30 @@ public class RequestBuilderTest {
         verify(parser, times(1)).parseNetworkResponse((NetworkResponse) any());
     }
 
+    // TODO NEXT and move
+    @Test
+    public void correctParsingForJSONObject() throws Exception {
+        String jsonString = new JSONObject()
+                .put("first-key", "first-value")
+                .put("second key", 3)
+                .toString();
+        byte[] data = stringBytes(jsonString);
+
+        JSONObject result = ResponseParsers
+                .forJSONObject()
+                .parseNetworkResponse(new NetworkResponse(data))
+                .result;
+
+        assertEquals(jsonString, result.toString());
+    }
+
+    @SuppressLint("NewApi")
+    private static byte[] stringBytes(String s) {
+        return s.getBytes(Charset.forName("UTF-8"));
+    }
+
     private static class MockedRequestQueue extends RequestQueue {
 
-        @SuppressLint("NewApi")
         public MockedRequestQueue(byte[] response) {
             super(
                     new NoCache(),
@@ -101,9 +123,8 @@ public class RequestBuilderTest {
             );
         }
 
-        @SuppressLint("NewApi")
         public MockedRequestQueue(String response) {
-            this(response.getBytes(Charset.forName("UTF-8")));
+            this(stringBytes(response));
         }
     }
 
