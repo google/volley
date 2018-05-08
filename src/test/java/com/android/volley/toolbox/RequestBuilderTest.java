@@ -120,6 +120,9 @@ public class RequestBuilderTest {
         assertEquals(expected, actual);
     }
 
+    /**
+     * Uses == for equality (see {@link RequestQueue#cancelAll(Object)}
+     */
     @Test
     public void tagIsSet() {
         Object expected = new Object();
@@ -157,6 +160,16 @@ public class RequestBuilderTest {
                 .shouldCache(expected)
                 .build()
                 .shouldCache();
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void priorityIsSet() {
+        Request.Priority expected = Request.Priority.HIGH;
+        Request.Priority actual = baseValidBuilder()
+                .priority(expected)
+                .build()
+                .getPriority();
         assertEquals(expected, actual);
     }
 

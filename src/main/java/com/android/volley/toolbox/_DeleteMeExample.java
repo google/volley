@@ -36,12 +36,12 @@ public class _DeleteMeExample {
                 .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing, default
                 .onSuccess(listener)
                 .onError(errorListener)
-//                .priority(Request.Priority.NORMAL)
+                .priority(Request.Priority.NORMAL)
                 .tag("tag")
                 .retryPolicy(new DefaultRetryPolicy())
                 .retryOnServerErrors(true)
                 .shouldCache(true)
-                .build() // TODO don't build twice
+                .build()
 //                .addTo(Volley.newRequestQueue(null))
         ;
     }

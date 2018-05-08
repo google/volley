@@ -34,6 +34,9 @@ import java.util.Map;
  */
 public abstract class Request<T> implements Comparable<Request<T>> {
 
+    // TODO doc
+    public static final Request.Priority DEFAULT_PRIORITY = Request.Priority.NORMAL;
+
     /** Default encoding for POST or PUT parameters. See {@link #getParamsEncoding()}. */
     private static final String DEFAULT_PARAMS_ENCODING = "UTF-8";
 
@@ -510,7 +513,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
 
     /** Returns the {@link Priority} of this request; {@link Priority#NORMAL} by default. */
     public Priority getPriority() {
-        return Priority.NORMAL;
+        return DEFAULT_PRIORITY;
     }
 
     /**

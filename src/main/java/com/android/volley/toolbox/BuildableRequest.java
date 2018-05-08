@@ -15,7 +15,8 @@ public class BuildableRequest<T> extends Request<T> {
     private final ResponseParser<T> parser;
     private final String bodyContentType;
     private final byte[] body;
-    private Response.Listener<T> listener;
+    private final Priority priority;
+    private volatile Response.Listener<T> listener;
 
     public BuildableRequest(
             int method,
@@ -24,7 +25,8 @@ public class BuildableRequest<T> extends Request<T> {
             Response.ErrorListener errorListener,
             ResponseParser<T> parser,
             String bodyContentType,
-            byte[] body
+            byte[] body,
+            Priority priority
     ) {
         super(
                 method,
@@ -35,6 +37,7 @@ public class BuildableRequest<T> extends Request<T> {
         this.parser = parser;
         this.bodyContentType = bodyContentType;
         this.body = body;
+        this.priority = priority;
     }
 
     @Override
@@ -64,5 +67,10 @@ public class BuildableRequest<T> extends Request<T> {
     @Override
     public byte[] getBody() throws AuthFailureError {
         return body;
+    }
+
+    @Override
+    public Priority getPriority() {
+        return priority;
     }
 }

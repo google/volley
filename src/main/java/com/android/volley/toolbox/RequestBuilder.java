@@ -31,6 +31,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected RetryPolicy retryPolicy;
     protected Boolean retryOnServerErrors;
     protected Boolean shouldCache;
+    protected Request.Priority priority = Request.DEFAULT_PRIORITY;
 
     private boolean hasBuilt;
 
@@ -85,6 +86,11 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
+    public ThisT priority(Request.Priority priority) {
+        this.priority = priority;
+        return getThis();
+    }
+
     public Request<ResponseT> build() {
         if (hasBuilt) {
             throw new IllegalStateException(
@@ -118,7 +124,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 errorListener,
                 parser == null ? ResponseParsers.<ResponseT>stub() : parser,
                 null,
-                null
+                null,
+                priority
         );
     }
 
@@ -133,6 +140,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     private static class StubListener<ResponseT> implements Listener<ResponseT> {
+
         @Override
         public void onResponse(ResponseT response) {
             // Stub
