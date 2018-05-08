@@ -6,6 +6,7 @@ import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static com.android.volley.Request.Method;
@@ -102,6 +103,16 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
 
     public ThisT headers(Map<String, String> stringStringHashMap) {
         headers.putAll(requireNonNull(stringStringHashMap));
+        return getThis();
+    }
+
+    public ThisT range(String rangeName, int start, int end) {
+        headers.put("Range", String.format(Locale.US, "%s=%d-%d", rangeName, start, end));
+        return getThis();
+    }
+
+    public ThisT rangeForPage(String rangeName, int pageNumber, int pageSize) {
+        range(rangeName, pageNumber * pageSize, (pageNumber + 1 ) * pageSize - 1);
         return getThis();
     }
 

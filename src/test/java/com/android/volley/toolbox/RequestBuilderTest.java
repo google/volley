@@ -207,6 +207,32 @@ public class RequestBuilderTest {
         baseValidBuilder().header("key", null);
     }
 
+    @Test
+    public void rangeAddsToHeaders() throws AuthFailureError {
+        Map<String, String> expected = new HashMap<>();
+        expected.put("Range", "type=0-100");
+
+        Map<String, String> actual = baseValidBuilder()
+                .range("type", 0, 100)
+                .build()
+                .getHeaders();
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void rangeForPageAddsToHeaders() throws AuthFailureError {
+        Map<String, String> expected = new HashMap<>();
+        expected.put("Range", "type=0-99");
+
+        Map<String, String> actual = baseValidBuilder()
+                .rangeForPage("type", 0, 100)
+                .build()
+                .getHeaders();
+
+        assertEquals(expected, actual);
+    }
+
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
         return RequestBuilder.<T>create()
                 .url(URL)
