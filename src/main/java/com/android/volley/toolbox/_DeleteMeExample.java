@@ -19,9 +19,9 @@ public class _DeleteMeExample {
         Response.ErrorListener errorListener = null;
         //noinspection ConstantConditions
         RequestBuilder.<JSONObject>create()
-                .url("url") // TODO null check
-                .appendUrl("url") // TODO Throw exception if no url yet
-                .method(Request.Method.GET) // TODO null check, or default to get?
+                .url("url")
+                .appendUrl("url")
+                .method(Request.Method.GET)
 //                .header("Key", "Val")
 //                .header("Key2", "Val2")
 //                .headers(new HashMap<String, String>())
@@ -36,7 +36,7 @@ public class _DeleteMeExample {
                 .onSuccess(listener)
                 .onError(errorListener)
 //                .priority(Request.Priority.NORMAL)
-//                .tag("tag")
+                .tag("tag")
 //                .marker("debugMarker")
 //                .retryPolicy(new DefaultRetryPolicy())
 //                .retryOnServerErrors(true)

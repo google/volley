@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.android.volley.utils.Utils.stringBytes;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -26,6 +27,11 @@ import static org.mockito.Mockito.verify;
 public class RequestBuilderTest {
 
     public static final String URL = "http://www.example.com/";
+
+    @Test
+    public void baseBuilderIsValid() {
+        baseValidBuilder(); // test fails by exception if invalid
+    }
 
     @Test
     public void setsAndAppendsUrl() {
@@ -89,9 +95,7 @@ public class RequestBuilderTest {
 
     @Test
     public void methodDefaultsToGet() {
-        int actual = RequestBuilder.<Void>create()
-                .url(URL)
-                .onError(new StubErrorListener())
+        int actual = baseValidBuilder()
                 .build()
                 .getMethod();
         assertEquals(Request.Method.GET, actual);
@@ -100,13 +104,27 @@ public class RequestBuilderTest {
     @Test
     public void methodIsSet() {
         int expected = Request.Method.DELETE;
-        int actual = RequestBuilder.<Void>create()
-                .url(URL)
-                .onError(new StubErrorListener())
+        int actual = baseValidBuilder()
                 .method(expected)
                 .build()
                 .getMethod();
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void tagIsSet() {
+        Object expected = new Object();
+        Object actual = baseValidBuilder()
+                .tag(expected)
+                .build()
+                .getTag();
+        assertTrue(expected == actual);
+    }
+
+    private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
+        return RequestBuilder.<T>create()
+                .url(URL)
+                .onError(new StubErrorListener());
     }
 
     private static class MockedRequestQueue extends RequestQueue {

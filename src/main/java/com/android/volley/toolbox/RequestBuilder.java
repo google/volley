@@ -26,6 +26,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Listener<ResponseT> listener;
     protected ErrorListener errorListener;
     protected ResponseParser<ResponseT> parser;
+    protected Object tag;
 
     public ThisT method(int requestMethod) {
         this.requestMethod = requestMethod;
@@ -38,7 +39,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     public ThisT appendUrl(String append) {
-        this.url += append;
+        requireNonNull(url, "You must set a `url` before calling `appendUrl`");
+        url += append;
         return getThis();
     }
 
@@ -57,7 +59,18 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
+    public ThisT tag(Object tag) {
+        this.tag = tag;
+        return getThis();
+    }
+
     public Request<ResponseT> build() {
+        BuildableRequest<ResponseT> request = buildRequest();
+        request.setTag(tag);
+        return request;
+    }
+
+    protected BuildableRequest<ResponseT> buildRequest() {
         return new BuildableRequest<>(
                 requestMethod,
                 url,
