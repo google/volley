@@ -32,7 +32,14 @@ public class RequestBuilderTest {
 
     @Test
     public void baseBuilderIsValid() {
-        baseValidBuilder(); // test fails by exception if invalid
+        baseValidBuilder().build(); // test fails by exception if invalid
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void cannotBuildTwice() {
+        RequestBuilder<?, ?> builder = baseValidBuilder();
+        builder.build();
+        builder.build();
     }
 
     @Test

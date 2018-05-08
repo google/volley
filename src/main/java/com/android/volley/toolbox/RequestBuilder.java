@@ -32,6 +32,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Boolean retryOnServerErrors;
     protected Boolean shouldCache;
 
+    private boolean hasBuilt;
+
     public ThisT method(int requestMethod) {
         this.requestMethod = requestMethod;
         return getThis();
@@ -84,6 +86,14 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     public Request<ResponseT> build() {
+        if (hasBuilt) {
+            throw new IllegalStateException(
+                    "Already built using this builder. " +
+                            "Use a new builder instead of reusing this one"
+            );
+        }
+        hasBuilt = true;
+
         BuildableRequest<ResponseT> request = buildRequest();
         if (tag != null) {
             request.setTag(tag);

@@ -24,6 +24,7 @@ public interface ResponseParser<T> {
 
 /**
  * TODO
+ * TODO make these static objects for efficiency
  */
 class ResponseParsers {
 
@@ -59,43 +60,44 @@ class ResponseParsers {
     }
 
     public static ResponseParser<JSONObject> forJSONObject() {
-        return new ResponseParser<JSONObject>() {
+        return new JsonParserBase<JSONObject>() {
             @Override
-            public Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
-                try {
-                    String jsonString =
-                            new String(
-                                    response.data,
-                                    HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
-                    return Response.success(
-                            new JSONObject(jsonString), HttpHeaderParser.parseCacheHeaders(response));
-                } catch (UnsupportedEncodingException e) {
-                    return Response.error(new ParseError(e));
-                } catch (JSONException je) {
-                    return Response.error(new ParseError(je));
-                }
+            protected JSONObject stringToResponseType(String string) throws JSONException {
+                return new JSONObject(string);
             }
         };
     }
 
     public static ResponseParser<JSONArray> forJSONArray() {
-        return new ResponseParser<JSONArray>() {
+        return new JsonParserBase<JSONArray>() {
             @Override
-            public Response<JSONArray> parseNetworkResponse(NetworkResponse response) {
-                try {
-                    String jsonString =
-                            new String(
-                                    response.data,
-                                    HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
-                    return Response.success(
-                            new JSONArray(jsonString), HttpHeaderParser.parseCacheHeaders(response));
-                } catch (UnsupportedEncodingException e) {
-                    return Response.error(new ParseError(e));
-                } catch (JSONException je) {
-                    return Response.error(new ParseError(je));
-                }
+            protected JSONArray stringToResponseType(String string) throws JSONException {
+                return new JSONArray(string);
             }
         };
+    }
+
+    private static abstract class JsonParserBase<T> implements ResponseParser<T> {
+
+        @Override
+        public Response<T> parseNetworkResponse(NetworkResponse response) {
+            try {
+                String jsonString = new String(
+                        response.data,
+                        HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET)
+                );
+                return Response.success(
+                        stringToResponseType(jsonString),
+                        HttpHeaderParser.parseCacheHeaders(response)
+                );
+            } catch (UnsupportedEncodingException e) {
+                return Response.error(new ParseError(e));
+            } catch (JSONException je) {
+                return Response.error(new ParseError(je));
+            }
+        }
+
+        protected abstract T stringToResponseType(String string) throws JSONException;
     }
 }
 

@@ -16,7 +16,7 @@ public class ResponseParsersTest {
 
     @Test
     public void correctParsingForString() throws Exception {
-        String string = "The quick brown fox jumped over the lazy dog.";
+        String string = "The quick.brown,fox jumped over the lazy dog!";
         byte[] data = stringBytes(string);
 
         String result = ResponseParsers
