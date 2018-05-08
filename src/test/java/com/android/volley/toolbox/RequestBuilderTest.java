@@ -87,6 +87,28 @@ public class RequestBuilderTest {
         verify(parser, times(1)).parseNetworkResponse((NetworkResponse) any());
     }
 
+    @Test
+    public void methodDefaultsToGet() {
+        int actual = RequestBuilder.<Void>create()
+                .url(URL)
+                .onError(new StubErrorListener())
+                .build()
+                .getMethod();
+        assertEquals(Request.Method.GET, actual);
+    }
+
+    @Test
+    public void methodIsSet() {
+        int expected = Request.Method.DELETE;
+        int actual = RequestBuilder.<Void>create()
+                .url(URL)
+                .onError(new StubErrorListener())
+                .method(expected)
+                .build()
+                .getMethod();
+        assertEquals(expected, actual);
+    }
+
     private static class MockedRequestQueue extends RequestQueue {
 
         public MockedRequestQueue(byte[] response) {

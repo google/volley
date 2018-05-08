@@ -21,10 +21,16 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return new RequestBuilder<>();
     }
 
+    protected int requestMethod = Method.GET;
     protected String url = null;
     protected Listener<ResponseT> listener;
     protected ErrorListener errorListener;
     protected ResponseParser<ResponseT> parser;
+
+    public ThisT method(int requestMethod) {
+        this.requestMethod = requestMethod;
+        return getThis();
+    }
 
     public ThisT url(String url) {
         this.url = requireNonNull(url);
@@ -37,32 +43,23 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     public ThisT onSuccess(Listener<ResponseT> listener) {
-        if (this.errorListener != null) {
-            throw new IllegalStateException("Already set listener");
-        }
         this.listener = requireNonNull(listener);
         return getThis();
     }
 
     public ThisT onError(ErrorListener errorListener) {
-        if (this.errorListener != null) {
-            throw new IllegalStateException("Already set error listener");
-        }
         this.errorListener = requireNonNull(errorListener);
         return getThis();
     }
 
     public ThisT parseResponse(ResponseParser<ResponseT> parser) {
-        if (this.parser != null) {
-            throw new IllegalStateException("Already set parser");
-        }
         this.parser = requireNonNull(parser);
         return getThis();
     }
 
     public Request<ResponseT> build() {
         return new BuildableRequest<>(
-                Method.GET,
+                requestMethod,
                 url,
                 listener == null ? new StubListener<ResponseT>() : listener,
                 errorListener,

@@ -10,7 +10,6 @@ import java.nio.charset.Charset;
 
 public class Utils {
 
-    // TODO
     @SuppressLint("NewApi")
     public static byte[] stringBytes(String s) {
         return s.getBytes(Charset.forName("UTF-8"));

@@ -4,6 +4,7 @@ import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -68,6 +69,26 @@ class ResponseParsers {
                                     HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
                     return Response.success(
                             new JSONObject(jsonString), HttpHeaderParser.parseCacheHeaders(response));
+                } catch (UnsupportedEncodingException e) {
+                    return Response.error(new ParseError(e));
+                } catch (JSONException je) {
+                    return Response.error(new ParseError(je));
+                }
+            }
+        };
+    }
+
+    public static ResponseParser<JSONArray> forJSONArray() {
+        return new ResponseParser<JSONArray>() {
+            @Override
+            public Response<JSONArray> parseNetworkResponse(NetworkResponse response) {
+                try {
+                    String jsonString =
+                            new String(
+                                    response.data,
+                                    HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
+                    return Response.success(
+                            new JSONArray(jsonString), HttpHeaderParser.parseCacheHeaders(response));
                 } catch (UnsupportedEncodingException e) {
                     return Response.error(new ParseError(e));
                 } catch (JSONException je) {

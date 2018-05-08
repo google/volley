@@ -1,5 +1,6 @@
 package com.android.volley.toolbox;
 
+import com.android.volley.Request;
 import com.android.volley.Response;
 
 import org.json.JSONObject;
@@ -20,7 +21,7 @@ public class _DeleteMeExample {
         RequestBuilder.<JSONObject>create()
                 .url("url") // TODO null check
                 .appendUrl("url") // TODO Throw exception if no url yet
-//                .method(Request.Method.GET) // TODO null check, or default to get?
+                .method(Request.Method.GET) // TODO null check, or default to get?
 //                .header("Key", "Val")
 //                .header("Key2", "Val2")
 //                .headers(new HashMap<String, String>())
