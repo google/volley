@@ -6,6 +6,8 @@ import com.android.volley.Response;
 
 import org.json.JSONObject;
 
+import java.util.HashMap;
+
 /**
  * Created by Dylan on 7/05/18.
  */
@@ -23,9 +25,9 @@ public class _DeleteMeExample {
                 .url("url")
                 .appendUrl("url")
                 .method(Request.Method.GET)
-//                .header("Key", "Val")
-//                .header("Key2", "Val2")
-//                .headers(new HashMap<String, String>())
+                .header("Key", "Val")
+                .header("Key2", "Val2")
+                .headers(new HashMap<String, String>())
 //                .range("name", 0, 99)
 //                .rangeForPage("name", 0, 100)
 //                .param("Key", "Val")

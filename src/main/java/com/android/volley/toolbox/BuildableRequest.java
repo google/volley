@@ -5,6 +5,9 @@ import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
 
+import java.util.Collections;
+import java.util.Map;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -16,8 +19,22 @@ public class BuildableRequest<T> extends Request<T> {
     private final String bodyContentType;
     private final byte[] body;
     private final Priority priority;
+    private final Map<String, String> headers;
     private volatile Response.Listener<T> listener;
 
+    /**
+     * TODO docs
+     * NOTE: Prefer using the {@link RequestBuilder} over this constructor.
+     * @param method
+     * @param url
+     * @param listener
+     * @param errorListener
+     * @param parser
+     * @param bodyContentType
+     * @param body
+     * @param priority
+     * @param headers
+     */
     public BuildableRequest(
             int method,
             String url,
@@ -26,7 +43,8 @@ public class BuildableRequest<T> extends Request<T> {
             ResponseParser<T> parser,
             String bodyContentType,
             byte[] body,
-            Priority priority
+            Priority priority,
+            Map<String, String> headers
     ) {
         super(
                 method,
@@ -38,6 +56,9 @@ public class BuildableRequest<T> extends Request<T> {
         this.bodyContentType = bodyContentType;
         this.body = body;
         this.priority = priority;
+        this.headers = Collections.unmodifiableMap(
+                requireNonNull(headers, "Pass empty map instead of null for headers")
+        );
     }
 
     @Override
@@ -72,5 +93,10 @@ public class BuildableRequest<T> extends Request<T> {
     @Override
     public Priority getPriority() {
         return priority;
+    }
+
+    @Override
+    public Map<String, String> getHeaders() throws AuthFailureError {
+        return headers;
     }
 }

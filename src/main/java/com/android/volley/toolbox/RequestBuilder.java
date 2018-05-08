@@ -5,6 +5,9 @@ import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static com.android.volley.Request.Method;
 import static java.util.Objects.requireNonNull;
 
@@ -32,6 +35,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Boolean retryOnServerErrors;
     protected Boolean shouldCache;
     protected Request.Priority priority = Request.DEFAULT_PRIORITY;
+    protected Map<String, String> headers = new HashMap<>();
 
     private boolean hasBuilt;
 
@@ -67,12 +71,12 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     public ThisT tag(Object tag) {
-        this.tag = tag;
+        this.tag = requireNonNull(tag);
         return getThis();
     }
 
     public ThisT retryPolicy(RetryPolicy retryPolicy) {
-        this.retryPolicy = retryPolicy;
+        this.retryPolicy = requireNonNull(retryPolicy);
         return getThis();
     }
 
@@ -87,7 +91,17 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     public ThisT priority(Request.Priority priority) {
-        this.priority = priority;
+        this.priority = requireNonNull(priority);
+        return getThis();
+    }
+
+    public ThisT header(String key, String value) {
+        headers.put(requireNonNull(key), requireNonNull(value));
+        return getThis();
+    }
+
+    public ThisT headers(Map<String, String> stringStringHashMap) {
+        headers.putAll(requireNonNull(stringStringHashMap));
         return getThis();
     }
 
@@ -125,7 +139,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 parser == null ? ResponseParsers.<ResponseT>stub() : parser,
                 null,
                 null,
-                priority
+                priority,
+                headers
         );
     }
 

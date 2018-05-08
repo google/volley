@@ -1,5 +1,6 @@
 package com.android.volley.toolbox;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
@@ -15,6 +16,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.android.volley.utils.Utils.stringBytes;
@@ -171,6 +174,37 @@ public class RequestBuilderTest {
                 .build()
                 .getPriority();
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void headersAreSetAndOverridable() throws AuthFailureError {
+        String key1 = "Key1";
+        String key2 = "Key2";
+        String val1 = "Val1";
+        Map<String, String> subMap = new HashMap<>();
+        subMap.put(key2, "Val2-new");
+        subMap.put("Key-3", "Val-3");
+        Map<String, String> expected = new HashMap<>(subMap);
+        expected.put(key1, val1);
+
+        Map<String, String> actual = baseValidBuilder()
+                .header(key1, val1)
+                .header(key2, "Val-2-replaced_later")
+                .headers(subMap)
+                .build()
+                .getHeaders();
+
+        assertEquals(expected, actual);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullHeaderKeyIsThrown() {
+        baseValidBuilder().header(null, "val");
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullHeaderValueIsThrown() {
+        baseValidBuilder().header("key", null);
     }
 
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
