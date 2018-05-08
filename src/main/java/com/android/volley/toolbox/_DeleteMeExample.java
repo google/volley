@@ -40,7 +40,7 @@ public class _DeleteMeExample {
                 .tag("tag")
                 .retryPolicy(new DefaultRetryPolicy())
                 .retryOnServerErrors(true)
-//                .shouldCache(true)
+                .shouldCache(true)
                 .build() // TODO don't build twice
 //                .addTo(Volley.newRequestQueue(null))
         ;

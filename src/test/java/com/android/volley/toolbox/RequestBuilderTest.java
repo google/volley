@@ -143,6 +143,16 @@ public class RequestBuilderTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    public void shouldCacheIsSet() {
+        boolean expected = false;
+        boolean actual = baseValidBuilder()
+                .shouldCache(expected)
+                .build()
+                .shouldCache();
+        assertEquals(expected, actual);
+    }
+
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
         return RequestBuilder.<T>create()
                 .url(URL)

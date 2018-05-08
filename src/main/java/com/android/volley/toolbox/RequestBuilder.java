@@ -29,7 +29,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected ResponseParser<ResponseT> parser;
     protected Object tag;
     protected RetryPolicy retryPolicy;
-    protected boolean retryOnServerErrors;
+    protected Boolean retryOnServerErrors;
+    protected Boolean shouldCache;
 
     public ThisT method(int requestMethod) {
         this.requestMethod = requestMethod;
@@ -77,10 +78,25 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
+    public ThisT shouldCache(boolean shouldCache) {
+        this.shouldCache = shouldCache;
+        return getThis();
+    }
+
     public Request<ResponseT> build() {
         BuildableRequest<ResponseT> request = buildRequest();
-        request.setTag(tag);
-        request.setRetryPolicy(retryPolicy);
+        if (tag != null) {
+            request.setTag(tag);
+        }
+        if (retryPolicy != null) {
+            request.setRetryPolicy(retryPolicy);
+        }
+        if (retryOnServerErrors != null) {
+            request.setShouldRetryServerErrors(retryOnServerErrors);
+        }
+        if (shouldCache != null) {
+            request.setShouldCache(shouldCache);
+        }
         return request;
     }
 
