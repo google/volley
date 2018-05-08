@@ -29,6 +29,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected ResponseParser<ResponseT> parser;
     protected Object tag;
     protected RetryPolicy retryPolicy;
+    protected boolean retryOnServerErrors;
 
     public ThisT method(int requestMethod) {
         this.requestMethod = requestMethod;
@@ -68,6 +69,11 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
 
     public ThisT retryPolicy(RetryPolicy retryPolicy) {
         this.retryPolicy = retryPolicy;
+        return getThis();
+    }
+
+    public ThisT retryOnServerErrors(boolean retryOnServerErrors) {
+        this.retryOnServerErrors = retryOnServerErrors;
         return getThis();
     }
 

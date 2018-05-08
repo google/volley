@@ -39,7 +39,7 @@ public class _DeleteMeExample {
 //                .priority(Request.Priority.NORMAL)
                 .tag("tag")
                 .retryPolicy(new DefaultRetryPolicy())
-//                .retryOnServerErrors(true)
+                .retryOnServerErrors(true)
 //                .shouldCache(true)
                 .build() // TODO don't build twice
 //                .addTo(Volley.newRequestQueue(null))

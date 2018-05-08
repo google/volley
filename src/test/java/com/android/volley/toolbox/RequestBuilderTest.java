@@ -133,6 +133,16 @@ public class RequestBuilderTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    public void retryOnServerErrorsIsSet() {
+        boolean expected = true;
+        boolean actual = baseValidBuilder()
+                .retryOnServerErrors(expected)
+                .build()
+                .shouldRetryServerErrors();
+        assertEquals(expected, actual);
+    }
+
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
         return RequestBuilder.<T>create()
                 .url(URL)
