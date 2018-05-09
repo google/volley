@@ -10,6 +10,7 @@ import java.util.HashMap;
 
 /**
  * TODO add @Deprecated everywhere in one commit
+ * TODO add real test with github api get
  */
 
 public class _DeleteMeExample {
@@ -33,7 +34,7 @@ public class _DeleteMeExample {
                 .param("Key", "Val")
                 .params(new HashMap<String, String>())
                 .paramsEncoding("")
-                .body(Bodies.forJSONObject(new JSONObject())) // todo also Bodies.forParams(map)
+                .body(Bodies.forJSONObject(new JSONObject()))
                 .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing, default
                 .onSuccess(listener)
                 .onError(errorListener)

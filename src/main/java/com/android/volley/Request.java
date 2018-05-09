@@ -21,11 +21,13 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+
 import com.android.volley.VolleyLog.MarkerLog;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+
 import java.util.Collections;
 import java.util.Map;
+
+import static com.android.volley.toolbox.Bodies._encodeParameters;
 
 /**
  * Base class for all network requests.
@@ -411,7 +413,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         // overridden these two member functions for POST requests.
         Map<String, String> postParams = getPostParams();
         if (postParams != null && postParams.size() > 0) {
-            return encodeParameters(postParams, getPostParamsEncoding());
+            return _encodeParameters(postParams, getPostParamsEncoding());
         }
         return null;
     }
@@ -461,26 +463,10 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      */
     public byte[] getBody() throws AuthFailureError {
         Map<String, String> params = getParams();
-        if (params != null && params.size() > 0) {
-            return encodeParameters(params, getParamsEncoding());
+        if (params != null) {
+            return _encodeParameters(params, getParamsEncoding());
         }
         return null;
-    }
-
-    /** Converts <code>params</code> into an application/x-www-form-urlencoded encoded string. */
-    private byte[] encodeParameters(Map<String, String> params, String paramsEncoding) {
-        StringBuilder encodedParams = new StringBuilder();
-        try {
-            for (Map.Entry<String, String> entry : params.entrySet()) {
-                encodedParams.append(URLEncoder.encode(entry.getKey(), paramsEncoding));
-                encodedParams.append('=');
-                encodedParams.append(URLEncoder.encode(entry.getValue(), paramsEncoding));
-                encodedParams.append('&');
-            }
-            return encodedParams.toString().getBytes(paramsEncoding);
-        } catch (UnsupportedEncodingException uee) {
-            throw new RuntimeException("Encoding not supported: " + paramsEncoding, uee);
-        }
     }
 
     /**

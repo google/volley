@@ -7,6 +7,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * TODO make methods for all of the other kinds of stuff
@@ -18,7 +23,62 @@ public class Bodies {
     static final String DEFAULT_CONTENT_TYPE =
             Request.DEFAULT_BODY_CONTENT_TYPE_BASE + Request.DEFAULT_PARAMS_ENCODING;
 
-    public static final Body STUB = new Body() {
+    public static final Body STUB = new StubBody();
+
+    // TODO rename?
+    public static Body forJSONObject(JSONObject jsonObject) {
+        return new JsonBody(jsonObject.toString());
+    }
+
+    public static Body forJSONArray(JSONArray jsonArray) {
+        return new JsonBody(jsonArray.toString());
+    }
+
+    public static Body forParam(String key, String value) {
+        Map<String, String> params = new HashMap<>(1);
+        params.put(requireNonNull(key), requireNonNull(value));
+        return forParams(params);
+    }
+
+    public static Body forParams(final Map<String, String> params) {
+        return new Body() {
+            @Override
+            public byte[] bytes() {
+                if (params.isEmpty()) {
+                    return null;
+                }
+
+                return _encodeParameters(params, contentType());
+            }
+
+            @Override
+            public String contentType() {
+                return Request.DEFAULT_PARAMS_ENCODING;
+            }
+        };
+    }
+
+    /**
+     * Converts <code>params</code> into an application/x-www-form-urlencoded encoded string.
+     *
+     * Visible for internal use only! Do not use outside Volley source code!
+     */
+    public static byte[] _encodeParameters(Map<String, String> params, String paramsEncoding) {
+        StringBuilder encodedParams = new StringBuilder();
+        try {
+            for (Map.Entry<String, String> entry : params.entrySet()) {
+                encodedParams.append(URLEncoder.encode(entry.getKey(), paramsEncoding));
+                encodedParams.append('=');
+                encodedParams.append(URLEncoder.encode(entry.getValue(), paramsEncoding));
+                encodedParams.append('&');
+            }
+            return encodedParams.toString().getBytes(paramsEncoding);
+        } catch (UnsupportedEncodingException uee) {
+            throw new RuntimeException("Encoding not supported: " + paramsEncoding, uee);
+        }
+    }
+
+    private static class StubBody implements Body {
         @Override
         public byte[] bytes() {
             return null;
@@ -28,15 +88,6 @@ public class Bodies {
         public String contentType() {
             return DEFAULT_CONTENT_TYPE;
         }
-    };
-
-    // TODO rename?
-    public static Body forJSONObject(JSONObject jsonObject) {
-        return new JsonBody(jsonObject.toString());
-    }
-
-    public static Body forJSONArray(JSONArray jsonArray) {
-        return new JsonBody(jsonArray.toString());
     }
 
     private static class JsonBody implements Body {
