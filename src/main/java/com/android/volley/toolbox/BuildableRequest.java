@@ -21,6 +21,7 @@ public class BuildableRequest<T> extends Request<T> {
     private final Priority priority;
     private final Map<String, String> headers;
     private final Map<String, String> params;
+    private final String paramsEncoding;
     private volatile Response.Listener<T> listener;
 
     /**
@@ -36,6 +37,7 @@ public class BuildableRequest<T> extends Request<T> {
      * @param priority
      * @param headers
      * @param params
+     * @param paramsEncoding
      */
     public BuildableRequest(
             int method,
@@ -47,7 +49,8 @@ public class BuildableRequest<T> extends Request<T> {
             byte[] body,
             Priority priority,
             Map<String, String> headers,
-            Map<String, String> params
+            Map<String, String> params,
+            String paramsEncoding
     ) {
         super(
                 method,
@@ -65,6 +68,7 @@ public class BuildableRequest<T> extends Request<T> {
         this.params = Collections.unmodifiableMap(
                 requireNonNull(params, "Pass empty map instead of null for params")
         );
+        this.paramsEncoding = paramsEncoding;
     }
 
     @Override
@@ -110,5 +114,10 @@ public class BuildableRequest<T> extends Request<T> {
     @Override
     public Map<String, String> getParams() {
         return params;
+    }
+
+    @Override
+    protected String getParamsEncoding() {
+        return paramsEncoding;
     }
 }

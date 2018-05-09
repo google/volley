@@ -32,7 +32,7 @@ public class _DeleteMeExample {
                 .rangeForPage("name", 0, 100)
                 .param("Key", "Val")
                 .params(new HashMap<String, String>())
-//                .paramsEncoding("")
+                .paramsEncoding("")
 //                .body(Bodies.forJSONObject(new JSONObject())) // todo also Bodies.forParams(map)
 //                .bodyContentType(BodyContents.forJSON()) // todo include this in the body,
                 .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing, default

@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import static com.android.volley.Request.Method;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -27,7 +26,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return new RequestBuilder<>();
     }
 
-    protected int requestMethod = Method.GET;
+    protected int requestMethod = Request.DEFAULT_METHOD;
     protected String url = null;
     protected Listener<ResponseT> listener;
     protected ErrorListener errorListener;
@@ -39,6 +38,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Request.Priority priority = Request.DEFAULT_PRIORITY;
     protected Map<String, String> headers = new HashMap<>();
     protected Map<String, String> params = new HashMap<>();
+    protected String paramsEncoding = Request.DEFAULT_PARAMS_ENCODING;
 
     private boolean hasBuilt;
 
@@ -129,6 +129,11 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
+    public ThisT paramsEncoding(String encoding) {
+        this.paramsEncoding = requireNonNull(encoding);
+        return getThis();
+    }
+
     public Request<ResponseT> build() {
         if (hasBuilt) {
             throw new IllegalStateException(
@@ -165,7 +170,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 null,
                 priority,
                 headers,
-                params
+                params,
+                paramsEncoding
         );
     }
 

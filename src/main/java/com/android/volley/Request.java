@@ -34,11 +34,14 @@ import java.util.Map;
  */
 public abstract class Request<T> implements Comparable<Request<T>> {
 
+    /** Default encoding for POST or PUT parameters. See {@link #getParamsEncoding()}. */
+    public static final String DEFAULT_PARAMS_ENCODING = "UTF-8";
+
+    // TODO doc
+    public static final int DEFAULT_METHOD = Method.GET;
+
     // TODO doc
     public static final Request.Priority DEFAULT_PRIORITY = Request.Priority.NORMAL;
-
-    /** Default encoding for POST or PUT parameters. See {@link #getParamsEncoding()}. */
-    private static final String DEFAULT_PARAMS_ENCODING = "UTF-8";
 
     /** Supported request methods. */
     public interface Method {
