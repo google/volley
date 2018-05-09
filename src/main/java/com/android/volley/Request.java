@@ -258,6 +258,14 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     }
 
     /**
+     * Add this {@link Request} to the {@link RequestQueue}
+     */
+    public Request<?> addTo(RequestQueue requestQueue) {
+        requestQueue.add(this);
+        return this;
+    }
+
+    /**
      * Sets the sequence number of this request. Used by {@link RequestQueue}.
      *
      * @return This Request object to allow for chaining.

@@ -44,7 +44,7 @@ public class _DeleteMeExample {
                 .retryOnServerErrors(true)
                 .shouldCache(true)
                 .build()
-//                .addTo(Volley.newRequestQueue(null))
+                .addTo(Volley.newRequestQueue(null))
         ;
     }
 }
