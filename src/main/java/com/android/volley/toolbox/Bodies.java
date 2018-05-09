@@ -31,15 +31,13 @@ public class Bodies {
     };
 
     // TODO rename?
-    public static Body forJSONObject(final JSONObject jsonObject) {
+    public static Body forJSONObject(JSONObject jsonObject) {
         return new JsonBody(jsonObject.toString());
     }
 
-    public static Body forJSONArray(final JSONArray jsonArray) {
+    public static Body forJSONArray(JSONArray jsonArray) {
         return new JsonBody(jsonArray.toString());
     }
-
-    // TODO string, image??, bytes in general
 
     private static class JsonBody implements Body {
 
@@ -68,12 +66,4 @@ public class Bodies {
             return JsonRequest.PROTOCOL_CONTENT_TYPE;
         }
     }
-}
-
-// TODO move, doc
-interface Body {
-
-    byte[] bytes();
-
-    String contentType();
 }

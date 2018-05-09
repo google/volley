@@ -9,7 +9,7 @@ import org.json.JSONObject;
 import java.util.HashMap;
 
 /**
- * Created by Dylan on 7/05/18.
+ * TODO add @Deprecated everywhere in one commit
  */
 
 public class _DeleteMeExample {

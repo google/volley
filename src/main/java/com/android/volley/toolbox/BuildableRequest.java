@@ -16,7 +16,8 @@ import static java.util.Objects.requireNonNull;
 public class BuildableRequest<T> extends Request<T> {
 
     private final ResponseParser<T> parser;
-    private final Body body;
+    private final String bodyContentType;
+    private final byte[] bodyBytes;
     private final Priority priority;
     private final Map<String, String> headers;
     private final Map<String, String> params;
@@ -56,7 +57,10 @@ public class BuildableRequest<T> extends Request<T> {
         );
         this.listener = requireNonNull(listener, "Missing listener");
         this.parser = parser;
-        this.body = body;
+        this.bodyContentType = body.contentType();
+        // Eager load bodyBytes to prevent calling user code on network dispatcher thread
+        // (avoids potential nasty concurrency bugs)
+        this.bodyBytes = body.bytes();
         this.priority = priority;
         this.headers = Collections.unmodifiableMap(
                 requireNonNull(headers, "Pass empty map instead of null for headers")
@@ -89,12 +93,12 @@ public class BuildableRequest<T> extends Request<T> {
 
     @Override
     public String getBodyContentType() {
-        return body.contentType();
+        return bodyContentType;
     }
 
     @Override
     public byte[] getBody() throws AuthFailureError {
-        return body.bytes();
+        return bodyBytes;
     }
 
     @Override
