@@ -74,6 +74,7 @@ public class BuildableRequest<T> extends Request<T> {
 
     @Override
     protected void deliverResponse(T response) {
+        Response.Listener<T> listener = this.listener;
         if (listener == null) {
             return;
         }

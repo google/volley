@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, ThisT>> {
 
+    // TODO rename to startNew or start?
     public static <T> RequestBuilder<T, ? extends RequestBuilder> create() {
         return new RequestBuilder<>();
     }
@@ -36,7 +37,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Boolean retryOnServerErrors;
     protected Boolean shouldCache;
     protected Request.Priority priority = Request.DEFAULT_PRIORITY;
-    protected Map<String, String> headers = new HashMap<>();
+    protected Map<String, String> headers = new HashMap<>(); // TODO change to list<Header>!!!
 
     private boolean hasBuilt;
 
@@ -111,6 +112,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
+    // TODO should this be here?
     public ThisT rangeForPage(String rangeName, int pageNumber, int pageSize) {
         range(rangeName, pageNumber * pageSize, (pageNumber + 1 ) * pageSize - 1);
         return getThis();

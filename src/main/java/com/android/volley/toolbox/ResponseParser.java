@@ -8,7 +8,7 @@ import com.android.volley.Response;
  */
 public interface ResponseParser<T> {
     /**
-     * TODO
+     * TODO docs, rename?
      */
     Response<T> parseNetworkResponse(NetworkResponse response);
 }

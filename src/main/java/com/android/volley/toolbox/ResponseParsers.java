@@ -1,5 +1,8 @@
 package com.android.volley.toolbox;
 
+import android.graphics.Bitmap;
+import android.widget.ImageView;
+
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
@@ -13,8 +16,7 @@ import java.io.UnsupportedEncodingException;
 import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
 
 /**
- * TODO
- * TODO make these static objects for efficiency
+ * TODO docs
  */
 public class ResponseParsers {
 
@@ -47,6 +49,16 @@ public class ResponseParsers {
                 return Response.success(parsed, HttpHeaderParser.parseCacheHeaders(response));
             }
         };
+    }
+
+    public static ResponseParser<Bitmap> forImage(
+            Bitmap.Config mDecodeConfig,
+            int mMaxWidth,
+            int mMaxHeight,
+            ImageView.ScaleType mScaleType
+    ) {
+        return new ImageResponseParser(mDecodeConfig, mMaxWidth, mMaxHeight, mScaleType);
+
     }
 
     public static ResponseParser<JSONObject> forJSONObject() {

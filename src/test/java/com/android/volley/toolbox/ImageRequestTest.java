@@ -142,16 +142,16 @@ public class ImageRequestTest {
     @Test
     public void findBestSampleSize() {
         // desired == actual == 1
-        assertEquals(1, ImageRequest.findBestSampleSize(100, 150, 100, 150));
+        assertEquals(1, ImageResponseParser.findBestSampleSize(100, 150, 100, 150));
 
         // exactly half == 2
-        assertEquals(2, ImageRequest.findBestSampleSize(280, 160, 140, 80));
+        assertEquals(2, ImageResponseParser.findBestSampleSize(280, 160, 140, 80));
 
         // just over half == 1
-        assertEquals(1, ImageRequest.findBestSampleSize(1000, 800, 501, 401));
+        assertEquals(1, ImageResponseParser.findBestSampleSize(1000, 800, 501, 401));
 
         // just under 1/4 == 4
-        assertEquals(4, ImageRequest.findBestSampleSize(100, 200, 24, 50));
+        assertEquals(4, ImageResponseParser.findBestSampleSize(100, 200, 24, 50));
     }
 
     private static byte[] readInputStream(InputStream in) throws IOException {
