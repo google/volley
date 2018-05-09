@@ -20,6 +20,7 @@ public class BuildableRequest<T> extends Request<T> {
     private final byte[] body;
     private final Priority priority;
     private final Map<String, String> headers;
+    private final Map<String, String> params;
     private volatile Response.Listener<T> listener;
 
     /**
@@ -34,6 +35,7 @@ public class BuildableRequest<T> extends Request<T> {
      * @param body
      * @param priority
      * @param headers
+     * @param params
      */
     public BuildableRequest(
             int method,
@@ -44,7 +46,8 @@ public class BuildableRequest<T> extends Request<T> {
             String bodyContentType,
             byte[] body,
             Priority priority,
-            Map<String, String> headers
+            Map<String, String> headers,
+            Map<String, String> params
     ) {
         super(
                 method,
@@ -58,6 +61,9 @@ public class BuildableRequest<T> extends Request<T> {
         this.priority = priority;
         this.headers = Collections.unmodifiableMap(
                 requireNonNull(headers, "Pass empty map instead of null for headers")
+        );
+        this.params = Collections.unmodifiableMap(
+                requireNonNull(params, "Pass empty map instead of null for params")
         );
     }
 
@@ -99,5 +105,10 @@ public class BuildableRequest<T> extends Request<T> {
     @Override
     public Map<String, String> getHeaders() throws AuthFailureError {
         return headers;
+    }
+
+    @Override
+    public Map<String, String> getParams() {
+        return params;
     }
 }

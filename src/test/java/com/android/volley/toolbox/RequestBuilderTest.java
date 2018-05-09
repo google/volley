@@ -233,6 +233,37 @@ public class RequestBuilderTest {
         assertEquals(expected, actual);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void nullParamKeyIsThrown() {
+        baseValidBuilder().param(null, "val");
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullParamValueIsThrown() {
+        baseValidBuilder().param("key", null);
+    }
+
+    @Test
+    public void paramsAreSetAndOverridable() throws AuthFailureError {
+        String key1 = "Key1";
+        String key2 = "Key2";
+        String val1 = "Val1";
+        Map<String, String> subMap = new HashMap<>();
+        subMap.put(key2, "Val2-new");
+        subMap.put("Key-3", "Val-3");
+        Map<String, String> expected = new HashMap<>(subMap);
+        expected.put(key1, val1);
+
+        Map<String, String> actual = ((BuildableRequest<Object>) baseValidBuilder()
+                .param(key1, val1)
+                .param(key2, "Val-2-replaced_later")
+                .params(subMap)
+                .build())
+                .getParams();
+
+        assertEquals(expected, actual);
+    }
+
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
         return RequestBuilder.<T>create()
                 .url(URL)

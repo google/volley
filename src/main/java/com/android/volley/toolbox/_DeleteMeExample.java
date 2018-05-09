@@ -30,8 +30,8 @@ public class _DeleteMeExample {
                 .headers(new HashMap<String, String>())
                 .range("name", 0, 99)
                 .rangeForPage("name", 0, 100)
-//                .param("Key", "Val")
-//                .params(new HashMap<String, String>())
+                .param("Key", "Val")
+                .params(new HashMap<String, String>())
 //                .paramsEncoding("")
 //                .body(Bodies.forJSONObject(new JSONObject())) // todo also Bodies.forParams(map)
 //                .bodyContentType(BodyContents.forJSON()) // todo include this in the body,

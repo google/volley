@@ -37,7 +37,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Boolean retryOnServerErrors;
     protected Boolean shouldCache;
     protected Request.Priority priority = Request.DEFAULT_PRIORITY;
-    protected Map<String, String> headers = new HashMap<>(); // TODO change to list<Header>!!!
+    protected Map<String, String> headers = new HashMap<>();
+    protected Map<String, String> params = new HashMap<>();
 
     private boolean hasBuilt;
 
@@ -102,8 +103,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
-    public ThisT headers(Map<String, String> stringStringHashMap) {
-        headers.putAll(requireNonNull(stringStringHashMap));
+    public ThisT headers(Map<String, String> map) {
+        headers.putAll(requireNonNull(map));
         return getThis();
     }
 
@@ -115,6 +116,16 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     // TODO should this be here?
     public ThisT rangeForPage(String rangeName, int pageNumber, int pageSize) {
         range(rangeName, pageNumber * pageSize, (pageNumber + 1 ) * pageSize - 1);
+        return getThis();
+    }
+
+    public ThisT param(String key, String value) {
+        params.put(requireNonNull(key), requireNonNull(value));
+        return getThis();
+    }
+
+    public ThisT params(Map<String, String> map) {
+        params.putAll(requireNonNull(map));
         return getThis();
     }
 
@@ -153,7 +164,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 null,
                 null,
                 priority,
-                headers
+                headers,
+                params
         );
     }
 
