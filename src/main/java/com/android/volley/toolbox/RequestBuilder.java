@@ -39,6 +39,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Map<String, String> headers = new HashMap<>();
     protected Map<String, String> params = new HashMap<>();
     protected String paramsEncoding = Request.DEFAULT_PARAMS_ENCODING;
+    protected Body body = Bodies.STUB;
 
     private boolean hasBuilt;
 
@@ -134,6 +135,11 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
+    public ThisT body(Body body) {
+        this.body = requireNonNull(body);
+        return getThis();
+    }
+
     public Request<ResponseT> build() {
         if (hasBuilt) {
             throw new IllegalStateException(
@@ -166,8 +172,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 listener == null ? new StubListener<ResponseT>() : listener,
                 errorListener,
                 parser == null ? ResponseParsers.<ResponseT>stub() : parser,
-                null,
-                null,
+                body,
                 priority,
                 headers,
                 params,

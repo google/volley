@@ -38,6 +38,10 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     public static final String DEFAULT_PARAMS_ENCODING = "UTF-8";
 
     // TODO doc
+    public static final String DEFAULT_BODY_CONTENT_TYPE_BASE =
+            "application/x-www-form-urlencoded; charset=";
+
+    // TODO doc
     public static final int DEFAULT_METHOD = Method.GET;
 
     // TODO doc
@@ -443,7 +447,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
 
     /** Returns the content type of the POST or PUT body. */
     public String getBodyContentType() {
-        return "application/x-www-form-urlencoded; charset=" + getParamsEncoding();
+        return DEFAULT_BODY_CONTENT_TYPE_BASE + getParamsEncoding();
     }
 
     /**

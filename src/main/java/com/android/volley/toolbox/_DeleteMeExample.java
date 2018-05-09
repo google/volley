@@ -33,8 +33,7 @@ public class _DeleteMeExample {
                 .param("Key", "Val")
                 .params(new HashMap<String, String>())
                 .paramsEncoding("")
-//                .body(Bodies.forJSONObject(new JSONObject())) // todo also Bodies.forParams(map)
-//                .bodyContentType(BodyContents.forJSON()) // todo include this in the body,
+                .body(Bodies.forJSONObject(new JSONObject())) // todo also Bodies.forParams(map)
                 .parseResponse(ResponseParsers.forJSONObject()) // todo force generic, don't allow re changing, default
                 .onSuccess(listener)
                 .onError(errorListener)

@@ -12,6 +12,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.mock.MockNetwork;
 import com.android.volley.utils.ImmediateResponseDelivery;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -262,6 +264,28 @@ public class RequestBuilderTest {
                 .getParams();
 
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void bodyDefaultsAreCorrect() throws AuthFailureError {
+        Request<Object> request = baseValidBuilder().build();
+
+        assertEquals(null, request.getBody());
+        assertEquals(Bodies.DEFAULT_CONTENT_TYPE, request.getBodyContentType());
+    }
+
+    @Test
+    public void bodyIsSet() throws AuthFailureError, JSONException {
+        JSONObject jsonObject = new JSONObject()
+                .put("first-key", "first-value")
+                .put("second key", 3);
+
+        Request<Object> request = baseValidBuilder()
+                .body(Bodies.forJSONObject(jsonObject))
+                .build();
+
+        assertTrue(request.getBody().length > 0);
+        assertEquals(JsonRequest.PROTOCOL_CONTENT_TYPE, request.getBodyContentType());
     }
 
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
