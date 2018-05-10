@@ -17,20 +17,17 @@ import static java.util.Objects.requireNonNull;
 /**
  * Has all of the configuration possible for a {@link Request}, and is able to create a single
  * {@link Request}.
- *
+ * <p>
  * Steps for usage:
- *
- * 1. Call the {@link #startNew()} method.
- *
- * 2. Call methods for configuration, such as {@link #url(String)}. Each of them return this
- * {@link RequestBuilder} for chaining.
- *
- * 3. Call {@link #build()} to create the {@link Request}.
- *
- * 4. Call {@link Request#addTo(RequestQueue)}.
- *
+ * <p><ol>
+ * <li>Call the {@link #startNew()} method.
+ * <li>Call methods for configuration, such as {@link #url(String)}. Each of them return this
+ *     {@link RequestBuilder} for chaining.
+ * <li>Call {@link #build()} to create the {@link Request}.
+ * <li>Call {@link Request#addTo(RequestQueue)}.
+ * <p>
  * Example usage:
- *
+ * </ol><p>
  * <pre><code>
  * RequestBuilder.&lt;JSONObject&gt;startNew()
  *         .method(Request.Method.POST)
@@ -52,14 +49,14 @@ import static java.util.Objects.requireNonNull;
  *         .build()
  *         .addTo(myRequestQueue);
  * </code></pre>
- *
+ * <p>
  * Note that you must set the generic type, when calling
  * <code>RequestBuilder.&lt;JSONObject&gt;startNew()</code> to the type of the response.
  * TODO there may be a better way to do this
- *
+ * <p>
  * You can also extend this class, for example, to add logging and default headers to
  * {@link Request}s. See below for an example:
- *
+ * <p>
  * <pre><code>
  * private static class ABCDRequestBuilder
  *         &lt;ResponseT, ThisT extends ABCDRequestBuilder&lt;ResponseT, ThisT&gt;&gt;
@@ -107,8 +104,8 @@ import static java.util.Objects.requireNonNull;
  * </code></pre>
  *
  * @param <ResponseT> The type of the response
- * @param <ThisT> The type of this {@link RequestBuilder}. This type parameter allows creating
- *                subclasses, where each method on the builder is able to itself.
+ * @param <ThisT>     The type of this {@link RequestBuilder}. This type parameter allows creating
+ *                    subclasses, where each method on the builder is able to itself.
  */
 public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, ThisT>> {
 
