@@ -16,7 +16,7 @@ public class RequestBuilderExtensibilityTest {
 
     @Test
     public void callingSubclassMethodsBeforeAndAfterCallingBaseMethodsCompiles() {
-        ABCDRequestBuilder.createBase()
+        ABCDRequestBuilder.baseStartNew()
                 .url("http://example.com") // base
                 .addABCDAuthHeaders()
                 .param("k", "v")
@@ -42,22 +42,22 @@ public class RequestBuilderExtensibilityTest {
         /**
          * Creates builder with headers required to send to the ABCD API server.
          */
-        public static <T> ABCDRequestBuilder<T, ? extends ABCDRequestBuilder> create() {
-            return ABCDRequestBuilder.<T>createBase()
-                    .addABCDAuthHeaders();
+        public static <T> ABCDRequestBuilder<T, ? extends ABCDRequestBuilder> startNew() {
+            return ABCDRequestBuilder.<T>baseStartNew().addABCDAuthHeaders();
         }
 
         /**
          * Creates a normal builder, with extra loggers.
          */
-        public static <T> ABCDRequestBuilder<T, ? extends ABCDRequestBuilder> createBase() {
-            return ABCDRequestBuilder.<T>createBaseNoLogging().addABCDLoggers();
+        public static <T> ABCDRequestBuilder<T, ? extends ABCDRequestBuilder> baseStartNew() {
+            return ABCDRequestBuilder.<T>baseStartNewNoLogging().addABCDLoggers();
         }
 
         /**
          * Creates a normal builder;
          */
-        public static <T> ABCDRequestBuilder<T, ? extends ABCDRequestBuilder> createBaseNoLogging() {
+        public static <T> ABCDRequestBuilder<T, ? extends ABCDRequestBuilder>
+        baseStartNewNoLogging() {
             return new ABCDRequestBuilder<>();
         }
 

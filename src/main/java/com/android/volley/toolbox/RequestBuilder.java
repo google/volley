@@ -25,7 +25,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
 
     // TODO rename to startNew or start?
     // TODO doc with override note
-    public static <T> RequestBuilder<T, ? extends RequestBuilder> create() {
+    public static <T> RequestBuilder<T, ? extends RequestBuilder> startNew() {
         return new RequestBuilder<>();
     }
 

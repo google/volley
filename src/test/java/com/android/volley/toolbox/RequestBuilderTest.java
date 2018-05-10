@@ -53,7 +53,7 @@ public class RequestBuilderTest {
     public void setsAndAppendsUrl() {
         String append = "subdomain/";
 
-        Request<Void> request = RequestBuilder.<Void>create()
+        Request<Void> request = RequestBuilder.<Void>startNew()
                 .url(URL)
                 .appendUrl(append)
                 .onError(new StubErrorListener())
@@ -64,7 +64,7 @@ public class RequestBuilderTest {
 
     @Test(expected = NullPointerException.class)
     public void nullUrlIsThrownOnBuild() {
-        RequestBuilder.<Void>create()
+        RequestBuilder.<Void>startNew()
                 .onSuccess(new StubListener<Void>())
                 .onError(new StubErrorListener())
                 .build();
@@ -72,22 +72,22 @@ public class RequestBuilderTest {
 
     @Test(expected = NullPointerException.class)
     public void nullUrlIsThrownWhenPassedIn() {
-        RequestBuilder.create().url(null);
+        RequestBuilder.startNew().url(null);
     }
 
     @Test(expected = NullPointerException.class)
     public void nullListenerIsThrownWhenPassedIn() {
-        RequestBuilder.create().onSuccess(null);
+        RequestBuilder.startNew().onSuccess(null);
     }
 
     @Test(expected = NullPointerException.class)
     public void nullErrorListenerIsThrownWhenPassedIn() {
-        RequestBuilder.create().onError(null);
+        RequestBuilder.startNew().onError(null);
     }
 
     @Test(expected = NoSuchElementException.class)
     public void buildFailsWithoutErrorListener() {
-        RequestBuilder.create()
+        RequestBuilder.startNew()
                 .url(URL)
                 .build();
     }
@@ -100,7 +100,7 @@ public class RequestBuilderTest {
 
         ResponseParser<String> parser = spy(ResponseParsers.forString());
 
-        Request<String> request = RequestBuilder.<String>create()
+        Request<String> request = RequestBuilder.<String>startNew()
                 .url(URL)
                 .onSuccess(future)
                 .onSuccess(extraListener)
@@ -305,7 +305,7 @@ public class RequestBuilderTest {
     }
 
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
-        return RequestBuilder.<T>create()
+        return RequestBuilder.<T>startNew()
                 .url(URL)
                 .onError(new StubErrorListener());
     }
