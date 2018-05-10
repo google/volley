@@ -44,7 +44,9 @@ public class RequestBuilderExtensibilityTest {
          * Creates builder with headers required to send to the ABCD API server.
          */
         public static <T> ABCDRequestBuilder<T, ? extends ABCDRequestBuilder> startNew() {
-            return ABCDRequestBuilder.<T>baseStartNew().addABCDAuthHeaders();
+            return ABCDRequestBuilder.<T>baseStartNew()
+                    .addABCDAuthHeaders()
+                    .url("http://my.base.url.for.requests.to.abcd.server/"); // we can then call {@link #appendUrl(String)}
         }
 
         /**

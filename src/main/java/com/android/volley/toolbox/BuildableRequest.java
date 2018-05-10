@@ -74,6 +74,8 @@ public class BuildableRequest<T> extends Request<T> {
                 requireNonNull(params, "Pass empty map instead of null for params")
         );
         this.paramsEncoding = paramsEncoding;
+
+        // TODO append params to url
     }
 
     @Override

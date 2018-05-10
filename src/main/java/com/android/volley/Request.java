@@ -421,11 +421,16 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     /**
      * Returns a Map of parameters to be used for a POST or PUT request. Can throw {@link
      * AuthFailureError} as authentication may be required to provide these values.
-     *
+     * <p>
      * <p>Note that you can directly override {@link #getBody()} for custom data.
      *
      * @throws AuthFailureError in the event of auth failure
+     *
+     * @deprecated Deprecated because this is used in a way that prevents query parameters and
+     * a body being sent at the same time. Rather than overriding this to provide query params,
+     * use {@link com.android.volley.toolbox.RequestBuilder#param(String, String)} instead.
      */
+    @Deprecated
     protected Map<String, String> getParams() throws AuthFailureError {
         return null;
     }
