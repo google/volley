@@ -33,7 +33,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected String url = null;
     protected List<Listener<ResponseT>> listeners = new ArrayList<>();
     protected List<ErrorListener> errorListeners = new ArrayList<>();
-    protected ResponseParser<ResponseT> parser;
+    protected ResponseParser<ResponseT> parser = ResponseParsers.stub();
     protected Object tag;
     protected RetryPolicy retryPolicy;
     protected Boolean retryOnServerErrors;
@@ -177,7 +177,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 url,
                 listeners,
                 errorListeners,
-                parser == null ? ResponseParsers.<ResponseT>stub() : parser,
+                parser,
                 body,
                 priority,
                 headers,
