@@ -24,6 +24,7 @@ import static java.util.Objects.requireNonNull;
 public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, ThisT>> {
 
     // TODO rename to startNew or start?
+    // TODO doc with override note
     public static <T> RequestBuilder<T, ? extends RequestBuilder> create() {
         return new RequestBuilder<>();
     }
@@ -44,6 +45,9 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Body body = Bodies.STUB;
 
     private boolean hasBuilt;
+
+    protected RequestBuilder() {
+    }
 
     public ThisT method(int requestMethod) {
         this.requestMethod = requestMethod;
