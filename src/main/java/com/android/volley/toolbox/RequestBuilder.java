@@ -1,6 +1,7 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Request;
+import com.android.volley.RequestQueue;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
@@ -14,12 +15,100 @@ import java.util.Map;
 import static java.util.Objects.requireNonNull;
 
 /**
- * TODO Documentation for this classed
- * TODO Documentation for this the methods
+ * Has all of the configuration possible for a {@link Request}, and is able to create a single
+ * {@link Request}.
+ *
+ * Steps for usage:
+ *
+ * 1. Call the {@link #startNew()} method.
+ *
+ * 2. Call methods for configuration, such as {@link #url(String)}. Each of them return this
+ * {@link RequestBuilder} for chaining.
+ *
+ * 3. Call {@link #build()} to create the {@link Request}.
+ *
+ * 4. Call {@link Request#addTo(RequestQueue)}.
+ *
+ * Example usage:
+ *
+ * <pre><code>
+ * RequestBuilder.&lt;JSONObject&gt;startNew()
+ *         .method(Request.Method.POST)
+ *         .url("http://example.com")
+ *         .param("key", "value")
+ *         .header("key", "value")
+ *         .onSuccess(new Response.Listener&lt;JSONObject&gt;() {
+ *            {@literal @}Override
+ *             public void onResponse(JSONObject response) {
+ *                 // Do some stuff
+ *             }
+ *         })
+ *         .onError(new Response.ErrorListener() {
+ *            {@literal @}Override
+ *             public void onErrorResponse(VolleyError error) {
+ *                 // Do some stuff
+ *             }
+ *         })
+ *         .build()
+ *         .addTo(myRequestQueue);
+ * </code></pre>
+ *
+ * Note that you must set the generic type, when calling
+ * <code>RequestBuilder.&lt;JSONObject&gt;startNew()</code> to the type of the response.
+ * TODO there may be a better way to do this
+ *
+ * You can also extend this class, for example, to add logging and default headers to
+ * {@link Request}s. See below for an example:
+ *
+ * <pre><code>
+ * private static class ABCDRequestBuilder
+ *         &lt;ResponseT, ThisT extends ABCDRequestBuilder&lt;ResponseT, ThisT&gt;&gt;
+ *         extends RequestBuilder&lt;ResponseT, ThisT&gt; {
+ *
+ *     protected ABCDRequestBuilder() {
+ *     }
+ *
+ *     // Creates builder with headers required to send to the ABCD API server.
+ *     public static &lt;T&gt; ABCDRequestBuilder&lt;T, ? extends ABCDRequestBuilder&gt; startNew() {
+ *         return ABCDRequestBuilder.&lt;T&gt;baseStartNew().addABCDAuthHeaders();
+ *     }
+ *
+ *     // Creates a normal builder, with extra loggers.
+ *     public static &lt;T&gt; ABCDRequestBuilder&lt;T, ? extends ABCDRequestBuilder&gt; baseStartNew() {
+ *         return ABCDRequestBuilder.&lt;T&gt;baseStartNewNoLogging().addABCDLoggers();
+ *     }
+ *
+ *     // Creates a builder without any configuration
+ *     public static &lt;T&gt; ABCDRequestBuilder&lt;T, ? extends ABCDRequestBuilder&gt; baseStartNewNoLogging() {
+ *         return new ABCDRequestBuilder&lt;&gt;();
+ *     }
+ *
+ *     public ThisT addABCDAuthHeaders() {
+ *         header("Authentication", "key");
+ *         return getThis();
+ *     }
+ *
+ *     public ThisT addABCDLoggers() {
+ *         onSuccess(new Response.Listener&lt;ResponseT&gt;() {
+ *            {@literal @}Override
+ *             public void onResponse(ResponseT response) {
+ *                 // Some logging here
+ *             }
+ *         });
+ *         onError(new Response.ErrorListener() {
+ *            {@literal @}Override
+ *             public void onErrorResponse(VolleyError error) {
+ *                 // Some logging here
+ *             }
+ *         });
+ *         return getThis();
+ *     }
+ * }
+ * </code></pre>
  *
  * @param <ResponseT> The type of the response
  * @param <ThisT> The type of this {@link RequestBuilder}. This type parameter allows creating
- *            subclasses, where each method on the builder is able to itself.
+ *                subclasses, where each method on the builder is able to itself.
  */
 public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, ThisT>> {
 

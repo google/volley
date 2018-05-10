@@ -18,9 +18,9 @@ public class RequestBuilderExtensibilityTest {
     public void callingSubclassMethodsBeforeAndAfterCallingBaseMethodsCompiles() {
         ABCDRequestBuilder.baseStartNew()
                 .url("http://example.com") // base
-                .addABCDAuthHeaders()
-                .param("k", "v")
-                .onError(new Response.ErrorListener() {
+                .addABCDAuthHeaders() // subclass
+                .param("key", "value") // base
+                .onError(new Response.ErrorListener() { // base
                     @Override
                     public void onErrorResponse(VolleyError error) {
                     }
@@ -30,7 +30,8 @@ public class RequestBuilderExtensibilityTest {
 
     /**
      * A somewhat realistic of example of an extended {@link RequestBuilder} for an imaginary
-     * company called ABCD.
+     * company called ABCD. This is copied into the JavaDoc for {@link RequestBuilder} for
+     * documentation purposes.
      */
     private static class ABCDRequestBuilder
             <ResponseT, ThisT extends ABCDRequestBuilder<ResponseT, ThisT>>
