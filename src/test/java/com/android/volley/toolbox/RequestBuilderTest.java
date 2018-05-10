@@ -5,7 +5,7 @@ import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
+import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
@@ -20,14 +20,16 @@ import org.robolectric.RobolectricTestRunner;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import static com.android.volley.utils.TestUtils.stringBytes;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(RobolectricTestRunner.class)
@@ -83,15 +85,27 @@ public class RequestBuilderTest {
         RequestBuilder.create().onError(null);
     }
 
+    @Test(expected = NoSuchElementException.class)
+    public void buildFailsWithoutErrorListener() {
+        RequestBuilder.create()
+                .url(URL)
+                .build();
+    }
+
     @Test
-    public void listenerAndParserIsCalledOnSuccess() throws Exception {
+    public void listenersAndParsersAreCalledOnSuccess() throws Exception {
         RequestFuture<String> future = RequestFuture.newFuture();
+        @SuppressWarnings("unchecked") Listener<String> extraListener = mock(Listener.class);
+        ErrorListener extraErrorListener = mock(ErrorListener.class);
+
         ResponseParser<String> parser = spy(ResponseParsers.forString());
 
         Request<String> request = RequestBuilder.<String>create()
                 .url(URL)
                 .onSuccess(future)
+                .onSuccess(extraListener)
                 .onError(future)
+                .onError(extraErrorListener)
                 .parseResponse(parser)
                 .build();
 
@@ -104,7 +118,9 @@ public class RequestBuilderTest {
         String response = future.get(3, TimeUnit.SECONDS);
         assertEquals(expectedResponse, response);
 
-        verify(parser, times(1)).parseNetworkResponse((NetworkResponse) any());
+        verify(parser).parseNetworkResponse((NetworkResponse) any());
+        verify(extraListener).onResponse(response);
+        verify(extraErrorListener, never()).onErrorResponse((VolleyError) any());
     }
 
     @Test
@@ -317,7 +333,7 @@ public class RequestBuilderTest {
         }
     }
 
-    private static class StubErrorListener implements Response.ErrorListener {
+    private static class StubErrorListener implements ErrorListener {
         @Override
         public void onErrorResponse(VolleyError error) {
             // Stub

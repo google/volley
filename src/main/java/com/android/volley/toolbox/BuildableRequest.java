@@ -4,9 +4,14 @@ import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
+import com.android.volley.VolleyError;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static java.util.Objects.requireNonNull;
 
@@ -22,15 +27,15 @@ public class BuildableRequest<T> extends Request<T> {
     private final Map<String, String> headers;
     private final Map<String, String> params;
     private final String paramsEncoding;
-    private volatile Response.Listener<T> listener;
+    private final Collection<Response.Listener<T>> listeners;
 
     /**
      * TODO docs
      * NOTE: Prefer using the {@link RequestBuilder} over this constructor.
      * @param method
      * @param url
-     * @param listener
-     * @param errorListener
+     * @param listeners
+     * @param errorListeners
      * @param parser
      * @param body
      * @param priority
@@ -41,8 +46,8 @@ public class BuildableRequest<T> extends Request<T> {
     public BuildableRequest(
             int method,
             String url,
-            Response.Listener<T> listener,
-            Response.ErrorListener errorListener,
+            Collection<Response.Listener<T>> listeners,
+            Collection<Response.ErrorListener> errorListeners,
             ResponseParser<T> parser,
             Body body,
             Priority priority,
@@ -53,9 +58,9 @@ public class BuildableRequest<T> extends Request<T> {
         super(
                 method,
                 requireNonNull(url, "Missing url"),
-                requireNonNull(errorListener, "Missing error listener")
+                new ErrorListenersWrapper(errorListeners)
         );
-        this.listener = requireNonNull(listener, "Missing listener");
+        this.listeners = new CopyOnWriteArrayList<>(listeners);
         this.parser = parser;
         this.bodyContentType = body.contentType();
         // Eager load bodyBytes to prevent calling user code on network dispatcher thread
@@ -74,7 +79,7 @@ public class BuildableRequest<T> extends Request<T> {
     @Override
     public void cancel() {
         super.cancel();
-        listener = null;
+        listeners.clear();
     }
 
     @Override
@@ -84,11 +89,9 @@ public class BuildableRequest<T> extends Request<T> {
 
     @Override
     protected void deliverResponse(T response) {
-        Response.Listener<T> listener = this.listener;
-        if (listener == null) {
-            return;
+        for (Response.Listener<T> listener : listeners) {
+            listener.onResponse(response);
         }
-        listener.onResponse(response);
     }
 
     @Override
@@ -119,5 +122,23 @@ public class BuildableRequest<T> extends Request<T> {
     @Override
     protected String getParamsEncoding() {
         return paramsEncoding;
+    }
+
+    private static class ErrorListenersWrapper implements Response.ErrorListener {
+        private final Collection<Response.ErrorListener> errorListeners;
+
+        public ErrorListenersWrapper(Collection<Response.ErrorListener> errorListeners) {
+            if (errorListeners.isEmpty()) {
+                throw new NoSuchElementException("You must register at least one error listener");
+            }
+            this.errorListeners = new ArrayList<>(errorListeners);
+        }
+
+        @Override
+        public void onErrorResponse(VolleyError error) {
+            for (Response.ErrorListener errorListener : errorListeners) {
+                errorListener.onErrorResponse(error);
+            }
+        }
     }
 }

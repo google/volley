@@ -5,7 +5,9 @@ import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -28,8 +30,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
 
     protected int requestMethod = Request.DEFAULT_METHOD;
     protected String url = null;
-    protected Listener<ResponseT> listener;
-    protected ErrorListener errorListener;
+    protected List<Listener<ResponseT>> listeners = new ArrayList<>();
+    protected List<ErrorListener> errorListeners = new ArrayList<>();
     protected ResponseParser<ResponseT> parser;
     protected Object tag;
     protected RetryPolicy retryPolicy;
@@ -60,12 +62,12 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     public ThisT onSuccess(Listener<ResponseT> listener) {
-        this.listener = requireNonNull(listener);
+        this.listeners.add(requireNonNull(listener));
         return getThis();
     }
 
     public ThisT onError(ErrorListener errorListener) {
-        this.errorListener = requireNonNull(errorListener);
+        this.errorListeners.add(requireNonNull(errorListener));
         return getThis();
     }
 
@@ -114,7 +116,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
-    // TODO should this be here?
+    // TODO refactor this with RangeBuilder in the future
     public ThisT rangeForPage(String rangeName, int pageNumber, int pageSize) {
         range(rangeName, pageNumber * pageSize, (pageNumber + 1 ) * pageSize - 1);
         return getThis();
@@ -169,8 +171,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return new BuildableRequest<>(
                 requestMethod,
                 url,
-                listener == null ? new StubListener<ResponseT>() : listener,
-                errorListener,
+                listeners,
+                errorListeners,
                 parser == null ? ResponseParsers.<ResponseT>stub() : parser,
                 body,
                 priority,
@@ -188,14 +190,6 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     @SuppressWarnings("unchecked")
     protected ThisT getThis() {
         return (ThisT) this;
-    }
-
-    private static class StubListener<ResponseT> implements Listener<ResponseT> {
-
-        @Override
-        public void onResponse(ResponseT response) {
-            // Stub
-        }
     }
 }
 

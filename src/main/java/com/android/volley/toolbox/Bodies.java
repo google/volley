@@ -14,7 +14,7 @@ import java.util.Map;
 import static java.util.Objects.requireNonNull;
 
 /**
- * TODO make methods for all of the other kinds of stuff
+ * TODO make methods for string later?
  * TODO desc
  * TODO move
  */
@@ -24,6 +24,20 @@ public class Bodies {
             Request.DEFAULT_BODY_CONTENT_TYPE_BASE + Request.DEFAULT_PARAMS_ENCODING;
 
     public static final Body STUB = new StubBody();
+
+    public static Body forBytes(final byte[] bytes, final String contentType) {
+        return new Body() {
+            @Override
+            public byte[] bytes() {
+                return bytes;
+            }
+
+            @Override
+            public String contentType() {
+                return contentType;
+            }
+        };
+    }
 
     // TODO rename?
     public static Body forJSONObject(JSONObject jsonObject) {
