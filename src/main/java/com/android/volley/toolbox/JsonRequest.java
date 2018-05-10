@@ -29,7 +29,11 @@ import java.io.UnsupportedEncodingException;
  * JSON body in the request specified.
  *
  * @param <T> JSON type of response expected
+ *
+ * @deprecated Prefer using {@link RequestBuilder}, with a {@link ResponseParser} and/or
+ * {@link Body}.
  */
+@Deprecated
 public abstract class JsonRequest<T> extends Request<T> {
 
     /** Default charset for JSON request. */

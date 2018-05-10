@@ -60,7 +60,10 @@ public class ImageRequest extends Request<Bitmap> {
      * @param scaleType The ImageViews ScaleType used to calculate the needed image size.
      * @param decodeConfig Format to decode the bitmap to
      * @param errorListener Error listener, or null to ignore errors
+     * @deprecated Prefer using {@link RequestBuilder}, with
+     * {@link ResponseParsers#forImage(Config, int, int, ScaleType)}
      */
+    @Deprecated
     public ImageRequest(
             String url,
             Response.Listener<Bitmap> listener,

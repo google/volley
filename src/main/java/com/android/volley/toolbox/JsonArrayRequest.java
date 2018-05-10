@@ -23,7 +23,13 @@ import com.android.volley.Response.Listener;
 
 import org.json.JSONArray;
 
-/** A request for retrieving a {@link JSONArray} response body at a given URL. */
+/**
+ * A request for retrieving a {@link JSONArray} response body at a given URL.
+ *
+ * @deprecated Prefer using {@link RequestBuilder}, with {@link ResponseParsers#forJSONArray()} and
+ * optionally {@link Bodies#forJSONArray(JSONArray)}.
+ */
+@Deprecated
 public class JsonArrayRequest extends JsonRequest<JSONArray> {
 
     /**

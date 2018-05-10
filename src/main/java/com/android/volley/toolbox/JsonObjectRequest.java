@@ -26,7 +26,11 @@ import org.json.JSONObject;
 /**
  * A request for retrieving a {@link JSONObject} response body at a given URL, allowing for an
  * optional {@link JSONObject} to be passed in as part of the request body.
+ *
+ * @deprecated Prefer using {@link RequestBuilder}, with {@link ResponseParsers#forJSONObject()} and
+ * optionally {@link Bodies#forJSONObject(JSONObject)}
  */
+@Deprecated
 public class JsonObjectRequest extends JsonRequest<JSONObject> {
 
     /**
