@@ -1,6 +1,6 @@
 package com.android.volley.toolbox;
 
-import static java.util.Objects.requireNonNull;
+import static com.android.volley.toolbox.Utils.requireNonNull;
 
 import android.net.Uri;
 import com.android.volley.AuthFailureError;

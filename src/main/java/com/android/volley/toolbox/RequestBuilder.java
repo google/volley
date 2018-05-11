@@ -1,6 +1,7 @@
 package com.android.volley.toolbox;
 
-import static java.util.Objects.requireNonNull;
+import static com.android.volley.toolbox.Utils.or;
+import static com.android.volley.toolbox.Utils.requireNonNull;
 
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
@@ -499,13 +500,5 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         if (shouldCache != null) {
             request.setShouldCache(shouldCache);
         }
-    }
-
-    private <T> T or(T valueOrNull, T defaultValue) {
-        if (valueOrNull == null) {
-            return requireNonNull(defaultValue);
-        }
-
-        return valueOrNull;
     }
 }
