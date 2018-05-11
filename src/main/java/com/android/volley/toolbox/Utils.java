@@ -1,6 +1,5 @@
 package com.android.volley.toolbox;
 
-/** Created by Dylan on 11/05/18. */
 class Utils {
 
     public static <T> T requireNonNull(T obj) {
