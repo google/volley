@@ -107,29 +107,21 @@ public class RequestBuilderTest {
 
     @Test
     public void listenersAndParsersAreCalledOnSuccess() throws Exception {
-        RequestFuture<String> future = RequestFuture.newFuture();
-        @SuppressWarnings("unchecked")
-        Listener<String> extraListener = mock(Listener.class);
+        @SuppressWarnings("unchecked") Listener<String> extraListener = mock(Listener.class);
         ErrorListener extraErrorListener = mock(ErrorListener.class);
-
         ResponseParser<String> parser = spy(ResponseParsers.forString());
 
-        Request<String> request =
+        String expectedResponse = "Response";
+
+        String response = getResultWithMockedQueue(
                 RequestBuilder.<String>startNew()
                         .url(URL)
-                        .onSuccess(future)
                         .onSuccess(extraListener)
-                        .onError(future)
                         .onError(extraErrorListener)
-                        .parseResponse(parser)
-                        .build();
+                        .parseResponse(parser),
+                expectedResponse
+        );
 
-        String expectedResponse = "Response";
-        MockedRequestQueue queue = new MockedRequestQueue(expectedResponse);
-        queue.start();
-        queue.add(request);
-
-        String response = future.get(FUTURE_WAIT_TIME, TimeUnit.SECONDS);
         assertEquals(expectedResponse, response);
 
         verify(parser).parseNetworkResponse((NetworkResponse) any());
@@ -139,42 +131,24 @@ public class RequestBuilderTest {
 
     @Test
     public void nullIsGivenToTheListenerIfNoResponse() throws Exception {
-        RequestFuture<String> future = RequestFuture.newFuture();
-
-        Request<String> request =
-                RequestBuilder.<String>startNew()
-                        .url(URL)
-                        .onSuccess(future)
-                        .onError(future)
-                        .build();
-
-        String mockResponse = "Response";
-        MockedRequestQueue queue = new MockedRequestQueue(mockResponse);
-        queue.start();
-        queue.add(request);
-
-        String valueTheListenerReceived = future.get(3, TimeUnit.SECONDS);
+        String valueTheListenerReceived = getResultWithMockedQueue(
+                RequestBuilder.<String>startNew().url(URL),
+                "Response"
+        );
         assertEquals(null, valueTheListenerReceived);
     }
 
     @Test
     public void jsonObjectIsGivenToTheListener() throws Exception {
-        RequestFuture<JSONObject> future = RequestFuture.newFuture();
         JSONObject expected =
                 new JSONObject().put("first-key", "first-value").put("second key", 3);
 
-        Request<JSONObject> request =
+        JSONObject valueTheListenerReceived = getResultWithMockedQueue(
                 RequestBuilder.<JSONObject>startNew()
                         .url(URL)
-                        .parseResponse(ResponseParsers.forJSONObject())
-                        .build();
-
-        String mockResponse = expected.toString();
-        MockedRequestQueue queue = new MockedRequestQueue(mockResponse);
-        queue.start();
-        queue.add(request);
-
-        JSONObject valueTheListenerReceived = future.get(3, TimeUnit.SECONDS);
+                        .parseResponse(ResponseParsers.forJSONObject()),
+                expected.toString()
+        );
         assertEquals(expected.toString(), valueTheListenerReceived.toString());
     }
 
