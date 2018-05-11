@@ -131,12 +131,17 @@ public class ImageResponseParser implements ResponseParser<Bitmap> {
 
     @Override
     public void configureDefaults(RequestBuilder<Bitmap, ?> requestBuilder) {
-        requestBuilder.retryPolicy(
-                new DefaultRetryPolicy(
-                        ImageRequest.DEFAULT_IMAGE_TIMEOUT_MS,
-                        ImageRequest.DEFAULT_IMAGE_MAX_RETRIES,
-                        ImageRequest.DEFAULT_IMAGE_BACKOFF_MULT));
-        requestBuilder.priority(ImageRequest.DEFAULT_IMAGE_PRIORITY);
+        if (requestBuilder.getPriority() == null) {
+            requestBuilder.retryPolicy(
+                    new DefaultRetryPolicy(
+                            ImageRequest.DEFAULT_IMAGE_TIMEOUT_MS,
+                            ImageRequest.DEFAULT_IMAGE_MAX_RETRIES,
+                            ImageRequest.DEFAULT_IMAGE_BACKOFF_MULT));
+        }
+
+        if (requestBuilder.getPriority() == null) {
+            requestBuilder.priority(ImageRequest.DEFAULT_IMAGE_PRIORITY);
+        }
     }
 
     /** The real guts of parseNetworkResponse. Broken out for readability. */

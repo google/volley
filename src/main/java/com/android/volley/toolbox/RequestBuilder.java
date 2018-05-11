@@ -8,6 +8,7 @@ import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -53,7 +54,9 @@ import static java.util.Objects.requireNonNull;
  * <p>
  * Note that you must set the generic type, when calling
  * <code>RequestBuilder.&lt;JSONObject&gt;startNew()</code> to the type of the response.
- * TODO there may be a better way to do this (add a parserAndBuild
+ * <p>
+ * There are also various getter methods that are intended to be used for code that sets default
+ * configurations. For example, see {@link ImageResponseParser#configureDefaults(RequestBuilder)}.
  * <p>
  * You can also extend this class, for example, to add logging and default headers to
  * {@link Request}s. See below for an example. (Note: If you are viewing the source code for Volley,
@@ -125,22 +128,23 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     // Fields can be modified by custom subclasses
+    // should set to null if they haven't been set yet (except for listeners, headers)
 
-    protected int requestMethod = Request.DEFAULT_METHOD;
+    protected Integer requestMethod;
     protected String url = null;
     protected List<Listener<ResponseT>> listeners = new ArrayList<>();
     protected List<ErrorListener> errorListeners = new ArrayList<>();
-    protected ResponseParser<ResponseT> parser = ResponseParsers.stub();
+    protected ResponseParser<ResponseT> parser;
     protected Object tag;
     protected RetryPolicy retryPolicy;
     protected Boolean retryOnServerErrors;
     protected Boolean shouldCache;
-    protected Request.Priority priority = Request.DEFAULT_PRIORITY;
+    protected Request.Priority priority;
     protected Map<String, String> headers = new HashMap<>();
     protected Map<String, String> params = new HashMap<>();
-    protected String paramsEncoding = Request.DEFAULT_PARAMS_ENCODING;
-    protected Body body = Bodies.STUB;
-    protected String bodyContentType = Bodies.DEFAULT_CONTENT_TYPE;
+    protected String paramsEncoding;
+    protected Body body;
+    protected String bodyContentType;
 
     private boolean hasBuilt;
 
@@ -313,10 +317,91 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return endSetter();
     }
 
-    /** See Request#getBodyContentType() */
+    /** See {@link Request#getBodyContentType()} */
     public ThisT bodyContentType(String type) {
         this.bodyContentType = requireNonNull(type);
         return endSetter();
+    }
+
+    /**
+     * Getter to be used in a sort of templated configuration, e.g. {@link
+     * Body#configureDefaults(RequestBuilder)}. Not for normal use. Returns null if not
+     * set yet. This {@link RequestBuilder} will fallback to default values for most fields in
+     * this class.
+     */
+    public Integer getRequestMethod() {
+        return requestMethod;
+    }
+
+    /**
+     * Getter to be used in a sort of templated configuration, e.g. {@link
+     * Body#configureDefaults(RequestBuilder)}. Returns null if not set yet.
+     */
+    public String getUrl() {
+        return url;
+    }
+
+    //TODO
+    public List<Listener<ResponseT>> getListeners() {
+        return Collections.unmodifiableList(listeners);
+    }
+
+    public List<ErrorListener> getErrorListeners() {
+        return Collections.unmodifiableList(errorListeners);
+    }
+
+    /** See description for {@link #getUrl()} */
+    public ResponseParser<ResponseT> getParser() {
+        return parser;
+    }
+
+    /** See description for {@link #getUrl()} */
+    public Object getTag() {
+        return tag;
+    }
+
+    /** See description for {@link #getUrl()} */
+    public RetryPolicy getRetryPolicy() {
+        return retryPolicy;
+    }
+
+    /** See description for {@link #getUrl()} */
+    public Boolean getRetryOnServerErrors() {
+        return retryOnServerErrors;
+    }
+
+    /** See description for {@link #getUrl()} */
+    public Boolean getShouldCache() {
+        return shouldCache;
+    }
+
+    /** See description for {@link #getUrl()} */
+    public Request.Priority getPriority() {
+        return priority;
+    }
+
+    // TODO
+    public Map<String, String> getHeaders() {
+        return Collections.unmodifiableMap(headers);
+    }
+
+    public Map<String, String> getParams() {
+        return Collections.unmodifiableMap(params);
+    }
+
+    /** See description for {@link #getUrl()} */
+    public String getParamsEncoding() {
+        return paramsEncoding;
+    }
+
+    /** See description for {@link #getUrl()} */
+    public Body getBody() {
+        return body;
+    }
+
+    /** See description for {@link #getUrl()} */
+    public String getBodyContentType() {
+        return bodyContentType;
     }
 
     /**
@@ -382,17 +467,18 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
 
     private Request<ResponseT> buildRequest() {
         return new BuildableRequest<>(
-                requestMethod,
+                or(requestMethod, Request.DEFAULT_METHOD),
                 url,
                 listeners,
                 errorListeners,
-                parser,
-                body,
-                bodyContentType,
-                priority,
+                or(parser, ResponseParsers.<ResponseT>stub()),
+                or(body, Bodies.STUB),
+                or(bodyContentType, Bodies.DEFAULT_CONTENT_TYPE),
+                or(priority, Request.DEFAULT_PRIORITY),
                 headers,
                 params,
-                paramsEncoding);
+                or(paramsEncoding, Request.DEFAULT_PARAMS_ENCODING)
+        );
     }
 
     private void configureAfterBuilt(Request<ResponseT> request) {
@@ -408,5 +494,13 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         if (shouldCache != null) {
             request.setShouldCache(shouldCache);
         }
+    }
+
+    private <T> T or(T valueOrNull, T defaultValue) {
+        if (valueOrNull == null) {
+            return requireNonNull(defaultValue);
+        }
+
+        return valueOrNull;
     }
 }

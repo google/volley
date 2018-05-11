@@ -1,9 +1,14 @@
 package com.android.volley.toolbox;
 
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.widget.ImageView.ScaleType;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
+import com.android.volley.Request.Priority;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
@@ -25,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.android.volley.utils.TestUtils.stringBytes;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -193,12 +199,34 @@ public class RequestBuilderTest {
 
     @Test
     public void priorityIsSet() {
-        Request.Priority expected = Request.Priority.HIGH;
-        Request.Priority actual = baseValidBuilder()
+        Priority expected = Priority.HIGH;
+        Priority actual = baseValidBuilder()
                 .priority(expected)
                 .build()
                 .getPriority();
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void requestForImageHasLowPriority() {
+        Request<Bitmap> request = this.<Bitmap>baseValidBuilder()
+                .parseResponse(ResponseParsers.forImage(Config.ALPHA_8, 1, 1, ScaleType.CENTER))
+                .build();
+        assertEquals(ImageRequest.DEFAULT_IMAGE_PRIORITY, request.getPriority());
+    }
+
+    @Test
+    public void requestForImageWithDoesNotOverridePriority() {
+        Priority expected = Priority.HIGH;
+
+        assertNotEquals(ImageRequest.DEFAULT_IMAGE_PRIORITY, expected); // sanity check for test
+
+        Request<Bitmap> request = this.<Bitmap>baseValidBuilder()
+                .priority(expected)
+                .parseResponse(ResponseParsers.forImage(Config.ALPHA_8, 1, 1, ScaleType.CENTER))
+                .build();
+
+        assertEquals(expected, request.getPriority());
     }
 
     @Test

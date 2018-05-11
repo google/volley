@@ -46,7 +46,9 @@ public class Bodies {
 
             @Override
             public void configureDefaults(RequestBuilder<?, ?> requestBuilder) {
-                requestBuilder.bodyContentType(contentType);
+                if (requestBuilder.getBodyContentType() == null) {
+                    requestBuilder.bodyContentType(contentType);
+                }
             }
         };
     }
@@ -144,7 +146,9 @@ public class Bodies {
 
         @Override
         public void configureDefaults(RequestBuilder<?, ?> requestBuilder) {
-            requestBuilder.bodyContentType(JsonRequest.PROTOCOL_CONTENT_TYPE);
+            if (requestBuilder.getBodyContentType() == null) {
+                requestBuilder.bodyContentType(JsonRequest.PROTOCOL_CONTENT_TYPE);
+            }
         }
     }
 }
