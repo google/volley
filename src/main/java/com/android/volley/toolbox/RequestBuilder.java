@@ -16,8 +16,8 @@ import java.util.Map;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Has all of the configuration possible for a {@link Request}, and is able to create a single
- * {@link Request}. The default method is {@link Method#GET}.
+ * Has all the convenient configuration methods for a {@link Request}, and is able to create a
+ * single {@link Request}. The default method is {@link Method#GET}.
  * <p>
  * Steps for usage:
  * <p><ol>
@@ -178,7 +178,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
 
     /**
      * Adds a listener to an internal list. Multiple listeners can be added. (This is useful for
-     * logging).
+     * logging). The listeners are called after the {@link Request} has failed.
      *
      * @param listener An object that receives a response of the {@link Request} built by this
      *                 {@link RequestBuilder}.
@@ -191,7 +191,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
 
     /**
      * Adds an error listener to an internal list. Multiple error listeners can be added. (This is
-     * useful for logging).
+     * useful for logging). The error listeners are called after the {@link Request} has failed.
      */
     public ThisT onError(ErrorListener errorListener) {
         this.errorListeners.add(requireNonNull(errorListener));
@@ -247,7 +247,11 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
-    /** Adds multiple HTTP headers. */
+    /**
+     * Adds multiple HTTP headers from the given map.
+     *
+     * @see #header(String, String)
+     */
     public ThisT headers(Map<String, String> map) {
         headers.putAll(requireNonNull(map));
         return getThis();
@@ -266,13 +270,21 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
-    /** Adds a query parameters key-value pair to a map. */
+    /**
+     * Adds a query parameters key-value pair to a map.
+     * <p>
+     * Prefer using this method over {@link Bodies#forParams(Map)}.
+     */
     public ThisT param(String key, String value) {
         params.put(requireNonNull(key), requireNonNull(value));
         return getThis();
     }
 
-    /** Adds multiple query parameters key-value pair to a map. */
+    /**
+     * Adds multiple query parameters key-value pair from the given map.
+     *
+     * @see #param(String, String)
+     */
     public ThisT params(Map<String, String> map) {
         params.putAll(requireNonNull(map));
         return getThis();
@@ -295,8 +307,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return getThis();
     }
 
-    /** * Creates the {@link Request}. Can only be called once per builder. */
-    public Request<ResponseT> build() {
+    /** Creates the {@link Request}. Can only be called once per builder. */
+    public final Request<ResponseT> build() {
         if (hasBuilt) {
             throw new IllegalStateException(
                     "Already built using this builder. " +
@@ -310,8 +322,21 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return request;
     }
 
-    /** Override if you want to create custom {@link Request} implementation in your subclass. */
-    protected Request<ResponseT> buildRequest() {
+    /**
+     * Hack for java generics lacking the ability to refer to self. This casts this to its own type
+     * for chaining methods, which work even after extending this class. This is safe because the
+     * factory methods will not allow the user to specify an incorrect type parameter for ThisT,
+     * unless the user creates their own factory methods and uses the wrong generic type (which
+     * would be hard to do).
+     *
+     * @return Safely casted this.
+     */
+    @SuppressWarnings("unchecked")
+    protected ThisT getThis() {
+        return (ThisT) this;
+    }
+
+    private Request<ResponseT> buildRequest() {
         return new BuildableRequest<>(
                 requestMethod,
                 url,
@@ -322,12 +347,10 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 priority,
                 headers,
                 params,
-                paramsEncoding
-        );
+                paramsEncoding);
     }
 
-    /** Override if you want to configure the setters in a different way. */
-    protected void configureAfterBuilt(Request<ResponseT> request) {
+    private void configureAfterBuilt(Request<ResponseT> request) {
         if (tag != null) {
             request.setTag(tag);
         }
@@ -340,20 +363,6 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         if (shouldCache != null) {
             request.setShouldCache(shouldCache);
         }
-    }
-
-    /**
-     * Hack for java generics lacking the ability to refer to self. This casts this to its own type
-     * for chaining methods, which work even after extending this class. This is safe because the
-     * factory methods will not allow the user to specify an incorrect type parameter for ThisT,
-     * unless the user creates their own factory methods and uses the wrong generic type (which
-     * would be hard to do).
-     *
-     * @return Casted this.
-     */
-    @SuppressWarnings("unchecked")
-    protected ThisT getThis() {
-        return (ThisT) this;
     }
 }
 

@@ -16,7 +16,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static java.util.Objects.requireNonNull;
 
 /**
- * TODO documentation for this class, and for the constructor and methods
+ * Class created by {@link RequestBuilder}. Prefer using the {@link RequestBuilder} to create this
+ * class over the constructor in this class. This class is designed to be more parameterized, and
+ * therefore easier to configure than the other {@link Request} subclasses.
  */
 public class BuildableRequest<T> extends Request<T> {
 
@@ -30,18 +32,9 @@ public class BuildableRequest<T> extends Request<T> {
     private final Collection<Response.Listener<T>> listeners;
 
     /**
-     * TODO docs
      * NOTE: Prefer using the {@link RequestBuilder} over this constructor.
-     * @param method
-     * @param url
-     * @param listeners
-     * @param errorListeners
-     * @param parser
-     * @param body
-     * @param priority
-     * @param headers
-     * @param params
-     * @param paramsEncoding
+     *
+     * See the {@link RequestBuilder} for documentation about these parameters.
      */
     public BuildableRequest(
             int method,
@@ -53,26 +46,22 @@ public class BuildableRequest<T> extends Request<T> {
             Priority priority,
             Map<String, String> headers,
             Map<String, String> params,
-            String paramsEncoding
-    ) {
+            String paramsEncoding) {
         super(
                 method,
                 requireNonNull(url, "Missing url"),
-                new ErrorListenersWrapper(errorListeners)
-        );
+                new ErrorListenersWrapper(errorListeners));
         this.listeners = new CopyOnWriteArrayList<>(listeners);
         this.parser = parser;
         this.bodyContentType = body.contentType();
         // Eager load bodyBytes to prevent calling user code on network dispatcher thread
-        // (avoids potential nasty concurrency bugs)
+        // (avoids potential nasty concurrency bugs). Assumes this is called on main thread.
         this.bodyBytes = body.bytes();
         this.priority = priority;
         this.headers = Collections.unmodifiableMap(
-                requireNonNull(headers, "Pass empty map instead of null for headers")
-        );
+                requireNonNull(headers, "Pass empty map instead of null for headers"));
         this.params = Collections.unmodifiableMap(
-                requireNonNull(params, "Pass empty map instead of null for params")
-        );
+                requireNonNull(params, "Pass empty map instead of null for params"));
         this.paramsEncoding = paramsEncoding;
 
         // TODO append params to url
