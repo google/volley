@@ -3,8 +3,6 @@ package com.android.volley.toolbox;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 
-import org.junit.Test;
-
 /**
  * 'Tests' to ensure that the {@link RequestBuilder} API is extendable. The problem with builders in
  * java is that one of the base builder methods will return the type of the base builder - even when
@@ -14,7 +12,6 @@ import org.junit.Test;
  */
 public class RequestBuilderExtensibilityTest {
 
-    @Test
     public void callingSubclassMethodsBeforeAndAfterCallingBaseMethodsCompiles() {
         ABCDRequestBuilder.baseStartNew()
                 .url("http://example.com") // base
