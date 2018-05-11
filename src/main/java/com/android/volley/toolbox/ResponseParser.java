@@ -14,4 +14,3 @@ public interface ResponseParser<T> {
 
     void configureDefaults(RequestBuilder<T, ?> requestBuilder);
 }
-

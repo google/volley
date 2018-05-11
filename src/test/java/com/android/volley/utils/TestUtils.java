@@ -1,7 +1,6 @@
 package com.android.volley.utils;
 
 import android.annotation.SuppressLint;
-
 import java.nio.charset.Charset;
 
 public class TestUtils {

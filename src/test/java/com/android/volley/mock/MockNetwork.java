@@ -28,8 +28,7 @@ public class MockNetwork implements Network {
     private int mNumExceptionsToThrow = 0;
     private byte[] mDataToReturn = null;
 
-    public MockNetwork() {
-    }
+    public MockNetwork() {}
 
     public MockNetwork(byte[] mDataToReturn) {
         this.mDataToReturn = mDataToReturn;

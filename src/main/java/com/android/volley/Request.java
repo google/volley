@@ -16,18 +16,16 @@
 
 package com.android.volley;
 
+import static com.android.volley.toolbox.Bodies._encodeParameters;
+
 import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-
 import com.android.volley.VolleyLog.MarkerLog;
-
 import java.util.Collections;
 import java.util.Map;
-
-import static com.android.volley.toolbox.Bodies._encodeParameters;
 
 /**
  * Base class for all network requests.
@@ -266,9 +264,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         return this;
     }
 
-    /**
-     * Add this {@link Request} to the {@link RequestQueue}
-     */
+    /** Add this {@link Request} to the {@link RequestQueue} */
     public Request<?> addTo(RequestQueue requestQueue) {
         requestQueue.add(this);
         return this;
@@ -421,14 +417,15 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     /**
      * Returns a Map of parameters to be used for a POST or PUT request. Can throw {@link
      * AuthFailureError} as authentication may be required to provide these values.
+     *
      * <p>
+     *
      * <p>Note that you can directly override {@link #getBody()} for custom data.
      *
      * @throws AuthFailureError in the event of auth failure
-     *
-     * @deprecated Deprecated because this is used in a way that prevents query parameters and
-     * a body being sent at the same time. Rather than overriding this to provide query params,
-     * use {@link com.android.volley.toolbox.RequestBuilder#param(String, String)} instead.
+     * @deprecated Deprecated because this is used in a way that prevents query parameters and a
+     *     body being sent at the same time. Rather than overriding this to provide query params,
+     *     use {@link com.android.volley.toolbox.RequestBuilder#param(String, String)} instead.
      */
     @Deprecated
     protected Map<String, String> getParams() throws AuthFailureError {

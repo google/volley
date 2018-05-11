@@ -20,7 +20,6 @@ import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
-
 import org.json.JSONObject;
 
 /**
@@ -28,7 +27,7 @@ import org.json.JSONObject;
  * optional {@link JSONObject} to be passed in as part of the request body.
  *
  * @deprecated Prefer using {@link RequestBuilder}, with {@link ResponseParsers#forJSONObject()} and
- * optionally {@link Bodies#forJSONObject(JSONObject)}
+ *     optionally {@link Bodies#forJSONObject(JSONObject)}
  */
 @Deprecated
 public class JsonObjectRequest extends JsonRequest<JSONObject> {

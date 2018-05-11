@@ -1,19 +1,16 @@
 package com.android.volley.toolbox;
 
+import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
+
 import android.graphics.Bitmap;
 import android.widget.ImageView;
-
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
-
+import java.io.UnsupportedEncodingException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.UnsupportedEncodingException;
-
-import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
 
 /** Convenience methods for creating {@link ResponseParser} for various data types. */
 public class ResponseParsers {
@@ -41,10 +38,9 @@ public class ResponseParsers {
             public Response<String> parseNetworkResponse(NetworkResponse response) {
                 String parsed;
                 try {
-                    parsed = new String(
-                            response.data,
-                            HttpHeaderParser.parseCharset(response.headers)
-                    );
+                    parsed =
+                            new String(
+                                    response.data, HttpHeaderParser.parseCharset(response.headers));
                 } catch (UnsupportedEncodingException e) {
                     // Since minSdkVersion = 8, we can't call
                     // new String(response.data, Charset.defaultCharset())
@@ -63,16 +59,16 @@ public class ResponseParsers {
 
     /**
      * Converts image {@link Response} data into a {@link Bitmap}.
-     * <p>
-     * Decodes an image to a maximum specified width and height. If both width and height are zero,
-     * the image will be decoded to its natural size. If one of the two is nonzero, that dimension
-     * will be clamped and the other one will be set to preserve the image's aspect ratio. If both
-     * width and height are nonzero, the image will be decoded to be fit in the rectangle of
+     *
+     * <p>Decodes an image to a maximum specified width and height. If both width and height are
+     * zero, the image will be decoded to its natural size. If one of the two is nonzero, that
+     * dimension will be clamped and the other one will be set to preserve the image's aspect ratio.
+     * If both width and height are nonzero, the image will be decoded to be fit in the rectangle of
      * dimensions width x height while keeping its aspect ratio.
      *
-     * @param maxWidth     Maximum width to decode this bitmap to, or zero for none
-     * @param maxHeight    Maximum height to decode this bitmap to, or zero for none
-     * @param scaleType    The ImageViews ScaleType used to calculate the needed image size.
+     * @param maxWidth Maximum width to decode this bitmap to, or zero for none
+     * @param maxHeight Maximum height to decode this bitmap to, or zero for none
+     * @param scaleType The ImageViews ScaleType used to calculate the needed image size.
      * @param decodeConfig Format to decode the bitmap to
      */
     public static ResponseParser<Bitmap> forImage(
@@ -103,19 +99,18 @@ public class ResponseParsers {
         };
     }
 
-    private static abstract class JsonParserBase<T> implements ResponseParser<T> {
+    private abstract static class JsonParserBase<T> implements ResponseParser<T> {
 
         @Override
         public Response<T> parseNetworkResponse(NetworkResponse response) {
             try {
-                String jsonString = new String(
-                        response.data,
-                        HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET)
-                );
+                String jsonString =
+                        new String(
+                                response.data,
+                                HttpHeaderParser.parseCharset(response.headers, PROTOCOL_CHARSET));
                 return Response.success(
                         stringToResponseType(jsonString),
-                        HttpHeaderParser.parseCacheHeaders(response)
-                );
+                        HttpHeaderParser.parseCacheHeaders(response));
             } catch (UnsupportedEncodingException e) {
                 return Response.error(new ParseError(e));
             } catch (JSONException je) {

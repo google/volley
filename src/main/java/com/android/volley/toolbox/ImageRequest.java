@@ -19,7 +19,6 @@ package com.android.volley.toolbox;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.widget.ImageView.ScaleType;
-
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
@@ -63,8 +62,8 @@ public class ImageRequest extends Request<Bitmap> {
      * @param scaleType The ImageViews ScaleType used to calculate the needed image size.
      * @param decodeConfig Format to decode the bitmap to
      * @param errorListener Error listener, or null to ignore errors
-     * @deprecated Prefer using {@link RequestBuilder}, with
-     * {@link ResponseParsers#forImage(Config, int, int, ScaleType)}
+     * @deprecated Prefer using {@link RequestBuilder}, with {@link ResponseParsers#forImage(Config,
+     *     int, int, ScaleType)}
      */
     @Deprecated
     public ImageRequest(
@@ -111,17 +110,13 @@ public class ImageRequest extends Request<Bitmap> {
     public Priority getPriority() {
         return DEFAULT_IMAGE_PRIORITY;
     }
-    
+
     @Override
     protected Response<Bitmap> parseNetworkResponse(NetworkResponse response) {
         try {
             return mParser.parseNetworkResponse(response);
         } catch (OutOfMemoryError e) {
-            VolleyLog.e(
-                    "Caught OOM for %d byte image, url=%s",
-                    response.data.length,
-                    getUrl()
-            );
+            VolleyLog.e("Caught OOM for %d byte image, url=%s", response.data.length, getUrl());
             return Response.error(new ParseError(e));
         }
     }

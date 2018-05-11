@@ -1,21 +1,19 @@
 package com.android.volley.toolbox;
 
-import android.net.Uri;
+import static java.util.Objects.requireNonNull;
 
+import android.net.Uri;
 import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Class created by {@link RequestBuilder}. Prefer using the {@link RequestBuilder} to create this
@@ -50,7 +48,7 @@ class BuildableRequest<T> extends Request<T> {
     /**
      * NOTE: Prefer using the {@link RequestBuilder} over this constructor.
      *
-     * See the {@link RequestBuilder} for documentation about these parameters.
+     * <p>See the {@link RequestBuilder} for documentation about these parameters.
      */
     public BuildableRequest(
             int method,
@@ -75,10 +73,12 @@ class BuildableRequest<T> extends Request<T> {
         // (avoids potential nasty concurrency bugs). Assumes this is called on main thread.
         this.bodyBytes = body.bytes();
         this.priority = priority;
-        this.headers = Collections.unmodifiableMap(
-                requireNonNull(headers, "Pass empty map instead of null for headers"));
-        this.params = Collections.unmodifiableMap(
-                requireNonNull(params, "Pass empty map instead of null for params"));
+        this.headers =
+                Collections.unmodifiableMap(
+                        requireNonNull(headers, "Pass empty map instead of null for headers"));
+        this.params =
+                Collections.unmodifiableMap(
+                        requireNonNull(params, "Pass empty map instead of null for params"));
         this.paramsEncoding = paramsEncoding;
     }
 

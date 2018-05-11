@@ -1,12 +1,13 @@
 package com.android.volley.toolbox;
 
+import static java.util.Objects.requireNonNull;
+
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,22 +15,25 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Has all the convenient configuration methods for a {@link Request}, and is able to create a
  * single {@link Request}. The default method is {@link Method#GET}.
+ *
+ * <p>Steps for usage:
+ *
  * <p>
- * Steps for usage:
- * <p><ol>
- * <li>Call the {@link #startNew()} method.
- * <li>Call methods for configuration, such as {@link #url(String)}. Each of them return this
- *     {@link RequestBuilder} for chaining.
- * <li>Call {@link #build()} to create the {@link Request}.
- * <li>Call {@link Request#addTo(RequestQueue)}.
+ *
+ * <ol>
+ *   <li>Call the {@link #startNew()} method.
+ *   <li>Call methods for configuration, such as {@link #url(String)}. Each of them return this
+ *       {@link RequestBuilder} for chaining.
+ *   <li>Call {@link #build()} to create the {@link Request}.
+ *   <li>Call {@link Request#addTo(RequestQueue)}.
+ *       <p>Example usage:
+ * </ol>
+ *
  * <p>
- * Example usage:
- * </ol><p>
+ *
  * <pre><code>
  * RequestBuilder.&lt;JSONObject&gt;startNew()
  *         .method(Request.Method.POST)
@@ -51,18 +55,20 @@ import static java.util.Objects.requireNonNull;
  *         .build()
  *         .addTo(myRequestQueue);
  * </code></pre>
- * <p>
- * Note that you must set the generic type, when calling
- * <code>RequestBuilder.&lt;JSONObject&gt;startNew()</code> to the type of the response.
- * <p>
- * There are also various getter methods that are intended to be used for code that sets default
+ *
+ * <p>Note that you must set the generic type, when calling <code>
+ * RequestBuilder.&lt;JSONObject&gt;startNew()</code> to the type of the response.
+ *
+ * <p>There are also various getter methods that are intended to be used for code that sets default
  * configurations. For example, see {@link ImageResponseParser#configureDefaults(RequestBuilder)}.
+ *
+ * <p>You can also extend this class, for example, to add logging and default headers to {@link
+ * Request}s. See below for an example. (Note: If you are viewing the source code for Volley, then
+ * you can copy paste the code without the escaped characters from {@code
+ * com.android.volley.toolbox.RequestBuilderExtensibilityTest}.
+ *
  * <p>
- * You can also extend this class, for example, to add logging and default headers to
- * {@link Request}s. See below for an example. (Note: If you are viewing the source code for Volley,
- * then you can copy paste the code without the escaped characters from
- * {@code com.android.volley.toolbox.RequestBuilderExtensibilityTest}.
- * <p>
+ *
  * <pre><code>
  * private static class ABCDRequestBuilder
  *         &lt;ResponseT, ThisT extends ABCDRequestBuilder&lt;ResponseT, ThisT&gt;&gt;
@@ -112,16 +118,16 @@ import static java.util.Objects.requireNonNull;
  * </code></pre>
  *
  * @param <ResponseT> The type of the response
- * @param <ThisT>     The type of this {@link RequestBuilder}. This type parameter allows creating
- *                    subclasses, where each method on the builder is able to itself.
+ * @param <ThisT> The type of this {@link RequestBuilder}. This type parameter allows creating
+ *     subclasses, where each method on the builder is able to itself.
  */
 public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, ThisT>> {
 
     /**
      * Creates a new {@link RequestBuilder}.
      *
-     * @param <T> The type of the network response. As a convention, set it to {@link Void} if
-     *           there is to be no response parsed.
+     * @param <T> The type of the network response. As a convention, set it to {@link Void} if there
+     *     is to be no response parsed.
      */
     public static <T> RequestBuilder<T, ? extends RequestBuilder> startNew() {
         return new RequestBuilder<>();
@@ -152,8 +158,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      * {@link RequestBuilder}s should be created by the factory method {@link #startNew()}. This
      * constructor is protected only to allow extension of this class.
      */
-    protected RequestBuilder() {
-    }
+    protected RequestBuilder() {}
 
     /** Takes a {@link Method} */
     public ThisT method(int requestMethod) {
@@ -170,8 +175,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     /**
      * Appends a string to the current {@link #url}. A url must be initially set before calling
      * this.
-     * <p>
-     * This method is useful when setting a default base url in a factory method for your own
+     *
+     * <p>This method is useful when setting a default base url in a factory method for your own
      * {@link RequestBuilder}s. Use {@link #appendUrl(String)} to add the name of the API endpoint
      * to the url.
      */
@@ -186,13 +191,12 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      * logging). The listeners are called after the {@link Request} has failed.
      *
      * @param listener An object that receives a response of the {@link Request} built by this
-     *                 {@link RequestBuilder}.
+     *     {@link RequestBuilder}.
      */
     public ThisT onSuccess(Listener<ResponseT> listener) {
         this.listeners.add(requireNonNull(listener));
         return endSetter();
     }
-
 
     /**
      * Adds an error listener to an internal list. Multiple error listeners can be added. (This is
@@ -204,8 +208,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     /**
-     * Sets the response parser. The given parser must match the type of this
-     * {@link RequestBuilder}.
+     * Sets the response parser. The given parser must match the type of this {@link
+     * RequestBuilder}.
      */
     public ThisT parseResponse(ResponseParser<ResponseT> parser) {
         this.parser = requireNonNull(parser);
@@ -272,14 +276,14 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     // TODO refactor this with RangeBuilder in the future
     /** Convenience method for adding a Range HTTP header for paginated requests. */
     public ThisT rangeForPage(String rangeName, int pageNumber, int pageSize) {
-        range(rangeName, pageNumber * pageSize, (pageNumber + 1 ) * pageSize - 1);
+        range(rangeName, pageNumber * pageSize, (pageNumber + 1) * pageSize - 1);
         return endSetter();
     }
 
     /**
      * Adds a query parameter key-value pair to a map.
-     * <p>
-     * Prefer using this method over {@link Bodies#forParams(Map)}.
+     *
+     * <p>Prefer using this method over {@link Bodies#forParams(Map)}.
      */
     public ThisT param(String key, String value) {
         params.put(requireNonNull(key), requireNonNull(value));
@@ -306,8 +310,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     /**
-     * Sets the body of the {@link Request}, e.g. for a {@link Method#POST} request. Remember
-     * to set the {@link #method(int)} on this builder.
+     * Sets the body of the {@link Request}, e.g. for a {@link Method#POST} request. Remember to set
+     * the {@link #method(int)} on this builder.
      *
      * @see Request#getBody()
      */
@@ -325,9 +329,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
 
     /**
      * Getter to be used in a sort of templated configuration, e.g. {@link
-     * Body#configureDefaults(RequestBuilder)}. Not for normal use. Returns null if not
-     * set yet. This {@link RequestBuilder} will fallback to default values for most fields in
-     * this class.
+     * Body#configureDefaults(RequestBuilder)}. Not for normal use. Returns null if not set yet.
+     * This {@link RequestBuilder} will fallback to default values for most fields in this class.
      */
     public Integer getRequestMethod() {
         return requestMethod;
@@ -341,7 +344,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return url;
     }
 
-    //TODO
+    // TODO
     public List<Listener<ResponseT>> getListeners() {
         return Collections.unmodifiableList(listeners);
     }
@@ -405,9 +408,9 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     /**
-     * Creates the {@link Request}. Can only be called once per builder. If you want to create
-     * your own {@link Request} subclass, then extend this class (see class documentation) and
-     * add your own build method with a different name.
+     * Creates the {@link Request}. Can only be called once per builder. If you want to create your
+     * own {@link Request} subclass, then extend this class (see class documentation) and add your
+     * own build method with a different name.
      */
     public final Request<ResponseT> build() {
         checkNotBuilt(true);
@@ -420,9 +423,8 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected void checkNotBuilt(boolean aboutToBuild) {
         if (hasBuilt) {
             throw new IllegalStateException(
-                    "Already built using this builder. " +
-                            "Use a new builder instead of reusing this one"
-            );
+                    "Already built using this builder. "
+                            + "Use a new builder instead of reusing this one");
         }
 
         if (aboutToBuild) {
@@ -447,9 +449,11 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     /**
      * To be called at the end of every setter method on this {@link RequestBuilder} (see example
      * below). Uses the method {@link #getThis()} to do casting.
+     *
+     * <p>Example usage:
+     *
      * <p>
-     * Example usage:
-     * <p>
+     *
      * <pre><code>
      *     public ThisT url(String url) {
      *         this.url = requireNonNull(url);
@@ -477,8 +481,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 or(priority, Request.DEFAULT_PRIORITY),
                 headers,
                 params,
-                or(paramsEncoding, Request.DEFAULT_PARAMS_ENCODING)
-        );
+                or(paramsEncoding, Request.DEFAULT_PARAMS_ENCODING));
     }
 
     private void configureAfterBuilt(Request<ResponseT> request) {

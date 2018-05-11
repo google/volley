@@ -3,7 +3,6 @@ package com.android.volley.toolbox;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.widget.ImageView.ScaleType;
-
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
@@ -12,8 +11,8 @@ import com.android.volley.Response;
 /**
  * Prefer using {@link ResponseParsers#forImage} instead of creating this directly. Also see that
  * method for documentation.
- * <p>
- * A {@link ResponseParser} for converting response data into a {@link Bitmap}.
+ *
+ * <p>A {@link ResponseParser} for converting response data into a {@link Bitmap}.
  */
 public class ImageResponseParser implements ResponseParser<Bitmap> {
 
@@ -31,10 +30,7 @@ public class ImageResponseParser implements ResponseParser<Bitmap> {
      */
     // Visible for testing.
     public static int findBestSampleSize(
-            int actualWidth,
-            int actualHeight,
-            int desiredWidth,
-            int desiredHeight) {
+            int actualWidth, int actualHeight, int desiredWidth, int desiredHeight) {
         double wr = (double) actualWidth / desiredWidth;
         double hr = (double) actualHeight / desiredHeight;
         double ratio = Math.min(wr, hr);
@@ -111,10 +107,7 @@ public class ImageResponseParser implements ResponseParser<Bitmap> {
 
     /** See {@link ResponseParsers#forImage(Bitmap.Config, int, int, ScaleType)} for docs. */
     public ImageResponseParser(
-            Bitmap.Config mDecodeConfig,
-            int mMaxWidth,
-            int mMaxHeight,
-            ScaleType mScaleType) {
+            Bitmap.Config mDecodeConfig, int mMaxWidth, int mMaxHeight, ScaleType mScaleType) {
         this.mDecodeConfig = mDecodeConfig;
         this.mMaxWidth = mMaxWidth;
         this.mMaxHeight = mMaxHeight;
@@ -178,7 +171,7 @@ public class ImageResponseParser implements ResponseParser<Bitmap> {
             // If necessary, scale down to the maximal acceptable size.
             if (tempBitmap != null
                     && (tempBitmap.getWidth() > desiredWidth
-                    || tempBitmap.getHeight() > desiredHeight)) {
+                            || tempBitmap.getHeight() > desiredHeight)) {
                 bitmap = Bitmap.createScaledBitmap(tempBitmap, desiredWidth, desiredHeight, true);
                 tempBitmap.recycle();
             } else {

@@ -1,17 +1,15 @@
 package com.android.volley.toolbox;
 
+import static java.util.Objects.requireNonNull;
+
 import com.android.volley.Request;
 import com.android.volley.VolleyLog;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
-
-import static java.util.Objects.requireNonNull;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /** Convenience factory methods for creating a {@link Body}. */
 public class Bodies {
@@ -34,7 +32,7 @@ public class Bodies {
     /**
      * Convenience method for creating a raw body.
      *
-     * @param bytes       See {@link Body#bytes()}.
+     * @param bytes See {@link Body#bytes()}.
      * @param contentType See {@link Request#getBodyContentType()}.
      */
     public static Body forBytes(final byte[] bytes, final String contentType) {
@@ -70,8 +68,8 @@ public class Bodies {
     }
 
     /**
-     * Convenience method for putting query parameters in a {@link Body}. Prefer using
-     * {@link RequestBuilder#params(Map)} over this.
+     * Convenience method for putting query parameters in a {@link Body}. Prefer using {@link
+     * RequestBuilder#params(Map)} over this.
      */
     public static Body forParams(final Map<String, String> params) {
         return new Body() {
@@ -92,8 +90,8 @@ public class Bodies {
     }
 
     /**
-     * Visible for internal use only! Do not use outside Volley source code!
-     * Converts <code>params</code> into an application/x-www-form-urlencoded encoded string.
+     * Visible for internal use only! Do not use outside Volley source code! Converts <code>params
+     * </code> into an application/x-www-form-urlencoded encoded string.
      */
     public static byte[] _encodeParameters(Map<String, String> params, String paramsEncoding) {
         StringBuilder encodedParams = new StringBuilder();
@@ -137,9 +135,7 @@ public class Bodies {
             } catch (UnsupportedEncodingException e) {
                 VolleyLog.wtf(
                         "Unsupported Encoding while trying to get the bytes of %s using %s",
-                        jsonString,
-                        JsonRequest.PROTOCOL_CHARSET
-                );
+                        jsonString, JsonRequest.PROTOCOL_CHARSET);
                 return null;
             }
         }
