@@ -1,18 +1,9 @@
 package com.android.volley.toolbox;
 
-import static com.android.volley.utils.TestUtils.stringBytes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.widget.ImageView.ScaleType;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
@@ -25,20 +16,33 @@ import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.mock.MockNetwork;
 import com.android.volley.utils.ImmediateResponseDelivery;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
+
+import static com.android.volley.utils.TestUtils.stringBytes;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
 @RunWith(RobolectricTestRunner.class)
 public class RequestBuilderTest {
 
     public static final String URL = "http://www.example.com/";
+    public static final int FUTURE_WAIT_TIME = 3;
 
     @Test
     public void baseBuilderIsValid() {
@@ -125,13 +129,53 @@ public class RequestBuilderTest {
         queue.start();
         queue.add(request);
 
-        // Times out if listener (future) does not get called
-        String response = future.get(3, TimeUnit.SECONDS);
+        String response = future.get(FUTURE_WAIT_TIME, TimeUnit.SECONDS);
         assertEquals(expectedResponse, response);
 
         verify(parser).parseNetworkResponse((NetworkResponse) any());
         verify(extraListener).onResponse(response);
         verify(extraErrorListener, never()).onErrorResponse((VolleyError) any());
+    }
+
+    @Test
+    public void nullIsGivenToTheListenerIfNoResponse() throws Exception {
+        RequestFuture<String> future = RequestFuture.newFuture();
+
+        Request<String> request =
+                RequestBuilder.<String>startNew()
+                        .url(URL)
+                        .onSuccess(future)
+                        .onError(future)
+                        .build();
+
+        String mockResponse = "Response";
+        MockedRequestQueue queue = new MockedRequestQueue(mockResponse);
+        queue.start();
+        queue.add(request);
+
+        String valueTheListenerReceived = future.get(3, TimeUnit.SECONDS);
+        assertEquals(null, valueTheListenerReceived);
+    }
+
+    @Test
+    public void jsonObjectIsGivenToTheListener() throws Exception {
+        RequestFuture<JSONObject> future = RequestFuture.newFuture();
+        JSONObject expected =
+                new JSONObject().put("first-key", "first-value").put("second key", 3);
+
+        Request<JSONObject> request =
+                RequestBuilder.<JSONObject>startNew()
+                        .url(URL)
+                        .parseResponse(ResponseParsers.forJSONObject())
+                        .build();
+
+        String mockResponse = expected.toString();
+        MockedRequestQueue queue = new MockedRequestQueue(mockResponse);
+        queue.start();
+        queue.add(request);
+
+        JSONObject valueTheListenerReceived = future.get(3, TimeUnit.SECONDS);
+        assertEquals(expected.toString(), valueTheListenerReceived.toString());
     }
 
     @Test
@@ -327,6 +371,18 @@ public class RequestBuilderTest {
 
     private <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
         return RequestBuilder.<T>startNew().url(URL).onError(new StubErrorListener());
+    }
+
+    private <T> T getResultWithMockedQueue(
+            RequestBuilder<T, ?> builder, String mockResponse) throws Exception {
+        RequestFuture<T> future = RequestFuture.newFuture();
+
+        Request<T> request = builder.onSuccess(future).onError(future).build();
+
+        MockedRequestQueue queue = new MockedRequestQueue(mockResponse);
+        queue.start();
+        queue.add(request);
+        return future.get(3, TimeUnit.SECONDS);
     }
 
     private static class MockedRequestQueue extends RequestQueue {

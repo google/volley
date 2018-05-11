@@ -1,16 +1,19 @@
 package com.android.volley.toolbox;
 
-import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
-
 import android.graphics.Bitmap;
 import android.widget.ImageView;
+
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
-import java.io.UnsupportedEncodingException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
+
+import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
 
 /** Convenience methods for creating {@link ResponseParser} for various data types. */
 public class ResponseParsers {
@@ -20,7 +23,7 @@ public class ResponseParsers {
         return new ResponseParser<T>() {
             @Override
             public Response<T> parseNetworkResponse(NetworkResponse response) {
-                return null;
+                return Response.success(null, HttpHeaderParser.parseCacheHeaders(response));
             }
 
             @Override
