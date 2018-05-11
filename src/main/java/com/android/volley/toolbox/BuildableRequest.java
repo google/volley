@@ -22,7 +22,7 @@ import static java.util.Objects.requireNonNull;
  * class over the constructor in this class. This class is designed to be more parameterized, and
  * therefore easier to configure than the other {@link Request} subclasses.
  */
-public class BuildableRequest<T> extends Request<T> {
+class BuildableRequest<T> extends Request<T> {
 
     private static String buildUrl(String baseUrl, Map<String, String> params) {
         if (params == null) {
