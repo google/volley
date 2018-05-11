@@ -1,5 +1,7 @@
 package com.android.volley.toolbox;
 
+import android.net.Uri;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
@@ -22,6 +24,19 @@ import static java.util.Objects.requireNonNull;
  */
 public class BuildableRequest<T> extends Request<T> {
 
+    private static String buildUrl(String baseUrl, Map<String, String> params) {
+        if (params == null) {
+            params = Collections.emptyMap();
+        }
+
+        Uri.Builder uriBuilder = Uri.parse(baseUrl).buildUpon();
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            uriBuilder.appendQueryParameter(entry.getKey(), entry.getValue());
+        }
+
+        return uriBuilder.build().toString();
+    }
+
     private final ResponseParser<T> parser;
     private final String bodyContentType;
     private final byte[] bodyBytes;
@@ -29,6 +44,7 @@ public class BuildableRequest<T> extends Request<T> {
     private final Map<String, String> headers;
     private final Map<String, String> params;
     private final String paramsEncoding;
+
     private final Collection<Response.Listener<T>> listeners;
 
     /**
@@ -49,7 +65,7 @@ public class BuildableRequest<T> extends Request<T> {
             String paramsEncoding) {
         super(
                 method,
-                requireNonNull(url, "Missing url"),
+                buildUrl(requireNonNull(url, "Missing url"), params),
                 new ErrorListenersWrapper(errorListeners));
         this.listeners = new CopyOnWriteArrayList<>(listeners);
         this.parser = parser;
@@ -63,8 +79,6 @@ public class BuildableRequest<T> extends Request<T> {
         this.params = Collections.unmodifiableMap(
                 requireNonNull(params, "Pass empty map instead of null for params"));
         this.paramsEncoding = paramsEncoding;
-
-        // TODO append params to url
     }
 
     @Override

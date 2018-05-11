@@ -271,7 +271,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     }
 
     /**
-     * Adds a query parameters key-value pair to a map.
+     * Adds a query parameter key-value pair to a map.
      * <p>
      * Prefer using this method over {@link Bodies#forParams(Map)}.
      */
@@ -360,7 +360,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      *     }
      * </code></pre>
      *
-     * @return Safely casted this.
+     * @return Safely casted this, to be returned in setter methods on this builder, for chaining.
      * @see #getThis()
      */
     protected ThisT endSetter() {

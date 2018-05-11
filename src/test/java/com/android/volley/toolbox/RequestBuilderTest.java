@@ -290,6 +290,19 @@ public class RequestBuilderTest {
     }
 
     @Test
+    public void paramsAreSetInUrl() {
+        String expected = URL + "?key1=value1&key2=value2";
+
+        String actual = baseValidBuilder()
+                .param("key1", "value1")
+                .param("key2", "value2")
+                .build()
+                .getUrl();
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
     public void bodyDefaultsAreCorrect() throws AuthFailureError {
         Request<Object> request = baseValidBuilder().build();
 
