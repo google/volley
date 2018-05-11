@@ -1,19 +1,20 @@
 package com.android.volley.toolbox;
 
-import static java.util.Objects.requireNonNull;
-
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Has all the convenient configuration methods for a {@link Request}, and is able to create a
@@ -344,11 +345,12 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return url;
     }
 
-    // TODO
+    /** Get current listeners set by {@link #onSuccess(Listener)} */
     public List<Listener<ResponseT>> getListeners() {
         return Collections.unmodifiableList(listeners);
     }
 
+    /** Get current error listeners set by {@link #onError(ErrorListener)} */
     public List<ErrorListener> getErrorListeners() {
         return Collections.unmodifiableList(errorListeners);
     }
@@ -383,11 +385,12 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return priority;
     }
 
-    // TODO
+    /** Returns current headers set by {@link #header(String, String)} and related methods. */
     public Map<String, String> getHeaders() {
         return Collections.unmodifiableMap(headers);
     }
 
+    /** Returns current params set by {@link #param(String, String)} and related methods. */
     public Map<String, String> getParams() {
         return Collections.unmodifiableMap(params);
     }

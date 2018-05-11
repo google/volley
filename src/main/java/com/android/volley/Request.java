@@ -16,16 +16,18 @@
 
 package com.android.volley;
 
-import static com.android.volley.toolbox.Bodies._encodeParameters;
-
 import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+
 import com.android.volley.VolleyLog.MarkerLog;
+
 import java.util.Collections;
 import java.util.Map;
+
+import static com.android.volley.toolbox.Bodies._encodeParameters;
 
 /**
  * Base class for all network requests.
@@ -37,14 +39,14 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     /** Default encoding for POST or PUT parameters. See {@link #getParamsEncoding()}. */
     public static final String DEFAULT_PARAMS_ENCODING = "UTF-8";
 
-    // TODO doc
+    /** Default first part of default value for {@link #getBodyContentType()} */
     public static final String DEFAULT_BODY_CONTENT_TYPE_BASE =
             "application/x-www-form-urlencoded; charset=";
 
-    // TODO doc
+    /** Default method for some {@link Request}s. */
     public static final int DEFAULT_METHOD = Method.GET;
 
-    // TODO doc
+    /** Default for {@link #getPriority()}. */
     public static final Request.Priority DEFAULT_PRIORITY = Request.Priority.NORMAL;
 
     /** Supported request methods. */
