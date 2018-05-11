@@ -1,14 +1,12 @@
 package com.android.volley.mock;
 
 import android.annotation.SuppressLint;
-
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.NoCache;
 import com.android.volley.toolbox.RequestBuilder;
 import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.utils.ImmediateResponseDelivery;
-
 import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 
@@ -23,8 +21,7 @@ public class StubbedRequestQueue extends RequestQueue {
     }
 
     public static <T> T getResultWithMockedQueue(
-            Request<T> request, RequestFuture<T> future, String mockResponse
-    ) throws Exception {
+            Request<T> request, RequestFuture<T> future, String mockResponse) throws Exception {
         StubbedRequestQueue queue = new StubbedRequestQueue(mockResponse);
         queue.start();
         queue.add(request);

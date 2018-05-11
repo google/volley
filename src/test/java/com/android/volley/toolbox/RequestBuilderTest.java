@@ -1,9 +1,18 @@
 package com.android.volley.toolbox;
 
+import static com.android.volley.mock.StubbedRequestQueue.getResultWithMockedQueue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.widget.ImageView.ScaleType;
-
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
@@ -14,26 +23,14 @@ import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
-
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-
-import static com.android.volley.mock.StubbedRequestQueue.getResultWithMockedQueue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 @RunWith(RobolectricTestRunner.class)
 public class RequestBuilderTest {

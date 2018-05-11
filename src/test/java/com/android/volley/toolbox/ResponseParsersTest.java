@@ -1,6 +1,6 @@
 package com.android.volley.toolbox;
 
-import static com.android.volley.utils.TestUtils.stringBytes;
+import static com.android.volley.mock.StubbedRequestQueue.stringBytes;
 import static org.junit.Assert.assertEquals;
 
 import com.android.volley.NetworkResponse;
