@@ -5,6 +5,7 @@ package com.android.volley.toolbox;
  * Usually, don't create an implementation of this directly. Use the implementations in {@link
  * Bodies} for convenience, unless you need to make your own.
  */
+ // TODO have confiugre defaults method
 public interface Body {
 
     /** Data to send in a {@link com.android.volley.Request} as a {@link Body}. */

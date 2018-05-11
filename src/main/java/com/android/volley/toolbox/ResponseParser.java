@@ -4,12 +4,12 @@ import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
 
 /**
- * TODO
+ * Converts a {@link NetworkResponse} data to a {@link Response} for a {@link
+ * com.android.volley.Request}.
  */
 public interface ResponseParser<T> {
-    /**
-     * TODO docs, rename?
-     */
+
+    /** See class documentation. */
     Response<T> parseNetworkResponse(NetworkResponse response);
 }
 

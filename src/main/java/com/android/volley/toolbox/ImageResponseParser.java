@@ -9,8 +9,12 @@ import com.android.volley.ParseError;
 import com.android.volley.Response;
 
 /**
- * TODO docs, prefer using {@link ResponseParsers#forImage} instead except for extension
+ * Prefer using {@link ResponseParsers#forImage} instead of creating this directly. Also see that
+ * method for documentation.
+ * <p>
+ * A {@link ResponseParser} for converting response data into a {@link Bitmap}.
  */
+// TODO have a configure defaults method
 public class ImageResponseParser implements ResponseParser<Bitmap> {
 
     /** Decoding lock so that we don't decode more than one image at a time (to avoid OOM's) */
@@ -105,6 +109,7 @@ public class ImageResponseParser implements ResponseParser<Bitmap> {
     private final int mMaxHeight;
     private final ScaleType mScaleType;
 
+    /** See {@link ResponseParsers#forImage(Bitmap.Config, int, int, ScaleType)} for docs. */
     public ImageResponseParser(
             Bitmap.Config mDecodeConfig,
             int mMaxWidth,

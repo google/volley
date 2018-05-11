@@ -15,11 +15,10 @@ import java.io.UnsupportedEncodingException;
 
 import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
 
-/**
- * TODO docs
- */
+/** Convenience methods for creating {@link ResponseParser} for various data types. */
 public class ResponseParsers {
 
+    /** Ignores the {@link Response} data, always returns {@code null}. */
     public static <T> ResponseParser<T> stub() {
         return new ResponseParser<T>() {
             @Override
@@ -29,6 +28,7 @@ public class ResponseParsers {
         };
     }
 
+    /** Converts {@link Response} data into a {@link String}. */
     public static ResponseParser<String> forString() {
         return new ResponseParser<String>() {
             @Override
@@ -51,16 +51,29 @@ public class ResponseParsers {
         };
     }
 
+    /**
+     * Converts image {@link Response} data into a {@link Bitmap}.
+     * <p>
+     * Decodes an image to a maximum specified width and height. If both width and height are zero,
+     * the image will be decoded to its natural size. If one of the two is nonzero, that dimension
+     * will be clamped and the other one will be set to preserve the image's aspect ratio. If both
+     * width and height are nonzero, the image will be decoded to be fit in the rectangle of
+     * dimensions width x height while keeping its aspect ratio.
+     *
+     * @param maxWidth     Maximum width to decode this bitmap to, or zero for none
+     * @param maxHeight    Maximum height to decode this bitmap to, or zero for none
+     * @param scaleType    The ImageViews ScaleType used to calculate the needed image size.
+     * @param decodeConfig Format to decode the bitmap to
+     */
     public static ResponseParser<Bitmap> forImage(
-            Bitmap.Config mDecodeConfig,
-            int mMaxWidth,
-            int mMaxHeight,
-            ImageView.ScaleType mScaleType
-    ) {
-        return new ImageResponseParser(mDecodeConfig, mMaxWidth, mMaxHeight, mScaleType);
-
+            Bitmap.Config decodeConfig,
+            int maxWidth,
+            int maxHeight,
+            ImageView.ScaleType scaleType) {
+        return new ImageResponseParser(decodeConfig, maxWidth, maxHeight, scaleType);
     }
 
+    /** Converts {@link Response} data into a {@link JSONObject}. */
     public static ResponseParser<JSONObject> forJSONObject() {
         return new JsonParserBase<JSONObject>() {
             @Override
@@ -70,6 +83,7 @@ public class ResponseParsers {
         };
     }
 
+    /** Converts {@link Response} data into a {@link JSONArray}. */
     public static ResponseParser<JSONArray> forJSONArray() {
         return new JsonParserBase<JSONArray>() {
             @Override
