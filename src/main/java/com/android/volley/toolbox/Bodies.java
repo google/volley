@@ -35,7 +35,7 @@ public class Bodies {
      * Convenience method for creating a raw body.
      *
      * @param bytes       See {@link Body#bytes()}.
-     * @param contentType See {@link Body#contentType()}.
+     * @param contentType See {@link Request#getBodyContentType()}.
      */
     public static Body forBytes(final byte[] bytes, final String contentType) {
         return new Body() {
@@ -45,8 +45,8 @@ public class Bodies {
             }
 
             @Override
-            public String contentType() {
-                return contentType;
+            public void configureDefaults(RequestBuilder<?, ?> requestBuilder) {
+                requestBuilder.bodyContentType(contentType);
             }
         };
     }
@@ -79,12 +79,12 @@ public class Bodies {
                     return null;
                 }
 
-                return _encodeParameters(params, contentType());
+                return _encodeParameters(params, Request.DEFAULT_PARAMS_ENCODING);
             }
 
             @Override
-            public String contentType() {
-                return Request.DEFAULT_PARAMS_ENCODING;
+            public void configureDefaults(RequestBuilder<?, ?> requestBuilder) {
+                // Do nothing
             }
         };
     }
@@ -115,8 +115,8 @@ public class Bodies {
         }
 
         @Override
-        public String contentType() {
-            return DEFAULT_CONTENT_TYPE;
+        public void configureDefaults(RequestBuilder<?, ?> requestBuilder) {
+            // Do nothing
         }
     }
 
@@ -143,8 +143,8 @@ public class Bodies {
         }
 
         @Override
-        public String contentType() {
-            return JsonRequest.PROTOCOL_CONTENT_TYPE;
+        public void configureDefaults(RequestBuilder<?, ?> requestBuilder) {
+            requestBuilder.bodyContentType(JsonRequest.PROTOCOL_CONTENT_TYPE);
         }
     }
 }

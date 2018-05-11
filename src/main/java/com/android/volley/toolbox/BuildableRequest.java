@@ -59,6 +59,7 @@ class BuildableRequest<T> extends Request<T> {
             Collection<Response.ErrorListener> errorListeners,
             ResponseParser<T> parser,
             Body body,
+            String bodyContentType,
             Priority priority,
             Map<String, String> headers,
             Map<String, String> params,
@@ -69,7 +70,7 @@ class BuildableRequest<T> extends Request<T> {
                 new ErrorListenersWrapper(errorListeners));
         this.listeners = new CopyOnWriteArrayList<>(listeners);
         this.parser = parser;
-        this.bodyContentType = body.contentType();
+        this.bodyContentType = bodyContentType;
         // Eager load bodyBytes to prevent calling user code on network dispatcher thread
         // (avoids potential nasty concurrency bugs). Assumes this is called on main thread.
         this.bodyBytes = body.bytes();

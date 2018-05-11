@@ -140,6 +140,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     protected Map<String, String> params = new HashMap<>();
     protected String paramsEncoding = Request.DEFAULT_PARAMS_ENCODING;
     protected Body body = Bodies.STUB;
+    protected String bodyContentType = Bodies.DEFAULT_CONTENT_TYPE;
 
     private boolean hasBuilt;
 
@@ -290,7 +291,10 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         return endSetter();
     }
 
-    /** @see Request#getParamsEncoding()  */
+    /**
+     * @see Request#getParamsEncoding()
+     * @see #param(String, String)
+     */
     public ThisT paramsEncoding(String encoding) {
         this.paramsEncoding = requireNonNull(encoding);
         return endSetter();
@@ -304,6 +308,13 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT body(Body body) {
         this.body = requireNonNull(body);
+        body.configureDefaults(this);
+        return endSetter();
+    }
+
+    /** See Request#getBodyContentType() */
+    public ThisT bodyContentType(String type) {
+        this.bodyContentType = requireNonNull(type);
         return endSetter();
     }
 
@@ -376,6 +387,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
                 errorListeners,
                 parser,
                 body,
+                bodyContentType,
                 priority,
                 headers,
                 params,
@@ -397,4 +409,3 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
         }
     }
 }
-
