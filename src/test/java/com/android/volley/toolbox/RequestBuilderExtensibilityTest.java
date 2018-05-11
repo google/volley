@@ -66,7 +66,7 @@ public class RequestBuilderExtensibilityTest {
 
         public ThisT addABCDAuthHeaders() {
             header("Authentication", "key");
-            return getThis();
+            return endSetter();
         }
 
         public ThisT addABCDLoggers() {
@@ -82,7 +82,7 @@ public class RequestBuilderExtensibilityTest {
                     // Some logging here
                 }
             });
-            return getThis();
+            return endSetter();
         }
     }
 }

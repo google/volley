@@ -49,6 +49,13 @@ public class RequestBuilderTest {
         builder.build();
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void cannotConfigureAfterBuilt() {
+        RequestBuilder<?, ?> builder = baseValidBuilder();
+        builder.build();
+        builder.url(URL);
+    }
+
     @Test
     public void setsAndAppendsUrl() {
         String append = "subdomain/";

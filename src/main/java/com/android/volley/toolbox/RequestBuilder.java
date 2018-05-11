@@ -87,7 +87,7 @@ import static java.util.Objects.requireNonNull;
  *
  *     public ThisT addABCDAuthHeaders() {
  *         header("Authentication", "key");
- *         return getThis();
+ *         return endSetter();
  *     }
  *
  *     public ThisT addABCDLoggers() {
@@ -103,7 +103,7 @@ import static java.util.Objects.requireNonNull;
  *                 // Some logging here
  *             }
  *         });
- *         return getThis();
+ *         return endSetter();
  *     }
  * }
  * </code></pre>
@@ -153,13 +153,13 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     /** Takes a {@link Method} */
     public ThisT method(int requestMethod) {
         this.requestMethod = requestMethod;
-        return getThis();
+        return endSetter();
     }
 
     /** Url for the {@link Request} */
     public ThisT url(String url) {
         this.url = requireNonNull(url);
-        return getThis();
+        return endSetter();
     }
 
     /**
@@ -173,7 +173,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     public ThisT appendUrl(String append) {
         requireNonNull(url, "You must set a `url` before calling `appendUrl`");
         url += append;
-        return getThis();
+        return endSetter();
     }
 
     /**
@@ -185,7 +185,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT onSuccess(Listener<ResponseT> listener) {
         this.listeners.add(requireNonNull(listener));
-        return getThis();
+        return endSetter();
     }
 
 
@@ -195,7 +195,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT onError(ErrorListener errorListener) {
         this.errorListeners.add(requireNonNull(errorListener));
-        return getThis();
+        return endSetter();
     }
 
     /**
@@ -204,31 +204,31 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT parseResponse(ResponseParser<ResponseT> parser) {
         this.parser = requireNonNull(parser);
-        return getThis();
+        return endSetter();
     }
 
     /** @see Request#setTag(Object) */
     public ThisT tag(Object tag) {
         this.tag = requireNonNull(tag);
-        return getThis();
+        return endSetter();
     }
 
     /** @see Request#setRetryPolicy(RetryPolicy) */
     public ThisT retryPolicy(RetryPolicy retryPolicy) {
         this.retryPolicy = requireNonNull(retryPolicy);
-        return getThis();
+        return endSetter();
     }
 
     /** @see Request#setShouldRetryServerErrors(boolean) */
     public ThisT retryOnServerErrors(boolean retryOnServerErrors) {
         this.retryOnServerErrors = retryOnServerErrors;
-        return getThis();
+        return endSetter();
     }
 
     /** @see Request#setShouldCache(boolean) */
     public ThisT shouldCache(boolean shouldCache) {
         this.shouldCache = shouldCache;
-        return getThis();
+        return endSetter();
     }
 
     /**
@@ -238,13 +238,13 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT priority(Request.Priority priority) {
         this.priority = requireNonNull(priority);
-        return getThis();
+        return endSetter();
     }
 
     /** Adds a HTTP header key-value pair to a map. */
     public ThisT header(String key, String value) {
         headers.put(requireNonNull(key), requireNonNull(value));
-        return getThis();
+        return endSetter();
     }
 
     /**
@@ -254,20 +254,20 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT headers(Map<String, String> map) {
         headers.putAll(requireNonNull(map));
-        return getThis();
+        return endSetter();
     }
 
     /** Convenience method for adding a Range HTTP header. */
     public ThisT range(String rangeName, int start, int end) {
         headers.put("Range", String.format(Locale.US, "%s=%d-%d", rangeName, start, end));
-        return getThis();
+        return endSetter();
     }
 
     // TODO refactor this with RangeBuilder in the future
     /** Convenience method for adding a Range HTTP header for paginated requests. */
     public ThisT rangeForPage(String rangeName, int pageNumber, int pageSize) {
         range(rangeName, pageNumber * pageSize, (pageNumber + 1 ) * pageSize - 1);
-        return getThis();
+        return endSetter();
     }
 
     /**
@@ -277,7 +277,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT param(String key, String value) {
         params.put(requireNonNull(key), requireNonNull(value));
-        return getThis();
+        return endSetter();
     }
 
     /**
@@ -287,13 +287,13 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT params(Map<String, String> map) {
         params.putAll(requireNonNull(map));
-        return getThis();
+        return endSetter();
     }
 
     /** @see Request#getParamsEncoding()  */
     public ThisT paramsEncoding(String encoding) {
         this.paramsEncoding = requireNonNull(encoding);
-        return getThis();
+        return endSetter();
     }
 
     /**
@@ -304,22 +304,33 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT body(Body body) {
         this.body = requireNonNull(body);
-        return getThis();
+        return endSetter();
     }
 
-    /** Creates the {@link Request}. Can only be called once per builder. */
+    /**
+     * Creates the {@link Request}. Can only be called once per builder. If you want to create
+     * your own {@link Request} subclass, then extend this class (see class documentation) and
+     * add your own build method with a different name.
+     */
     public final Request<ResponseT> build() {
+        checkNotBuilt(true);
+
+        Request<ResponseT> request = buildRequest();
+        configureAfterBuilt(request);
+        return request;
+    }
+
+    protected void checkNotBuilt(boolean aboutToBuild) {
         if (hasBuilt) {
             throw new IllegalStateException(
                     "Already built using this builder. " +
                             "Use a new builder instead of reusing this one"
             );
         }
-        hasBuilt = true;
 
-        Request<ResponseT> request = buildRequest();
-        configureAfterBuilt(request);
-        return request;
+        if (aboutToBuild) {
+            hasBuilt = true;
+        }
     }
 
     /**
@@ -334,6 +345,27 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
     @SuppressWarnings("unchecked")
     protected ThisT getThis() {
         return (ThisT) this;
+    }
+
+    /**
+     * To be called at the end of every setter method on this {@link RequestBuilder} (see example
+     * below). Uses the method {@link #getThis()} to do casting.
+     * <p>
+     * Example usage:
+     * <p>
+     * <pre><code>
+     *     public ThisT url(String url) {
+     *         this.url = requireNonNull(url);
+     *         return endSetter();
+     *     }
+     * </code></pre>
+     *
+     * @return Safely casted this.
+     * @see #getThis()
+     */
+    protected ThisT endSetter() {
+        checkNotBuilt(false);
+        return getThis();
     }
 
     private Request<ResponseT> buildRequest() {
