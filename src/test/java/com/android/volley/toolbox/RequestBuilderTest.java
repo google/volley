@@ -1,9 +1,18 @@
 package com.android.volley.toolbox;
 
+import static com.android.volley.utils.TestUtils.stringBytes;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.widget.ImageView.ScaleType;
-
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
@@ -16,27 +25,15 @@ import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.mock.MockNetwork;
 import com.android.volley.utils.ImmediateResponseDelivery;
-
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
-
-import static com.android.volley.utils.TestUtils.stringBytes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 @RunWith(RobolectricTestRunner.class)
 public class RequestBuilderTest {
@@ -107,20 +104,21 @@ public class RequestBuilderTest {
 
     @Test
     public void listenersAndParsersAreCalledOnSuccess() throws Exception {
-        @SuppressWarnings("unchecked") Listener<String> extraListener = mock(Listener.class);
+        @SuppressWarnings("unchecked")
+        Listener<String> extraListener = mock(Listener.class);
         ErrorListener extraErrorListener = mock(ErrorListener.class);
         ResponseParser<String> parser = spy(ResponseParsers.forString());
 
         String expectedResponse = "Response";
 
-        String response = getResultWithMockedQueue(
-                RequestBuilder.<String>startNew()
-                        .url(URL)
-                        .onSuccess(extraListener)
-                        .onError(extraErrorListener)
-                        .parseResponse(parser),
-                expectedResponse
-        );
+        String response =
+                getResultWithMockedQueue(
+                        RequestBuilder.<String>startNew()
+                                .url(URL)
+                                .onSuccess(extraListener)
+                                .onError(extraErrorListener)
+                                .parseResponse(parser),
+                        expectedResponse);
 
         assertEquals(expectedResponse, response);
 
@@ -131,24 +129,21 @@ public class RequestBuilderTest {
 
     @Test
     public void nullIsGivenToTheListenerIfNoResponse() throws Exception {
-        String valueTheListenerReceived = getResultWithMockedQueue(
-                RequestBuilder.<String>startNew().url(URL),
-                "Response"
-        );
+        String valueTheListenerReceived =
+                getResultWithMockedQueue(RequestBuilder.<String>startNew().url(URL), "Response");
         assertEquals(null, valueTheListenerReceived);
     }
 
     @Test
     public void jsonObjectIsGivenToTheListener() throws Exception {
-        JSONObject expected =
-                new JSONObject().put("first-key", "first-value").put("second key", 3);
+        JSONObject expected = new JSONObject().put("first-key", "first-value").put("second key", 3);
 
-        JSONObject valueTheListenerReceived = getResultWithMockedQueue(
-                RequestBuilder.<JSONObject>startNew()
-                        .url(URL)
-                        .parseResponse(ResponseParsers.forJSONObject()),
-                expected.toString()
-        );
+        JSONObject valueTheListenerReceived =
+                getResultWithMockedQueue(
+                        RequestBuilder.<JSONObject>startNew()
+                                .url(URL)
+                                .parseResponse(ResponseParsers.forJSONObject()),
+                        expected.toString());
         assertEquals(expected.toString(), valueTheListenerReceived.toString());
     }
 
@@ -347,8 +342,8 @@ public class RequestBuilderTest {
         return RequestBuilder.<T>startNew().url(URL).onError(new StubErrorListener());
     }
 
-    private <T> T getResultWithMockedQueue(
-            RequestBuilder<T, ?> builder, String mockResponse) throws Exception {
+    private <T> T getResultWithMockedQueue(RequestBuilder<T, ?> builder, String mockResponse)
+            throws Exception {
         RequestFuture<T> future = RequestFuture.newFuture();
 
         Request<T> request = builder.onSuccess(future).onError(future).build();
