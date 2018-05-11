@@ -2,6 +2,9 @@ package com.android.volley.toolbox;
 
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
 
 /**
  * 'Tests' to ensure that the {@link RequestBuilder} API is extendable. The problem with builders in
@@ -10,15 +13,17 @@ import com.android.volley.VolleyError;
  * above problem, but it is possible. This test is to ensure that the extensibility is possible, by
  * making sure than a realistic example compiles.
  */
+@RunWith(RobolectricTestRunner.class)
 public class RequestBuilderExtensibilityTest {
 
+    @Test
     public void callingSubclassMethodsBeforeAndAfterCallingBaseMethodsCompiles() {
         ABCDRequestBuilder.baseStartNew()
                 .url("http://example.com") // base
                 .addABCDAuthHeaders() // subclass
                 .param("key", "value") // base
                 .onError(
-                        new Response.ErrorListener() { // base
+                        new Response.ErrorListener() {
                             @Override
                             public void onErrorResponse(VolleyError error) {}
                         })
@@ -40,10 +45,9 @@ public class RequestBuilderExtensibilityTest {
         public static <T> ABCDRequestBuilder<T, ? extends ABCDRequestBuilder> startNew() {
             return ABCDRequestBuilder.<T>baseStartNew()
                     .addABCDAuthHeaders()
-                    .url(
-                            "http://my.base.url.for.requests.to.abcd.server/"); // we can then call
-                                                                                // {@link
-                                                                                // #appendUrl(String)}
+                    .url("http://my.base.url.for.requests.to.abcd.server/"); // we can then call
+            // {@link
+            // #appendUrl(String)}
         }
 
         /** Creates a normal builder, with extra loggers. */
