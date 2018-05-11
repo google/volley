@@ -1,20 +1,19 @@
 package com.android.volley.toolbox;
 
+import static java.util.Objects.requireNonNull;
+
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Has all the convenient configuration methods for a {@link Request}, and is able to create a

@@ -16,18 +16,16 @@
 
 package com.android.volley;
 
+import static com.android.volley.toolbox.Bodies._encodeParameters;
+
 import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-
 import com.android.volley.VolleyLog.MarkerLog;
-
 import java.util.Collections;
 import java.util.Map;
-
-import static com.android.volley.toolbox.Bodies._encodeParameters;
 
 /**
  * Base class for all network requests.
