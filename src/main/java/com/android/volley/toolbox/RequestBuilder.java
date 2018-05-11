@@ -205,6 +205,7 @@ public class RequestBuilder<ResponseT, ThisT extends RequestBuilder<ResponseT, T
      */
     public ThisT parseResponse(ResponseParser<ResponseT> parser) {
         this.parser = requireNonNull(parser);
+        parser.configureDefaults(this);
         return endSetter();
     }
 

@@ -38,6 +38,9 @@ public class ImageRequest extends Request<Bitmap> {
     /** Default backoff multiplier for image requests */
     public static final float DEFAULT_IMAGE_BACKOFF_MULT = 2f;
 
+    /** Low priority to prevent blocking much smaller {@link Request}s. */
+    public static final Priority DEFAULT_IMAGE_PRIORITY = Priority.LOW;
+
     /** Lock to guard mListener as it is cleared on cancel() and read on delivery. */
     private final Object mLock = new Object();
 
@@ -106,7 +109,7 @@ public class ImageRequest extends Request<Bitmap> {
 
     @Override
     public Priority getPriority() {
-        return Priority.LOW;
+        return DEFAULT_IMAGE_PRIORITY;
     }
     
     @Override

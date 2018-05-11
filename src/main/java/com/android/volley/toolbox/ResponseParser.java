@@ -11,5 +11,7 @@ public interface ResponseParser<T> {
 
     /** See class documentation. */
     Response<T> parseNetworkResponse(NetworkResponse response);
+
+    void configureDefaults(RequestBuilder<T, ?> requestBuilder);
 }
 

@@ -25,6 +25,11 @@ public class ResponseParsers {
             public Response<T> parseNetworkResponse(NetworkResponse response) {
                 return null;
             }
+
+            @Override
+            public void configureDefaults(RequestBuilder<T, ?> requestBuilder) {
+                // Do nothing
+            }
         };
     }
 
@@ -47,6 +52,11 @@ public class ResponseParsers {
                     parsed = new String(response.data);
                 }
                 return Response.success(parsed, HttpHeaderParser.parseCacheHeaders(response));
+            }
+
+            @Override
+            public void configureDefaults(RequestBuilder<String, ?> requestBuilder) {
+                // Do nothing
             }
         };
     }
@@ -111,6 +121,11 @@ public class ResponseParsers {
             } catch (JSONException je) {
                 return Response.error(new ParseError(je));
             }
+        }
+
+        @Override
+        public void configureDefaults(RequestBuilder<T, ?> requestBuilder) {
+            // Do nothing
         }
 
         protected abstract T stringToResponseType(String string) throws JSONException;

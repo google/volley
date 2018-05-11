@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.widget.ImageView.ScaleType;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
@@ -14,7 +15,6 @@ import com.android.volley.Response;
  * <p>
  * A {@link ResponseParser} for converting response data into a {@link Bitmap}.
  */
-// TODO have a configure defaults method
 public class ImageResponseParser implements ResponseParser<Bitmap> {
 
     /** Decoding lock so that we don't decode more than one image at a time (to avoid OOM's) */
@@ -127,6 +127,16 @@ public class ImageResponseParser implements ResponseParser<Bitmap> {
         synchronized (sDecodeLock) {
             return doParse(response);
         }
+    }
+
+    @Override
+    public void configureDefaults(RequestBuilder<Bitmap, ?> requestBuilder) {
+        requestBuilder.retryPolicy(
+                new DefaultRetryPolicy(
+                        ImageRequest.DEFAULT_IMAGE_TIMEOUT_MS,
+                        ImageRequest.DEFAULT_IMAGE_MAX_RETRIES,
+                        ImageRequest.DEFAULT_IMAGE_BACKOFF_MULT));
+        requestBuilder.priority(ImageRequest.DEFAULT_IMAGE_PRIORITY);
     }
 
     /** The real guts of parseNetworkResponse. Broken out for readability. */
