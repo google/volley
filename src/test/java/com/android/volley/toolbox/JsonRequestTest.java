@@ -16,14 +16,17 @@
 
 package com.android.volley.toolbox;
 
-import static org.junit.Assert.assertNotNull;
-
 import com.android.volley.Response;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+
+import static com.android.volley.mock.StubbedRequestQueue.getResultWithMockedQueue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(RobolectricTestRunner.class)
 public class JsonRequestTest {
@@ -69,5 +72,20 @@ public class JsonRequestTest {
                         JSONObject.class,
                         Response.Listener.class,
                         Response.ErrorListener.class));
+    }
+
+    @Test
+    public void testWithMockedQueue() throws Exception {
+        RequestFuture<JSONObject> future = RequestFuture.newFuture();
+        JSONObject expected =
+                new JSONObject().put("first-key", "first-value").put("second key", 3);
+
+        JSONObject valueTheListenerReceived =
+                getResultWithMockedQueue(
+                        new JsonObjectRequest("http://example.com", null, future, future),
+                        future,
+                        expected.toString());
+
+        assertEquals(expected.toString(), valueTheListenerReceived.toString());
     }
 }
