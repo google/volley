@@ -85,7 +85,12 @@ public class NetworkDispatcher extends Thread {
     @Override
     public void run() {
         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+        Request<?> request;
         while (true) {
+
+            long startTimeMs = SystemClock.elapsedRealtime();
+            // release previous request object to avoid leaking request object when mQueue is drained.
+            request = null;
             try {
                 processRequest();
             } catch (InterruptedException e) {

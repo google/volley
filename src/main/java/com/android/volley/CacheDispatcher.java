@@ -91,8 +91,10 @@ public class CacheDispatcher extends Thread {
 
         // Make a blocking call to initialize the cache.
         mCache.initialize();
-
+        Request<?> request;
         while (true) {
+            // release previous request object to avoid leaking request object when mQueue is drained.
+            request = null;
             try {
                 processRequest();
             } catch (InterruptedException e) {
@@ -153,6 +155,7 @@ public class CacheDispatcher extends Thread {
                         new NetworkResponse(entry.data, entry.responseHeaders));
         request.addMarker("cache-hit-parsed");
 
+
         if (!entry.refreshNeeded()) {
             // Completely unexpired cache hit. Just deliver the response.
             mDelivery.postResponse(request, response);
@@ -175,7 +178,7 @@ public class CacheDispatcher extends Thread {
                             @Override
                             public void run() {
                                 try {
-                                    mNetworkQueue.put(request);
+                                    mNetworkQueue.put(finalRequest);
                                 } catch (InterruptedException e) {
                                     // Restore the interrupted status
                                     Thread.currentThread().interrupt();
