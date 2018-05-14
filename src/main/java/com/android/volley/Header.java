@@ -42,8 +42,7 @@ public final class Header {
 
         Header header = (Header) o;
 
-        return TextUtils.equals(mName, header.mName)
-                && TextUtils.equals(mValue, header.mValue);
+        return TextUtils.equals(mName, header.mName) && TextUtils.equals(mValue, header.mValue);
     }
 
     @Override

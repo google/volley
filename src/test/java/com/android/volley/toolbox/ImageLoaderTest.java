@@ -16,6 +16,15 @@
 
 package com.android.volley.toolbox;
 
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import android.graphics.Bitmap;
 import android.widget.ImageView;
 import com.android.volley.Request;
@@ -24,10 +33,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class ImageLoaderTest {
@@ -69,7 +76,7 @@ public class ImageLoaderTest {
         // Response callback should be called both times.
         verify(listener, times(2)).onResponse(any(ImageLoader.ImageContainer.class), eq(true));
         // But request should be enqueued only once.
-        verify(mRequestQueue, times(1)).add(any(Request.class));
+        verify(mRequestQueue, times(1)).add(Mockito.<Request<?>>any());
     }
 
     @Test
@@ -78,24 +85,37 @@ public class ImageLoaderTest {
         ImageLoader.getImageListener(null, -1, -1);
         mImageLoader.setBatchedResponseDelay(1000);
 
-        assertNotNull(ImageLoader.class.getConstructor(RequestQueue.class,
-                ImageLoader.ImageCache.class));
+        assertNotNull(
+                ImageLoader.class.getConstructor(RequestQueue.class, ImageLoader.ImageCache.class));
 
-        assertNotNull(ImageLoader.class.getMethod("getImageListener", ImageView.class,
-                int.class, int.class));
+        assertNotNull(
+                ImageLoader.class.getMethod(
+                        "getImageListener", ImageView.class, int.class, int.class));
         assertNotNull(ImageLoader.class.getMethod("isCached", String.class, int.class, int.class));
-        assertNotNull(ImageLoader.class.getMethod("isCached", String.class, int.class, int.class,
-                ImageView.ScaleType.class));
-        assertNotNull(ImageLoader.class.getMethod("get", String.class,
-                ImageLoader.ImageListener.class));
-        assertNotNull(ImageLoader.class.getMethod("get", String.class,
-                ImageLoader.ImageListener.class, int.class, int.class));
-        assertNotNull(ImageLoader.class.getMethod("get", String.class,
-                ImageLoader.ImageListener.class, int.class, int.class, ImageView.ScaleType.class));
+        assertNotNull(
+                ImageLoader.class.getMethod(
+                        "isCached", String.class, int.class, int.class, ImageView.ScaleType.class));
+        assertNotNull(
+                ImageLoader.class.getMethod("get", String.class, ImageLoader.ImageListener.class));
+        assertNotNull(
+                ImageLoader.class.getMethod(
+                        "get",
+                        String.class,
+                        ImageLoader.ImageListener.class,
+                        int.class,
+                        int.class));
+        assertNotNull(
+                ImageLoader.class.getMethod(
+                        "get",
+                        String.class,
+                        ImageLoader.ImageListener.class,
+                        int.class,
+                        int.class,
+                        ImageView.ScaleType.class));
         assertNotNull(ImageLoader.class.getMethod("setBatchedResponseDelay", int.class));
 
-        assertNotNull(ImageLoader.ImageListener.class.getMethod("onResponse",
-                ImageLoader.ImageContainer.class, boolean.class));
+        assertNotNull(
+                ImageLoader.ImageListener.class.getMethod(
+                        "onResponse", ImageLoader.ImageContainer.class, boolean.class));
     }
 }
-

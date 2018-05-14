@@ -16,7 +16,6 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Header;
-
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -36,7 +35,7 @@ public final class HttpResponse {
      * @param headers the response headers
      */
     public HttpResponse(int statusCode, List<Header> headers) {
-        this(statusCode, headers, -1 /* contentLength */, null /* content */);
+        this(statusCode, headers, /* contentLength= */ -1, /* content= */ null);
     }
 
     /**

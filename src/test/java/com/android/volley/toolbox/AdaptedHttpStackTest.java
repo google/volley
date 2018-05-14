@@ -1,11 +1,20 @@
 package com.android.volley.toolbox;
 
-import android.util.Pair;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.when;
 
 import com.android.volley.Header;
 import com.android.volley.Request;
 import com.android.volley.mock.TestRequest;
-
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -18,34 +27,16 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.mockito.Mockito.when;
-
 @RunWith(RobolectricTestRunner.class)
 public class AdaptedHttpStackTest {
     private static final Request<?> REQUEST = new TestRequest.Get();
     private static final Map<String, String> ADDITIONAL_HEADERS = Collections.emptyMap();
 
-    @Mock
-    private HttpStack mHttpStack;
-    @Mock
-    private HttpResponse mHttpResponse;
-    @Mock
-    private StatusLine mStatusLine;
-    @Mock
-    private HttpEntity mHttpEntity;
-    @Mock
-    private InputStream mContent;
+    @Mock private HttpStack mHttpStack;
+    @Mock private HttpResponse mHttpResponse;
+    @Mock private StatusLine mStatusLine;
+    @Mock private HttpEntity mHttpEntity;
+    @Mock private InputStream mContent;
 
     private AdaptedHttpStack mAdaptedHttpStack;
 
@@ -112,12 +103,14 @@ public class AdaptedHttpStackTest {
     public void responseWithHeaders() throws Exception {
         when(mHttpStack.performRequest(REQUEST, ADDITIONAL_HEADERS)).thenReturn(mHttpResponse);
         when(mStatusLine.getStatusCode()).thenReturn(12345);
-        when(mHttpResponse.getAllHeaders()).thenReturn(new org.apache.http.Header[] {
-                new BasicHeader("header1", "value1_B"),
-                new BasicHeader("header3", "value3"),
-                new BasicHeader("HEADER2", "value2"),
-                new BasicHeader("header1", "value1_A")
-        });
+        when(mHttpResponse.getAllHeaders())
+                .thenReturn(
+                        new org.apache.http.Header[] {
+                            new BasicHeader("header1", "value1_B"),
+                            new BasicHeader("header3", "value3"),
+                            new BasicHeader("HEADER2", "value2"),
+                            new BasicHeader("header1", "value1_A")
+                        });
 
         com.android.volley.toolbox.HttpResponse response =
                 mAdaptedHttpStack.executeRequest(REQUEST, ADDITIONAL_HEADERS);

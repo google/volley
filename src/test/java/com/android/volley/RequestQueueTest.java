@@ -16,8 +16,15 @@
 
 package com.android.volley;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
+
 import com.android.volley.mock.ShadowSystemClock;
 import com.android.volley.toolbox.NoCache;
+import com.android.volley.toolbox.StringRequest;
 import com.android.volley.utils.ImmediateResponseDelivery;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,13 +33,7 @@ import org.mockito.Mock;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
-
-/**
- * Unit tests for RequestQueue, with all dependencies mocked out
- */
+/** Unit tests for RequestQueue, with all dependencies mocked out */
 @RunWith(RobolectricTestRunner.class)
 @Config(shadows = {ShadowSystemClock.class})
 public class RequestQueueTest {
@@ -40,22 +41,24 @@ public class RequestQueueTest {
     private ResponseDelivery mDelivery;
     @Mock private Network mMockNetwork;
 
-    @Before public void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         mDelivery = new ImmediateResponseDelivery();
         initMocks(this);
     }
 
-    @Test public void cancelAll_onlyCorrectTag() throws Exception {
+    @Test
+    public void cancelAll_onlyCorrectTag() throws Exception {
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
         Object tagA = new Object();
         Object tagB = new Object();
-        Request req1 = mock(Request.class);
+        StringRequest req1 = mock(StringRequest.class);
         when(req1.getTag()).thenReturn(tagA);
-        Request req2 = mock(Request.class);
+        StringRequest req2 = mock(StringRequest.class);
         when(req2.getTag()).thenReturn(tagB);
-        Request req3 = mock(Request.class);
+        StringRequest req3 = mock(StringRequest.class);
         when(req3.getTag()).thenReturn(tagA);
-        Request req4 = mock(Request.class);
+        StringRequest req4 = mock(StringRequest.class);
         when(req4.getTag()).thenReturn(tagA);
 
         queue.add(req1); // A

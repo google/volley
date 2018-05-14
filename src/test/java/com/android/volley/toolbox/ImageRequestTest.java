@@ -16,28 +16,30 @@
 
 package com.android.volley.toolbox;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Response;
-
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.shadows.ShadowBitmapFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-import static org.junit.Assert.*;
-
 @RunWith(RobolectricTestRunner.class)
 public class ImageRequestTest {
 
-    @Test public void parseNetworkResponse_resizing() throws Exception {
+    @Test
+    public void parseNetworkResponse_resizing() throws Exception {
         // This is a horrible hack but Robolectric doesn't have a way to provide
         // width and height hints for decodeByteArray. It works because the byte array
         // "file:fake" is ASCII encodable and thus the name in Robolectric's fake
@@ -45,7 +47,7 @@ public class ImageRequestTest {
         // "file:" + name in its lookaside map. I write all this because it will
         // probably break mysteriously at some point and I feel terrible about your
         // having to debug it.
-        byte[] jpegBytes = "file:fake".getBytes();
+        byte[] jpegBytes = "file:fake".getBytes(StandardCharsets.UTF_8);
         ShadowBitmapFactory.provideWidthAndHeightHints("fake", 1024, 500);
         NetworkResponse jpeg = new NetworkResponse(jpegBytes);
 
@@ -73,7 +75,6 @@ public class ImageRequestTest {
         // No resize
         verifyResize(jpeg, 0, 0, scalteType, 1024, 500);
 
-
         // Scale the image uniformly (maintain the image's aspect ratio) so that
         // both dimensions (width and height) of the image will be equal to or
         // larger than the corresponding dimension of the view.
@@ -97,7 +98,6 @@ public class ImageRequestTest {
 
         // No resize
         verifyResize(jpeg, 0, 0, scalteType, 1024, 500);
-
 
         // Scale in X and Y independently, so that src matches dst exactly. This
         // may change the aspect ratio of the src.
@@ -123,10 +123,15 @@ public class ImageRequestTest {
         verifyResize(jpeg, 0, 0, scalteType, 1024, 500);
     }
 
-    private void verifyResize(NetworkResponse networkResponse, int maxWidth, int maxHeight,
-                              ScaleType scaleType, int expectedWidth, int expectedHeight) {
-        ImageRequest request = new ImageRequest("", null, maxWidth, maxHeight, scaleType,
-                Config.RGB_565, null);
+    private void verifyResize(
+            NetworkResponse networkResponse,
+            int maxWidth,
+            int maxHeight,
+            ScaleType scaleType,
+            int expectedWidth,
+            int expectedHeight) {
+        ImageRequest request =
+                new ImageRequest("", null, maxWidth, maxHeight, scaleType, Config.RGB_565, null);
         Response<Bitmap> response = request.parseNetworkResponse(networkResponse);
         assertNotNull(response);
         assertTrue(response.isSuccess());
@@ -136,7 +141,8 @@ public class ImageRequestTest {
         assertEquals(expectedHeight, bitmap.getHeight());
     }
 
-    @Test public void findBestSampleSize() {
+    @Test
+    public void findBestSampleSize() {
         // desired == actual == 1
         assertEquals(1, ImageRequest.findBestSampleSize(100, 150, 100, 150));
 
@@ -164,11 +170,23 @@ public class ImageRequestTest {
     @Test
     public void publicMethods() throws Exception {
         // Catch-all test to find API-breaking changes.
-        assertNotNull(ImageRequest.class.getConstructor(String.class, Response.Listener.class,
-                int.class, int.class, Bitmap.Config.class, Response.ErrorListener.class));
-        assertNotNull(ImageRequest.class.getConstructor(String.class, Response.Listener.class,
-                int.class, int.class, ImageView.ScaleType.class, Bitmap.Config.class,
-                Response.ErrorListener.class));
+        assertNotNull(
+                ImageRequest.class.getConstructor(
+                        String.class,
+                        Response.Listener.class,
+                        int.class,
+                        int.class,
+                        Bitmap.Config.class,
+                        Response.ErrorListener.class));
+        assertNotNull(
+                ImageRequest.class.getConstructor(
+                        String.class,
+                        Response.Listener.class,
+                        int.class,
+                        int.class,
+                        ImageView.ScaleType.class,
+                        Bitmap.Config.class,
+                        Response.ErrorListener.class));
         assertEquals(ImageRequest.DEFAULT_IMAGE_TIMEOUT_MS, 1000);
         assertEquals(ImageRequest.DEFAULT_IMAGE_MAX_RETRIES, 2);
         assertEquals(ImageRequest.DEFAULT_IMAGE_BACKOFF_MULT, 2f, 0);

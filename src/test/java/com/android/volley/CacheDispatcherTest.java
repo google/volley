@@ -16,183 +16,219 @@
 
 package com.android.volley;
 
-import com.android.volley.mock.MockCache;
-import com.android.volley.mock.MockRequest;
-import com.android.volley.mock.MockResponseDelivery;
-import com.android.volley.mock.WaitableQueue;
-import com.android.volley.utils.CacheTestUtils;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 
-import org.junit.After;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.utils.CacheTestUtils;
+import java.util.concurrent.BlockingQueue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 @SuppressWarnings("rawtypes")
 public class CacheDispatcherTest {
     private CacheDispatcher mDispatcher;
-    private WaitableQueue mCacheQueue;
-    private WaitableQueue mNetworkQueue;
-    private MockCache mCache;
-    private MockResponseDelivery mDelivery;
-    private MockRequest mRequest;
+    private @Mock BlockingQueue<Request<?>> mCacheQueue;
+    private @Mock BlockingQueue<Request<?>> mNetworkQueue;
+    private @Mock Cache mCache;
+    private @Mock ResponseDelivery mDelivery;
+    private StringRequest mRequest;
 
-    private static final long TIMEOUT_MILLIS = 5000;
+    @Before
+    public void setUp() throws Exception {
+        initMocks(this);
 
-    @Before public void setUp() throws Exception {
-        mCacheQueue = new WaitableQueue();
-        mNetworkQueue = new WaitableQueue();
-        mCache = new MockCache();
-        mDelivery = new MockResponseDelivery();
-
-        mRequest = new MockRequest();
-
+        mRequest = new StringRequest(Request.Method.GET, "http://foo", null, null);
         mDispatcher = new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
-        mDispatcher.start();
     }
 
-    @After public void tearDown() throws Exception {
+    private static class WaitForever implements Answer {
+        @Override
+        public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+            Thread.sleep(Long.MAX_VALUE);
+            return null;
+        }
+    }
+
+    @Test
+    public void runStopsOnQuit() throws Exception {
+        when(mCacheQueue.take()).then(new WaitForever());
+        mDispatcher.start();
         mDispatcher.quit();
-        mDispatcher.join();
+        mDispatcher.join(1000);
+    }
+
+    private static void verifyNoResponse(ResponseDelivery delivery) {
+        verify(delivery, never()).postResponse(any(Request.class), any(Response.class));
+        verify(delivery, never())
+                .postResponse(any(Request.class), any(Response.class), any(Runnable.class));
+        verify(delivery, never()).postError(any(Request.class), any(VolleyError.class));
     }
 
     // A cancelled request should not be processed at all.
-    @Test public void cancelledRequest() throws Exception {
+    @Test
+    public void cancelledRequest() throws Exception {
         mRequest.cancel();
-        mCacheQueue.add(mRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertFalse(mCache.getCalled);
-        assertFalse(mDelivery.wasEitherResponseCalled());
+        mDispatcher.processRequest(mRequest);
+        verify(mCache, never()).get(anyString());
+        verifyNoResponse(mDelivery);
     }
 
     // A cache miss does not post a response and puts the request on the network queue.
-    @Test public void cacheMiss() throws Exception {
-        mCacheQueue.add(mRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertFalse(mDelivery.wasEitherResponseCalled());
-        assertTrue(mNetworkQueue.size() > 0);
-        Request request = mNetworkQueue.take();
-        assertNull(request.getCacheEntry());
+    @Test
+    public void cacheMiss() throws Exception {
+        mDispatcher.processRequest(mRequest);
+        verifyNoResponse(mDelivery);
+        verify(mNetworkQueue).put(mRequest);
+        assertNull(mRequest.getCacheEntry());
     }
 
     // A non-expired cache hit posts a response and does not queue to the network.
-    @Test public void nonExpiredCacheHit() throws Exception {
+    @Test
+    public void nonExpiredCacheHit() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, false);
-        mCache.setEntryToReturn(entry);
-        mCacheQueue.add(mRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertTrue(mDelivery.postResponse_called);
-        assertFalse(mDelivery.postError_called);
+        when(mCache.get(anyString())).thenReturn(entry);
+        mDispatcher.processRequest(mRequest);
+        verify(mDelivery).postResponse(any(Request.class), any(Response.class));
+        verify(mDelivery, never()).postError(any(Request.class), any(VolleyError.class));
     }
 
     // A soft-expired cache hit posts a response and queues to the network.
-    @Test public void softExpiredCacheHit() throws Exception {
+    @Test
+    public void softExpiredCacheHit() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
-        mCache.setEntryToReturn(entry);
-        mCacheQueue.add(mRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertTrue(mDelivery.postResponse_called);
-        assertFalse(mDelivery.postError_called);
-        assertTrue(mNetworkQueue.size() > 0);
-        Request request = mNetworkQueue.take();
-        assertSame(entry, request.getCacheEntry());
+        when(mCache.get(anyString())).thenReturn(entry);
+        mDispatcher.processRequest(mRequest);
+
+        // Soft expiration needs to use the deferred Runnable variant of postResponse,
+        // so make sure it gets to run.
+        ArgumentCaptor<Runnable> runnable = ArgumentCaptor.forClass(Runnable.class);
+        verify(mDelivery).postResponse(any(Request.class), any(Response.class), runnable.capture());
+        runnable.getValue().run();
+        // This way we can verify the behavior of the Runnable as well.
+        verify(mNetworkQueue).put(mRequest);
+        assertSame(entry, mRequest.getCacheEntry());
+
+        verify(mDelivery, never()).postError(any(Request.class), any(VolleyError.class));
     }
 
     // An expired cache hit does not post a response and queues to the network.
-    @Test public void expiredCacheHit() throws Exception {
+    @Test
+    public void expiredCacheHit() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, true, true);
-        mCache.setEntryToReturn(entry);
-        mCacheQueue.add(mRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertFalse(mDelivery.wasEitherResponseCalled());
-        assertTrue(mNetworkQueue.size() > 0);
-        Request request = mNetworkQueue.take();
-        assertSame(entry, request.getCacheEntry());
+        when(mCache.get(anyString())).thenReturn(entry);
+        mDispatcher.processRequest(mRequest);
+        verifyNoResponse(mDelivery);
+        verify(mNetworkQueue).put(mRequest);
+        assertSame(entry, mRequest.getCacheEntry());
     }
 
-    @Test public void duplicateCacheMiss() throws Exception {
-        MockRequest secondRequest = new MockRequest();
+    @Test
+    public void duplicateCacheMiss() throws Exception {
+        StringRequest secondRequest =
+                new StringRequest(Request.Method.GET, "http://foo", null, null);
         mRequest.setSequence(1);
         secondRequest.setSequence(2);
-        mCacheQueue.add(mRequest);
-        mCacheQueue.add(secondRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
-        assertTrue(mNetworkQueue.size() == 1);
-        assertFalse(mDelivery.postResponse_called);
+        mDispatcher.processRequest(mRequest);
+        mDispatcher.processRequest(secondRequest);
+        verify(mNetworkQueue).put(mRequest);
+        verifyNoResponse(mDelivery);
     }
 
-    @Test public void tripleCacheMiss_networkErrorOnFirst() throws Exception {
-        MockRequest secondRequest = new MockRequest();
-        MockRequest thirdRequest = new MockRequest();
+    @Test
+    public void tripleCacheMiss_networkErrorOnFirst() throws Exception {
+        StringRequest secondRequest =
+                new StringRequest(Request.Method.GET, "http://foo", null, null);
+        StringRequest thirdRequest =
+                new StringRequest(Request.Method.GET, "http://foo", null, null);
         mRequest.setSequence(1);
         secondRequest.setSequence(2);
         thirdRequest.setSequence(3);
-        mCacheQueue.add(mRequest);
-        mCacheQueue.add(secondRequest);
-        mCacheQueue.add(thirdRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
+        mDispatcher.processRequest(mRequest);
+        mDispatcher.processRequest(secondRequest);
+        mDispatcher.processRequest(thirdRequest);
 
-        assertTrue(mNetworkQueue.size() == 1);
-        assertFalse(mDelivery.postResponse_called);
+        verify(mNetworkQueue).put(mRequest);
+        verifyNoResponse(mDelivery);
 
-        Request request = mNetworkQueue.take();
-        request.notifyListenerResponseNotUsable();
+        ((Request<?>) mRequest).notifyListenerResponseNotUsable();
         // Second request should now be in network queue.
-        assertTrue(mNetworkQueue.size() == 1);
-        request = mNetworkQueue.take();
-        assertTrue(request.equals(secondRequest));
+        verify(mNetworkQueue).put(secondRequest);
         // Another unusable response, third request should now be added.
-        request.notifyListenerResponseNotUsable();
-        assertTrue(mNetworkQueue.size() == 1);
-        request = mNetworkQueue.take();
-        assertTrue(request.equals(thirdRequest));
+        ((Request<?>) secondRequest).notifyListenerResponseNotUsable();
+        verify(mNetworkQueue).put(thirdRequest);
     }
 
-    @Test public void duplicateSoftExpiredCacheHit_failedRequest() throws Exception {
+    @Test
+    public void duplicateSoftExpiredCacheHit_failedRequest() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
-        mCache.setEntryToReturn(entry);
+        when(mCache.get(anyString())).thenReturn(entry);
 
-        MockRequest secondRequest = new MockRequest();
+        StringRequest secondRequest =
+                new StringRequest(Request.Method.GET, "http://foo", null, null);
         mRequest.setSequence(1);
         secondRequest.setSequence(2);
 
-        mCacheQueue.add(mRequest);
-        mCacheQueue.add(secondRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
+        mDispatcher.processRequest(mRequest);
+        mDispatcher.processRequest(secondRequest);
 
-        assertTrue(mNetworkQueue.size() == 1);
-        assertTrue(mDelivery.postResponse_calledNtimes == 2);
+        // Soft expiration needs to use the deferred Runnable variant of postResponse,
+        // so make sure it gets to run.
+        ArgumentCaptor<Runnable> runnable = ArgumentCaptor.forClass(Runnable.class);
+        verify(mDelivery).postResponse(any(Request.class), any(Response.class), runnable.capture());
+        runnable.getValue().run();
+        // This way we can verify the behavior of the Runnable as well.
 
-        Request request = mNetworkQueue.take();
-        request.notifyListenerResponseNotUsable();
+        verify(mNetworkQueue).put(mRequest);
+        verify(mDelivery)
+                .postResponse(any(Request.class), any(Response.class), any(Runnable.class));
+
+        ((Request<?>) mRequest).notifyListenerResponseNotUsable();
         // Second request should now be in network queue.
-        assertTrue(mNetworkQueue.size() == 1);
-        request = mNetworkQueue.take();
-        assertTrue(request.equals(secondRequest));
+        verify(mNetworkQueue).put(secondRequest);
     }
 
-    @Test public void duplicateSoftExpiredCacheHit_successfulRequest() throws Exception {
+    @Test
+    public void duplicateSoftExpiredCacheHit_successfulRequest() throws Exception {
         Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, true);
-        mCache.setEntryToReturn(entry);
+        when(mCache.get(anyString())).thenReturn(entry);
 
-        MockRequest secondRequest = new MockRequest();
+        StringRequest secondRequest =
+                new StringRequest(Request.Method.GET, "http://foo", null, null);
         mRequest.setSequence(1);
         secondRequest.setSequence(2);
 
-        mCacheQueue.add(mRequest);
-        mCacheQueue.add(secondRequest);
-        mCacheQueue.waitUntilEmpty(TIMEOUT_MILLIS);
+        mDispatcher.processRequest(mRequest);
+        mDispatcher.processRequest(secondRequest);
 
-        assertTrue(mNetworkQueue.size() == 1);
-        assertTrue(mDelivery.postResponse_calledNtimes == 2);
+        // Soft expiration needs to use the deferred Runnable variant of postResponse,
+        // so make sure it gets to run.
+        ArgumentCaptor<Runnable> runnable = ArgumentCaptor.forClass(Runnable.class);
+        verify(mDelivery).postResponse(any(Request.class), any(Response.class), runnable.capture());
+        runnable.getValue().run();
+        // This way we can verify the behavior of the Runnable as well.
 
-        Request request = mNetworkQueue.take();
-        request.notifyListenerResponseReceived(Response.success(null, entry));
+        verify(mNetworkQueue).put(mRequest);
+        verify(mDelivery)
+                .postResponse(any(Request.class), any(Response.class), any(Runnable.class));
+
+        ((Request<?>) mRequest).notifyListenerResponseReceived(Response.success(null, entry));
         // Second request should have delivered response.
-        assertTrue(mNetworkQueue.size() == 0);
-        assertTrue(mDelivery.postResponse_calledNtimes == 3);
+        verify(mNetworkQueue, never()).put(secondRequest);
+        verify(mDelivery)
+                .postResponse(any(Request.class), any(Response.class), any(Runnable.class));
     }
 }

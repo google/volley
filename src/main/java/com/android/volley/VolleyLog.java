@@ -18,15 +18,14 @@ package com.android.volley;
 
 import android.os.SystemClock;
 import android.util.Log;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 /**
  * Logging helper class.
- * <p>
- * to see Volley logs call:<br>
+ *
+ * <p>to see Volley logs call:<br>
  * {@code <android-sdk>/platform-tools/adb shell setprop log.tag.Volley VERBOSE}
  */
 public class VolleyLog {
@@ -35,11 +34,15 @@ public class VolleyLog {
     public static boolean DEBUG = Log.isLoggable(TAG, Log.VERBOSE);
 
     /**
-     * Customize the log tag for your application, so that other apps
-     * using Volley don't mix their logs with yours.
-     * <br>
-     * Enable the log property for your tag before starting your app:
-     * <br>
+     * {@link Class#getName()} uses reflection and calling it on a potentially hot code path may
+     * have some cost. To minimize this cost we fetch class name once here and use it later.
+     */
+    private static final String CLASS_NAME = VolleyLog.class.getName();
+
+    /**
+     * Customize the log tag for your application, so that other apps using Volley don't mix their
+     * logs with yours. <br>
+     * Enable the log property for your tag before starting your app: <br>
      * {@code adb shell setprop log.tag.&lt;tag&gt;}
      */
     public static void setTag(String tag) {
@@ -77,8 +80,8 @@ public class VolleyLog {
     }
 
     /**
-     * Formats the caller's provided message and prepends useful info like
-     * calling thread ID and method name.
+     * Formats the caller's provided message and prepends useful info like calling thread ID and
+     * method name.
      */
     private static String buildMessage(String format, Object... args) {
         String msg = (args == null) ? format : String.format(Locale.US, format, args);
@@ -88,8 +91,8 @@ public class VolleyLog {
         // Walk up the stack looking for the first caller outside of VolleyLog.
         // It will be at least two frames up, so start there.
         for (int i = 2; i < trace.length; i++) {
-            Class<?> clazz = trace[i].getClass();
-            if (!clazz.equals(VolleyLog.class)) {
+            String clazz = trace[i].getClassName();
+            if (!clazz.equals(VolleyLog.CLASS_NAME)) {
                 String callingClass = trace[i].getClassName();
                 callingClass = callingClass.substring(callingClass.lastIndexOf('.') + 1);
                 callingClass = callingClass.substring(callingClass.lastIndexOf('$') + 1);
@@ -98,13 +101,10 @@ public class VolleyLog {
                 break;
             }
         }
-        return String.format(Locale.US, "[%d] %s: %s",
-                Thread.currentThread().getId(), caller, msg);
+        return String.format(Locale.US, "[%d] %s: %s", Thread.currentThread().getId(), caller, msg);
     }
 
-    /**
-     * A simple event log with records containing a name, thread ID, and timestamp.
-     */
+    /** A simple event log with records containing a name, thread ID, and timestamp. */
     static class MarkerLog {
         public static final boolean ENABLED = VolleyLog.DEBUG;
 
@@ -123,7 +123,7 @@ public class VolleyLog {
             }
         }
 
-        private final List<Marker> mMarkers = new ArrayList<Marker>();
+        private final List<Marker> mMarkers = new ArrayList<>();
         private boolean mFinished = false;
 
         /** Adds a marker to this log with the specified name. */
@@ -136,8 +136,9 @@ public class VolleyLog {
         }
 
         /**
-         * Closes the log, dumping it to logcat if the time difference between
-         * the first and last markers is greater than {@link #MIN_DURATION_FOR_LOGGING_MS}.
+         * Closes the log, dumping it to logcat if the time difference between the first and last
+         * markers is greater than {@link #MIN_DURATION_FOR_LOGGING_MS}.
+         *
          * @param header Header string to print above the marker log.
          */
         public synchronized void finish(String header) {

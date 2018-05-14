@@ -16,10 +16,10 @@
 
 package com.android.volley.toolbox;
 
+import android.os.SystemClock;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +28,8 @@ import java.util.concurrent.TimeoutException;
 /**
  * A Future that represents a Volley request.
  *
- * Used by providing as your response and error listeners. For example:
+ * <p>Used by providing as your response and error listeners. For example:
+ *
  * <pre>
  * RequestFuture&lt;JSONObject&gt; future = RequestFuture.newFuture();
  * MyRequest request = new MyRequest(URL, future, future);
@@ -51,15 +52,14 @@ import java.util.concurrent.TimeoutException;
  *
  * @param <T> The type of parsed response this future expects.
  */
-public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
-       Response.ErrorListener {
+public class RequestFuture<T> implements Future<T>, Response.Listener<T>, Response.ErrorListener {
     private Request<?> mRequest;
     private boolean mResultReceived = false;
     private T mResult;
     private VolleyError mException;
 
     public static <E> RequestFuture<E> newFuture() {
-        return new RequestFuture<E>();
+        return new RequestFuture<>();
     }
 
     private RequestFuture() {}
@@ -85,7 +85,7 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
     @Override
     public T get() throws InterruptedException, ExecutionException {
         try {
-            return doGet(null);
+            return doGet(/* timeoutMs= */ null);
         } catch (TimeoutException e) {
             throw new AssertionError(e);
         }
@@ -108,9 +108,16 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
         }
 
         if (timeoutMs == null) {
-            wait(0);
+            while (!isDone()) {
+                wait(0);
+            }
         } else if (timeoutMs > 0) {
-            wait(timeoutMs);
+            long nowMs = SystemClock.uptimeMillis();
+            long deadlineMs = nowMs + timeoutMs;
+            while (!isDone() && nowMs < deadlineMs) {
+                wait(deadlineMs - nowMs);
+                nowMs = SystemClock.uptimeMillis();
+            }
         }
 
         if (mException != null) {
@@ -150,4 +157,3 @@ public class RequestFuture<T> implements Future<T>, Response.Listener<T>,
         notifyAll();
     }
 }
-

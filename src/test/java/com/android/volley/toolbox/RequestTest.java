@@ -16,12 +16,18 @@
 
 package com.android.volley.toolbox;
 
-import com.android.volley.*;
+import static org.junit.Assert.assertNotNull;
+
+import com.android.volley.Cache;
+import com.android.volley.NetworkResponse;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.RetryPolicy;
+import com.android.volley.VolleyError;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import static org.junit.Assert.assertNotNull;
 
 @RunWith(RobolectricTestRunner.class)
 public class RequestTest {
@@ -29,8 +35,9 @@ public class RequestTest {
     @Test
     public void publicMethods() throws Exception {
         // Catch-all test to find API-breaking changes.
-        assertNotNull(Request.class.getConstructor(int.class, String.class,
-                Response.ErrorListener.class));
+        assertNotNull(
+                Request.class.getConstructor(
+                        int.class, String.class, Response.ErrorListener.class));
 
         assertNotNull(Request.class.getMethod("getMethod"));
         assertNotNull(Request.class.getMethod("setTag", Object.class));
@@ -61,7 +68,8 @@ public class RequestTest {
         assertNotNull(Request.class.getMethod("getRetryPolicy"));
         assertNotNull(Request.class.getMethod("markDelivered"));
         assertNotNull(Request.class.getMethod("hasHadResponseDelivered"));
-        assertNotNull(Request.class.getDeclaredMethod("parseNetworkResponse", NetworkResponse.class));
+        assertNotNull(
+                Request.class.getDeclaredMethod("parseNetworkResponse", NetworkResponse.class));
         assertNotNull(Request.class.getDeclaredMethod("parseNetworkError", VolleyError.class));
         assertNotNull(Request.class.getDeclaredMethod("deliverResponse", Object.class));
         assertNotNull(Request.class.getMethod("deliverError", VolleyError.class));
