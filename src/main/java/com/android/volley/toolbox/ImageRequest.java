@@ -20,6 +20,7 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
 import android.support.annotation.GuardedBy;
+import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.widget.ImageView.ScaleType;
 import com.android.volley.DefaultRetryPolicy;
@@ -44,6 +45,7 @@ public class ImageRequest extends Request<Bitmap> {
     private final Object mLock = new Object();
 
     @GuardedBy("mLock")
+    @Nullable
     private Response.Listener<Bitmap> mListener;
 
     private final Config mDecodeConfig;
@@ -76,7 +78,7 @@ public class ImageRequest extends Request<Bitmap> {
             int maxHeight,
             ScaleType scaleType,
             Config decodeConfig,
-            Response.ErrorListener errorListener) {
+            @Nullable Response.ErrorListener errorListener) {
         super(Method.GET, url, errorListener);
         setRetryPolicy(
                 new DefaultRetryPolicy(

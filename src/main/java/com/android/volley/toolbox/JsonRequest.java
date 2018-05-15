@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import android.support.annotation.GuardedBy;
+import android.support.annotation.Nullable;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -42,10 +43,11 @@ public abstract class JsonRequest<T> extends Request<T> {
     /** Lock to guard mListener as it is cleared on cancel() and read on delivery. */
     private final Object mLock = new Object();
 
+    @Nullable
     @GuardedBy("mLock")
     private Listener<T> mListener;
 
-    private final String mRequestBody;
+    @Nullable private final String mRequestBody;
 
     /**
      * Deprecated constructor for a JsonRequest which defaults to GET unless {@link #getPostBody()}
@@ -62,9 +64,9 @@ public abstract class JsonRequest<T> extends Request<T> {
     public JsonRequest(
             int method,
             String url,
-            String requestBody,
+            @Nullable String requestBody,
             Listener<T> listener,
-            ErrorListener errorListener) {
+            @Nullable ErrorListener errorListener) {
         super(method, url, errorListener);
         mListener = listener;
         mRequestBody = requestBody;

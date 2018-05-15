@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.CallSuper;
 import android.support.annotation.GuardedBy;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import com.android.volley.VolleyLog.MarkerLog;
 import java.io.UnsupportedEncodingException;
@@ -81,6 +82,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     private final Object mLock = new Object();
 
     /** Listener interface for errors. */
+    @Nullable
     @GuardedBy("mLock")
     private Response.ErrorListener mErrorListener;
 
@@ -139,7 +141,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * responses is provided by subclasses, who have a better idea of how to deliver an
      * already-parsed response.
      */
-    public Request(int method, String url, Response.ErrorListener listener) {
+    public Request(int method, String url, @Nullable Response.ErrorListener listener) {
         mMethod = method;
         mUrl = url;
         mErrorListener = listener;
@@ -174,6 +176,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     }
 
     /** @return this request's {@link com.android.volley.Response.ErrorListener}. */
+    @Nullable
     public Response.ErrorListener getErrorListener() {
         synchronized (mLock) {
             return mErrorListener;
