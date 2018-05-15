@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import android.support.annotation.GuardedBy;
+import android.support.annotation.Nullable;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -30,6 +31,7 @@ public class StringRequest extends Request<String> {
     /** Lock to guard mListener as it is cleared on cancel() and read on delivery. */
     private final Object mLock = new Object();
 
+    @Nullable
     @GuardedBy("mLock")
     private Listener<String> mListener;
 
@@ -42,7 +44,10 @@ public class StringRequest extends Request<String> {
      * @param errorListener Error listener, or null to ignore errors
      */
     public StringRequest(
-            int method, String url, Listener<String> listener, ErrorListener errorListener) {
+            int method,
+            String url,
+            Listener<String> listener,
+            @Nullable ErrorListener errorListener) {
         super(method, url, errorListener);
         mListener = listener;
     }
@@ -54,7 +59,8 @@ public class StringRequest extends Request<String> {
      * @param listener Listener to receive the String response
      * @param errorListener Error listener, or null to ignore errors
      */
-    public StringRequest(String url, Listener<String> listener, ErrorListener errorListener) {
+    public StringRequest(
+            String url, Listener<String> listener, @Nullable ErrorListener errorListener) {
         this(Method.GET, url, listener, errorListener);
     }
 
