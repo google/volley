@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.volley.Request.Method;
 import com.android.volley.Request.Priority;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,9 +85,30 @@ public class RequestTest {
         assertFalse(0 == goodProtocol.getTrafficStatsTag());
     }
 
+    @Test
+    public void getCacheKey() {
+        assertEquals(
+                "http://example.com",
+                new UrlParseRequest(Method.GET, "http://example.com").getCacheKey());
+        assertEquals(
+                "http://example.com",
+                new UrlParseRequest(Method.DEPRECATED_GET_OR_POST, "http://example.com")
+                        .getCacheKey());
+        assertEquals(
+                "1-http://example.com",
+                new UrlParseRequest(Method.POST, "http://example.com").getCacheKey());
+        assertEquals(
+                "2-http://example.com",
+                new UrlParseRequest(Method.PUT, "http://example.com").getCacheKey());
+    }
+
     private static class UrlParseRequest extends Request<Object> {
-        public UrlParseRequest(String url) {
-            super(Request.Method.GET, url, null);
+        UrlParseRequest(String url) {
+            this(Method.GET, url);
+        }
+
+        UrlParseRequest(int method, String url) {
+            super(method, url, null);
         }
 
         @Override
