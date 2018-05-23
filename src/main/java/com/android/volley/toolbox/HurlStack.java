@@ -74,8 +74,8 @@ public class HurlStack extends BaseHttpStack {
             throws IOException, AuthFailureError {
         String url = request.getUrl();
         HashMap<String, String> map = new HashMap<>();
-        map.putAll(request.getHeaders());
         map.putAll(additionalHeaders);
+        map.putAll(request.getHeaders());
         if (mUrlRewriter != null) {
             String rewritten = mUrlRewriter.rewriteUrl(url);
             if (rewritten == null) {
@@ -87,10 +87,10 @@ public class HurlStack extends BaseHttpStack {
         HttpURLConnection connection = openConnection(parsedUrl, request);
         boolean keepConnectionOpen = false;
         try {
+            setConnectionParametersForRequest(connection, request);
             for (String headerName : map.keySet()) {
                 connection.setRequestProperty(headerName, map.get(headerName));
             }
-            setConnectionParametersForRequest(connection, request);
             // Initialize HttpResponse with data from the HttpURLConnection.
             int responseCode = connection.getResponseCode();
             if (responseCode == -1) {
