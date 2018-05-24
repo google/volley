@@ -538,7 +538,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * remaining, this will cause delivery of a {@link TimeoutError} error.
      */
     public final int getTimeoutMs() {
-        return mRetryPolicy.getCurrentTimeout();
+        return getRetryPolicy().getCurrentTimeout();
     }
 
     /** Returns the retry policy that should be used for this request. */

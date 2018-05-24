@@ -74,8 +74,9 @@ public class HurlStack extends BaseHttpStack {
             throws IOException, AuthFailureError {
         String url = request.getUrl();
         HashMap<String, String> map = new HashMap<>();
-        map.putAll(request.getHeaders());
         map.putAll(additionalHeaders);
+        // Request.getHeaders() takes precedence over the given additional (cache) headers).
+        map.putAll(request.getHeaders());
         if (mUrlRewriter != null) {
             String rewritten = mUrlRewriter.rewriteUrl(url);
             if (rewritten == null) {
@@ -87,10 +88,12 @@ public class HurlStack extends BaseHttpStack {
         HttpURLConnection connection = openConnection(parsedUrl, request);
         boolean keepConnectionOpen = false;
         try {
-            for (String headerName : map.keySet()) {
-                connection.addRequestProperty(headerName, map.get(headerName));
-            }
             setConnectionParametersForRequest(connection, request);
+            // Apply the request headers last (they take precedence over any headers set by
+            // setConnectionParametersForRequest, like the Content-Type header).
+            for (String headerName : map.keySet()) {
+                connection.setRequestProperty(headerName, map.get(headerName));
+            }
             // Initialize HttpResponse with data from the HttpURLConnection.
             int responseCode = connection.getResponseCode();
             if (responseCode == -1) {
@@ -281,7 +284,7 @@ public class HurlStack extends BaseHttpStack {
         // since this is handled by HttpURLConnection using the size of the prepared
         // output stream.
         connection.setDoOutput(true);
-        connection.addRequestProperty(
+        connection.setRequestProperty(
                 HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         DataOutputStream out = new DataOutputStream(connection.getOutputStream());
         out.write(body);
