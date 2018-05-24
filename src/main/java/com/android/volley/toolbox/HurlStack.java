@@ -75,6 +75,7 @@ public class HurlStack extends BaseHttpStack {
         String url = request.getUrl();
         HashMap<String, String> map = new HashMap<>();
         map.putAll(additionalHeaders);
+        // Request.getHeaders() takes precedence over the given additional (cache) headers).
         map.putAll(request.getHeaders());
         if (mUrlRewriter != null) {
             String rewritten = mUrlRewriter.rewriteUrl(url);
@@ -88,6 +89,8 @@ public class HurlStack extends BaseHttpStack {
         boolean keepConnectionOpen = false;
         try {
             setConnectionParametersForRequest(connection, request);
+            // Apply the request headers last (they take precedence over any headers set by
+            // setConnectionParametersForRequest, like the Content-Type header).
             for (String headerName : map.keySet()) {
                 connection.setRequestProperty(headerName, map.get(headerName));
             }

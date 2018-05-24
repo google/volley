@@ -58,7 +58,7 @@ public class HttpClientStack implements HttpStack {
         mClient = client;
     }
 
-    private static void addHeaders(HttpUriRequest httpRequest, Map<String, String> headers) {
+    private static void setHeaders(HttpUriRequest httpRequest, Map<String, String> headers) {
         for (String key : headers.keySet()) {
             httpRequest.setHeader(key, headers.get(key));
         }
@@ -77,8 +77,10 @@ public class HttpClientStack implements HttpStack {
     public HttpResponse performRequest(Request<?> request, Map<String, String> additionalHeaders)
             throws IOException, AuthFailureError {
         HttpUriRequest httpRequest = createHttpRequest(request, additionalHeaders);
-        addHeaders(httpRequest, additionalHeaders);
-        addHeaders(httpRequest, request.getHeaders());
+        setHeaders(httpRequest, additionalHeaders);
+        // Request.getHeaders() takes precedence over the given additional (cache) headers) and any
+        // headers set by createHttpRequest (like the Content-Type header).
+        setHeaders(httpRequest, request.getHeaders());
         onPrepareRequest(httpRequest);
         HttpParams httpParams = httpRequest.getParams();
         int timeoutMs = request.getTimeoutMs();
