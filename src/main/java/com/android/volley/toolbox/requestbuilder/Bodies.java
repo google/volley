@@ -1,7 +1,8 @@
-package com.android.volley.toolbox;
+package com.android.volley.toolbox.requestbuilder;
 
 import com.android.volley.Request;
 import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonRequest;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -11,7 +12,7 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.android.volley.toolbox.Utils.requireNonNull;
+import static com.android.volley.Utils.requireNonNull;
 
 /** Convenience factory methods for creating a {@link Body}. */
 public class Bodies {

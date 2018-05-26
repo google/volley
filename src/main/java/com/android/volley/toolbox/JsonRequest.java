@@ -22,6 +22,10 @@ import com.android.volley.Response;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.requestbuilder.Body;
+import com.android.volley.toolbox.requestbuilder.RequestBuilder;
+import com.android.volley.toolbox.requestbuilder.ResponseParser;
+
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -36,7 +40,7 @@ import java.io.UnsupportedEncodingException;
 public abstract class JsonRequest<T> extends Request<T> {
 
     /** Default charset for JSON request. */
-    protected static final String PROTOCOL_CHARSET = "utf-8";
+    public static final String PROTOCOL_CHARSET = "utf-8";
 
     /** Content type for request. */
     public static final String PROTOCOL_CONTENT_TYPE =

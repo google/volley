@@ -1,4 +1,4 @@
-package com.android.volley.toolbox;
+package com.android.volley.toolbox.requestbuilder;
 
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
@@ -14,6 +14,8 @@ import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.ImageRequest;
+import com.android.volley.toolbox.JsonRequest;
 
 import org.json.JSONException;
 import org.json.JSONObject;

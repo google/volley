@@ -1,4 +1,4 @@
-package com.android.volley.toolbox;
+package com.android.volley.toolbox.requestbuilder;
 
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static com.android.volley.toolbox.Utils.or;
-import static com.android.volley.toolbox.Utils.requireNonNull;
+import static com.android.volley.Utils.or;
+import static com.android.volley.Utils.requireNonNull;
 
 /**
  * TODO Update this documentation
@@ -122,7 +122,7 @@ import static com.android.volley.toolbox.Utils.requireNonNull;
  *
  * @param <T> The type of the response
  */
-public class RequestBuilder<T> {
+public final class RequestBuilder<T> {
 
     /**
      * Creates a new {@link RequestBuilder}.

@@ -16,7 +16,7 @@
 
 package com.android.volley;
 
-import static com.android.volley.toolbox.Bodies._encodeParameters;
+import static com.android.volley.toolbox.requestbuilder.Bodies._encodeParameters;
 
 import android.net.TrafficStats;
 import android.net.Uri;
@@ -24,6 +24,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import com.android.volley.VolleyLog.MarkerLog;
+import com.android.volley.toolbox.requestbuilder.RequestBuilder;
+
 import java.util.Collections;
 import java.util.Map;
 
@@ -425,7 +427,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * @throws AuthFailureError in the event of auth failure
      * @deprecated Deprecated because this is used in a way that prevents query parameters and a
      *     body being sent at the same time. Rather than overriding this to provide query params,
-     *     use {@link com.android.volley.toolbox.RequestBuilder#param(String, String)} instead.
+     *     use {@link RequestBuilder#param(String, String)} instead.
      */
     @Deprecated
     protected Map<String, String> getParams() throws AuthFailureError {

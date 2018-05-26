@@ -1,6 +1,9 @@
-package com.android.volley.toolbox;
+package com.android.volley;
 
-class Utils {
+/**
+ * Not for use outside Volley
+ */
+public class Utils {
 
     public static <T> T requireNonNull(T obj) {
         if (obj == null) throw new NullPointerException();

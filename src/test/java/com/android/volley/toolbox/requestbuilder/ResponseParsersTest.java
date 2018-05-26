@@ -1,14 +1,15 @@
-package com.android.volley.toolbox;
-
-import static com.android.volley.mock.StubbedRequestQueue.stringBytes;
-import static org.junit.Assert.assertEquals;
+package com.android.volley.toolbox.requestbuilder;
 
 import com.android.volley.NetworkResponse;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+
+import static com.android.volley.mock.StubbedRequestQueue.stringBytes;
+import static org.junit.Assert.assertEquals;
 
 @RunWith(RobolectricTestRunner.class)
 public class ResponseParsersTest {

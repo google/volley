@@ -1,4 +1,4 @@
-package com.android.volley.toolbox;
+package com.android.volley.toolbox.requestbuilder;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -7,6 +7,8 @@ import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
+import com.android.volley.toolbox.HttpHeaderParser;
+import com.android.volley.toolbox.ImageRequest;
 
 /**
  * Prefer using {@link ResponseParsers#forImage} instead of creating this directly. Also see that

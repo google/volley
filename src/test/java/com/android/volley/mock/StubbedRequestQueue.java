@@ -4,7 +4,7 @@ import android.annotation.SuppressLint;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.NoCache;
-import com.android.volley.toolbox.RequestBuilder;
+import com.android.volley.toolbox.requestbuilder.RequestBuilder;
 import com.android.volley.toolbox.RequestFuture;
 import com.android.volley.utils.ImmediateResponseDelivery;
 import java.nio.charset.Charset;

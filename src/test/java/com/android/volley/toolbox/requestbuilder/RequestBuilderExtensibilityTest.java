@@ -1,7 +1,8 @@
-package com.android.volley.toolbox;
+package com.android.volley.toolbox.requestbuilder;
 
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.requestbuilder.RequestBuilder;
 
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;

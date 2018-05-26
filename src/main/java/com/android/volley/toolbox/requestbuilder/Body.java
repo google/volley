@@ -1,4 +1,4 @@
-package com.android.volley.toolbox;
+package com.android.volley.toolbox.requestbuilder;
 
 /**
  * A {@link com.android.volley.Request} body, to be passed into {@link RequestBuilder#body(Body)}.

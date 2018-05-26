@@ -1,4 +1,4 @@
-package com.android.volley.toolbox;
+package com.android.volley.toolbox.requestbuilder;
 
 import android.graphics.Bitmap;
 import android.widget.ImageView;
@@ -6,6 +6,7 @@ import android.widget.ImageView;
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
+import com.android.volley.toolbox.HttpHeaderParser;
 
 import org.json.JSONArray;
 import org.json.JSONException;

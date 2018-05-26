@@ -25,6 +25,9 @@ import com.android.volley.ParseError;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.requestbuilder.RequestBuilder;
+import com.android.volley.toolbox.requestbuilder.ResponseParser;
+import com.android.volley.toolbox.requestbuilder.ResponseParsers;
 
 /** A canned request for getting an image at a given URL and calling back with a decoded Bitmap. */
 public class ImageRequest extends Request<Bitmap> {
