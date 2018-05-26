@@ -123,7 +123,7 @@ public class ImageResponseParser implements ResponseParser<Bitmap> {
     }
 
     @Override
-    public void configureDefaults(RequestBuilder<Bitmap, ?> requestBuilder) {
+    public void configureDefaults(RequestBuilder<Bitmap> requestBuilder) {
         if (requestBuilder.getPriority() == null) {
             requestBuilder.retryPolicy(
                     new DefaultRetryPolicy(

@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 public class StubbedRequestQueue extends RequestQueue {
 
-    public static <T> T getResultWithMockedQueue(RequestBuilder<T, ?> builder, String mockResponse)
+    public static <T> T getResultWithMockedQueue(RequestBuilder<T> builder, String mockResponse)
             throws Exception {
         RequestFuture<T> future = RequestFuture.newFuture();
         Request<T> request = builder.onSuccess(future).onError(future).build();

@@ -1,30 +1,33 @@
 package com.android.volley.toolbox;
 
-import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
-
 import android.graphics.Bitmap;
 import android.widget.ImageView;
+
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Response;
-import java.io.UnsupportedEncodingException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
+
+import static com.android.volley.toolbox.JsonRequest.PROTOCOL_CHARSET;
 
 /** Convenience methods for creating {@link ResponseParser} for various data types. */
 public class ResponseParsers {
 
     /** Ignores the {@link Response} data, always returns {@code null}. */
-    public static <T> ResponseParser<T> stub() {
-        return new ResponseParser<T>() {
+    public static ResponseParser<Object> ignoreResponse() {
+        return new ResponseParser<Object>() {
             @Override
-            public Response<T> parseNetworkResponse(NetworkResponse response) {
+            public Response<Object> parseNetworkResponse(NetworkResponse response) {
                 return Response.success(null, HttpHeaderParser.parseCacheHeaders(response));
             }
 
             @Override
-            public void configureDefaults(RequestBuilder<T, ?> requestBuilder) {
+            public void configureDefaults(RequestBuilder<Object> requestBuilder) {
                 // Do nothing
             }
         };
@@ -51,7 +54,7 @@ public class ResponseParsers {
             }
 
             @Override
-            public void configureDefaults(RequestBuilder<String, ?> requestBuilder) {
+            public void configureDefaults(RequestBuilder<String> requestBuilder) {
                 // Do nothing
             }
         };
@@ -119,7 +122,7 @@ public class ResponseParsers {
         }
 
         @Override
-        public void configureDefaults(RequestBuilder<T, ?> requestBuilder) {
+        public void configureDefaults(RequestBuilder<T> requestBuilder) {
             // Do nothing
         }
 

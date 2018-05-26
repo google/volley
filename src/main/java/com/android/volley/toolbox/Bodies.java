@@ -1,15 +1,17 @@
 package com.android.volley.toolbox;
 
-import static com.android.volley.toolbox.Utils.requireNonNull;
-
 import com.android.volley.Request;
 import com.android.volley.VolleyLog;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
-import org.json.JSONArray;
-import org.json.JSONObject;
+
+import static com.android.volley.toolbox.Utils.requireNonNull;
 
 /** Convenience factory methods for creating a {@link Body}. */
 public class Bodies {
@@ -43,7 +45,7 @@ public class Bodies {
             }
 
             @Override
-            public <T> void configureDefaults(RequestBuilder<T, ?> requestBuilder) {
+            public <T> void configureDefaults(RequestBuilder<T> requestBuilder) {
                 if (requestBuilder.getBodyContentType() == null) {
                     requestBuilder.bodyContentType(contentType);
                 }
@@ -83,7 +85,7 @@ public class Bodies {
             }
 
             @Override
-            public <T> void configureDefaults(RequestBuilder<T, ?> requestBuilder) {
+            public <T> void configureDefaults(RequestBuilder<T> requestBuilder) {
                 // Do nothing
             }
         };
@@ -115,7 +117,7 @@ public class Bodies {
         }
 
         @Override
-        public <T> void configureDefaults(RequestBuilder<T, ?> requestBuilder) {
+        public <T> void configureDefaults(RequestBuilder<T> requestBuilder) {
             // Do nothing
         }
     }
@@ -141,7 +143,7 @@ public class Bodies {
         }
 
         @Override
-        public <T> void configureDefaults(RequestBuilder<T, ?> requestBuilder) {
+        public <T> void configureDefaults(RequestBuilder<T> requestBuilder) {
             if (requestBuilder.getBodyContentType() == null) {
                 requestBuilder.bodyContentType(JsonRequest.PROTOCOL_CONTENT_TYPE);
             }

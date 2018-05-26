@@ -1,18 +1,9 @@
 package com.android.volley.toolbox;
 
-import static com.android.volley.mock.StubbedRequestQueue.getResultWithMockedQueue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.widget.ImageView.ScaleType;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
@@ -23,22 +14,34 @@ import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+import static com.android.volley.mock.StubbedRequestQueue.getResultWithMockedQueue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
 @RunWith(RobolectricTestRunner.class)
 public class RequestBuilderTest {
 
     private static final String URL = "http://www.example.com/";
 
-    public static <T> RequestBuilder<T, ? extends RequestBuilder> baseValidBuilder() {
-        return RequestBuilder.<T>startNew().url(URL).onError(new StubErrorListener());
+    public static RequestBuilder<String> baseValidBuilder() {
+        return RequestBuilder.startNew().url(URL).onError(new StubErrorListener());
     }
 
     @Test
@@ -48,14 +51,14 @@ public class RequestBuilderTest {
 
     @Test(expected = IllegalStateException.class)
     public void cannotBuildTwice() {
-        RequestBuilder<?, ?> builder = baseValidBuilder();
+        RequestBuilder<?> builder = baseValidBuilder();
         builder.build();
         builder.build();
     }
 
     @Test(expected = IllegalStateException.class)
     public void cannotConfigureAfterBuilt() {
-        RequestBuilder<?, ?> builder = baseValidBuilder();
+        RequestBuilder<?> builder = baseValidBuilder();
         builder.build();
         builder.url(URL);
     }
@@ -64,8 +67,8 @@ public class RequestBuilderTest {
     public void setsAndAppendsUrl() {
         String append = "subdomain/";
 
-        Request<Void> request =
-                RequestBuilder.<Void>startNew()
+        Request<?> request =
+                RequestBuilder.startNew()
                         .url(URL)
                         .appendUrl(append)
                         .onError(new StubErrorListener())
@@ -76,8 +79,8 @@ public class RequestBuilderTest {
 
     @Test(expected = NullPointerException.class)
     public void nullUrlIsThrownOnBuild() {
-        RequestBuilder.<Void>startNew()
-                .onSuccess(new StubListener<Void>())
+        RequestBuilder.startNew()
+                .onSuccess(new StubListener<String>())
                 .onError(new StubErrorListener())
                 .build();
     }
@@ -154,8 +157,7 @@ public class RequestBuilderTest {
 
     @Test
     public void requestForImageHasLowPriority() {
-        Request<Bitmap> request =
-                RequestBuilderTest.<Bitmap>baseValidBuilder()
+        Request<Bitmap> request = baseValidBuilder()
                         .parseResponse(
                                 ResponseParsers.forImage(Config.ALPHA_8, 1, 1, ScaleType.CENTER))
                         .build();
@@ -168,8 +170,7 @@ public class RequestBuilderTest {
 
         assertNotEquals(ImageRequest.DEFAULT_IMAGE_PRIORITY, expected); // sanity check for test
 
-        Request<Bitmap> request =
-                RequestBuilderTest.<Bitmap>baseValidBuilder()
+        Request<Bitmap> request = baseValidBuilder()
                         .priority(expected)
                         .parseResponse(
                                 ResponseParsers.forImage(Config.ALPHA_8, 1, 1, ScaleType.CENTER))
@@ -253,7 +254,7 @@ public class RequestBuilderTest {
         expected.put(key1, val1);
 
         Map<String, String> actual =
-                ((BuildableRequest<Object>)
+                ((BuildableRequest<?>)
                                 baseValidBuilder()
                                         .param(key1, val1)
                                         .param(key2, "Val-2-replaced_later")
@@ -276,7 +277,7 @@ public class RequestBuilderTest {
 
     @Test
     public void bodyDefaultsAreCorrect() throws AuthFailureError {
-        Request<Object> request = baseValidBuilder().build();
+        Request<?> request = baseValidBuilder().build();
 
         assertEquals(null, request.getBody());
         assertEquals(Bodies.DEFAULT_CONTENT_TYPE, request.getBodyContentType());
@@ -287,14 +288,21 @@ public class RequestBuilderTest {
         JSONObject jsonObject =
                 new JSONObject().put("first-key", "first-value").put("second key", 3);
 
-        Request<Object> request = baseValidBuilder().body(Bodies.forJSONObject(jsonObject)).build();
+        Request<?> request = baseValidBuilder().body(Bodies.forJSONObject(jsonObject)).build();
 
         assertTrue(request.getBody().length > 0);
         assertEquals(JsonRequest.PROTOCOL_CONTENT_TYPE, request.getBodyContentType());
     }
 
     @RunWith(RobolectricTestRunner.class)
-    public static class TestsUsingMockedQueue {
+    public static class ParserTests {
+
+        @Test(expected = IllegalStateException.class)
+        public void parserCannotBeSetAfterAddingAListener() {
+            RequestBuilder.startNew()
+                    .onSuccess(new StubListener<String>())
+                    .parseResponse(ResponseParsers.forString());
+        }
 
         @Test
         public void listenersAndParsersAreCalledOnSuccess() throws Exception {
@@ -306,11 +314,11 @@ public class RequestBuilderTest {
 
             String response =
                     getResultWithMockedQueue(
-                            RequestBuilder.<String>startNew()
+                            RequestBuilder.startNew()
                                     .url(URL)
+                                    .parseResponse(parser)
                                     .onSuccess(extraListener)
-                                    .onError(extraErrorListener)
-                                    .parseResponse(parser),
+                                    .onError(extraErrorListener),
                             expectedResponse);
 
             assertEquals(expectedResponse, response);
@@ -321,11 +329,13 @@ public class RequestBuilderTest {
         }
 
         @Test
-        public void nullIsGivenToTheListenerIfNoResponse() throws Exception {
-            String valueTheListenerReceived =
-                    getResultWithMockedQueue(
-                            RequestBuilder.<String>startNew().url(URL), "Response");
-            assertEquals(null, valueTheListenerReceived);
+        public void stringIsGivenToTheListenerIfNoParserWasSetExplicitly() throws Exception {
+            String mockResponse = "Response";
+            String valueTheListenerReceived = getResultWithMockedQueue(
+                    RequestBuilder.startNew().url(URL),
+                    mockResponse
+            );
+            assertEquals(mockResponse, valueTheListenerReceived);
         }
 
         @Test
@@ -335,7 +345,7 @@ public class RequestBuilderTest {
 
             JSONObject valueTheListenerReceived =
                     getResultWithMockedQueue(
-                            RequestBuilder.<JSONObject>startNew()
+                            RequestBuilder.startNew()
                                     .url(URL)
                                     .parseResponse(ResponseParsers.forJSONObject()),
                             expected.toString());

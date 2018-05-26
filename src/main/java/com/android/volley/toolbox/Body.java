@@ -11,5 +11,5 @@ public interface Body {
     byte[] bytes();
 
     /** Configures {@link RequestBuilder} to use reasonable settings for this {@link Body}. */
-    <T> void configureDefaults(RequestBuilder<T, ?> requestBuilder);
+    <T> void configureDefaults(RequestBuilder<T> requestBuilder);
 }
