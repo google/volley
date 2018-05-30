@@ -91,8 +91,12 @@ public class NetworkDispatcher extends Thread {
             } catch (InterruptedException e) {
                 // We may have been interrupted because it was time to quit.
                 if (mQuit) {
+                    Thread.currentThread().interrupt();
                     return;
                 }
+                VolleyLog.e(
+                        "Ignoring spurious interrupt of NetworkDispatcher thread; "
+                                + "use quit() to terminate it");
             }
         }
     }

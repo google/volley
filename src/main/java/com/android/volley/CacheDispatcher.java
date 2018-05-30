@@ -98,8 +98,12 @@ public class CacheDispatcher extends Thread {
             } catch (InterruptedException e) {
                 // We may have been interrupted because it was time to quit.
                 if (mQuit) {
+                    Thread.currentThread().interrupt();
                     return;
                 }
+                VolleyLog.e(
+                        "Ignoring spurious interrupt of CacheDispatcher thread; "
+                                + "use quit() to terminate it");
             }
         }
     }
