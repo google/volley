@@ -166,34 +166,108 @@ public class DiskBasedCacheTest {
     }
 
     @Test
-    public void testTrim() {
-        Cache.Entry entry = randomData(2 * MAX_SIZE);
+    public void testTooLargeEntry() {
+        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("oversize"));
         cache.put("oversize", entry);
 
-        assertThatEntriesAreEqual(cache.get("oversize"), entry);
-
-        entry = randomData(1024);
-        cache.put("kilobyte", entry);
-
         assertThat(cache.get("oversize"), is(nullValue()));
-        assertThatEntriesAreEqual(cache.get("kilobyte"), entry);
+    }
 
-        Cache.Entry entry2 = randomData(1024);
-        cache.put("kilobyte2", entry2);
-        Cache.Entry entry3 = randomData(1024);
-        cache.put("kilobyte3", entry3);
+    @Test
+    public void testMaxSizeEntry() {
+        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("maxsize") - 1);
+        cache.put("maxsize", entry);
 
-        assertThatEntriesAreEqual(cache.get("kilobyte"), entry);
-        assertThatEntriesAreEqual(cache.get("kilobyte2"), entry2);
-        assertThatEntriesAreEqual(cache.get("kilobyte3"), entry3);
+        assertThatEntriesAreEqual(cache.get("maxsize"), entry);
+    }
 
-        entry = randomData(MAX_SIZE);
+    @Test
+    public void testTrimAtThreshold() {
+        // Start with the largest possible entry.
+        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("maxsize") - 1);
+        cache.put("maxsize", entry);
+
+        assertThatEntriesAreEqual(cache.get("maxsize"), entry);
+
+        // Now any new entry should cause the first one to be cleared.
+        entry = randomData(0);
+        cache.put("bit", entry);
+
+        assertThat(cache.get("goodsize"), is(nullValue()));
+        assertThatEntriesAreEqual(cache.get("bit"), entry);
+    }
+
+    @Test
+    public void testTrimWithMultipleEvictions_underHysteresisThreshold() {
+        Cache.Entry entry1 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry1") - 1);
+        cache.put("entry1", entry1);
+        Cache.Entry entry2 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry2") - 1);
+        cache.put("entry2", entry2);
+        Cache.Entry entry3 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry3") - 1);
+        cache.put("entry3", entry3);
+
+        assertThatEntriesAreEqual(cache.get("entry1"), entry1);
+        assertThatEntriesAreEqual(cache.get("entry2"), entry2);
+        assertThatEntriesAreEqual(cache.get("entry3"), entry3);
+
+        Cache.Entry entry =
+                randomData(
+                        (int) (DiskBasedCache.HYSTERESIS_FACTOR * MAX_SIZE)
+                                - getEntrySizeOnDisk("max"));
         cache.put("max", entry);
 
-        assertThat(cache.get("kilobyte"), is(nullValue()));
-        assertThat(cache.get("kilobyte2"), is(nullValue()));
-        assertThat(cache.get("kilobyte3"), is(nullValue()));
+        assertThat(cache.get("entry1"), is(nullValue()));
+        assertThat(cache.get("entry2"), is(nullValue()));
+        assertThat(cache.get("entry3"), is(nullValue()));
         assertThatEntriesAreEqual(cache.get("max"), entry);
+    }
+
+    @Test
+    public void testTrimWithMultipleEvictions_atHysteresisThreshold() {
+        Cache.Entry entry1 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry1") - 1);
+        cache.put("entry1", entry1);
+        Cache.Entry entry2 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry2") - 1);
+        cache.put("entry2", entry2);
+        Cache.Entry entry3 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry3") - 1);
+        cache.put("entry3", entry3);
+
+        assertThatEntriesAreEqual(cache.get("entry1"), entry1);
+        assertThatEntriesAreEqual(cache.get("entry2"), entry2);
+        assertThatEntriesAreEqual(cache.get("entry3"), entry3);
+
+        Cache.Entry entry =
+                randomData(
+                        (int) (DiskBasedCache.HYSTERESIS_FACTOR * MAX_SIZE)
+                                - getEntrySizeOnDisk("max")
+                                + 1);
+        cache.put("max", entry);
+
+        assertThat(cache.get("entry1"), is(nullValue()));
+        assertThat(cache.get("entry2"), is(nullValue()));
+        assertThat(cache.get("entry3"), is(nullValue()));
+        assertThat(cache.get("max"), is(nullValue()));
+    }
+
+    @Test
+    public void testTrimWithPartialEvictions() {
+        Cache.Entry entry1 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry1") - 1);
+        cache.put("entry1", entry1);
+        Cache.Entry entry2 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry2") - 1);
+        cache.put("entry2", entry2);
+        Cache.Entry entry3 = randomData(MAX_SIZE / 3 - getEntrySizeOnDisk("entry3") - 1);
+        cache.put("entry3", entry3);
+
+        assertThatEntriesAreEqual(cache.get("entry1"), entry1);
+        assertThatEntriesAreEqual(cache.get("entry2"), entry2);
+        assertThatEntriesAreEqual(cache.get("entry3"), entry3);
+
+        Cache.Entry entry4 = randomData((MAX_SIZE - getEntrySizeOnDisk("entry4") - 1) / 2);
+        cache.put("entry4", entry4);
+
+        assertThat(cache.get("entry1"), is(nullValue()));
+        assertThat(cache.get("entry2"), is(nullValue()));
+        assertThatEntriesAreEqual(cache.get("entry3"), entry3);
+        assertThatEntriesAreEqual(cache.get("entry4"), entry4);
     }
 
     @Test
@@ -517,5 +591,16 @@ public class DiskBasedCacheTest {
 
     private File[] listCachedFiles() {
         return temporaryFolder.getRoot().listFiles();
+    }
+
+    private int getEntrySizeOnDisk(String key) {
+        // Header size is:
+        // 4 bytes for magic int
+        // 8 + len(key) bytes for key (long length)
+        // 8 bytes for etag (long length + 0 characters)
+        // 32 bytes for serverDate, lastModified, ttl, and softTtl longs
+        // 4 bytes for length of header list int
+        // == 56 + len(key) bytes total.
+        return 56 + key.length();
     }
 }
