@@ -15,7 +15,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.http.Header;
 import org.apache.http.HttpRequest;
@@ -58,8 +60,7 @@ public class HttpStackConformanceTest {
                         doAnswer(
                                         new Answer<Void>() {
                                             @Override
-                                            public Void answer(InvocationOnMock invocation)
-                                                    throws Throwable {
+                                            public Void answer(InvocationOnMock invocation) {
                                                 outputHeaderMap.put(
                                                         invocation.<String>getArgument(0),
                                                         invocation.<String>getArgument(1));
@@ -68,6 +69,24 @@ public class HttpStackConformanceTest {
                                         })
                                 .when(mMockConnection)
                                 .setRequestProperty(anyString(), anyString());
+                        doAnswer(
+                                        new Answer<Map<String, List<String>>>() {
+                                            @Override
+                                            public Map<String, List<String>> answer(
+                                                    InvocationOnMock invocation) {
+                                                Map<String, List<String>> result = new HashMap<>();
+                                                for (Map.Entry<String, String> entry :
+                                                        outputHeaderMap.entrySet()) {
+                                                    result.put(
+                                                            entry.getKey(),
+                                                            Collections.singletonList(
+                                                                    entry.getValue()));
+                                                }
+                                                return result;
+                                            }
+                                        })
+                                .when(mMockConnection)
+                                .getRequestProperties();
                     }
                 },
 
