@@ -473,6 +473,14 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         StringBuilder encodedParams = new StringBuilder();
         try {
             for (Map.Entry<String, String> entry : params.entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "Request#getParams() or Request#getPostParams() returned a map "
+                                            + "containing a null key or value: (%s, %s). All keys "
+                                            + "and values must be non-null.",
+                                    entry.getKey(), entry.getValue()));
+                }
                 encodedParams.append(URLEncoder.encode(entry.getKey(), paramsEncoding));
                 encodedParams.append('=');
                 encodedParams.append(URLEncoder.encode(entry.getValue(), paramsEncoding));
