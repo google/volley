@@ -476,7 +476,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
                 if (entry.getKey() == null || entry.getValue() == null) {
                     throw new IllegalArgumentException(
                             String.format(
-                                    "Request#getBody() and Request#getPostBody() returned a map "
+                                    "Request#getParams() or Request#getPostParams() returned a map "
                                             + "containing a null key or value: (%s, %s). All keys "
                                             + "and values must be non-null.",
                                     entry.getKey(), entry.getValue()));
