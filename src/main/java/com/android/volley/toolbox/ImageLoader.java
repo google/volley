@@ -29,6 +29,7 @@ import com.android.volley.VolleyError;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ListIterator;
 
 /**
  * Helper that handles loading and caching images from remote URLs.
@@ -56,7 +57,7 @@ public class ImageLoader {
     private final HashMap<String, BatchedImageRequest> mInFlightRequests = new HashMap<>();
 
     /** HashMap of the currently pending responses (waiting to be delivered). */
-    private final HashMap<String, BatchedImageRequest> mBatchedResponses = new HashMap<>();
+    private final HashMap<String, List<BatchedImageRequest>> mBatchedResponses = new HashMap<>();
 
     /** Handler to the main thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -386,10 +387,18 @@ public class ImageLoader {
                 }
             } else {
                 // check to see if it is already batched for delivery.
-                request = mBatchedResponses.get(mCacheKey);
-                if (request != null) {
-                    request.removeContainerAndCancelIfNecessary(this);
-                    if (request.mContainers.size() == 0) {
+                List<BatchedImageRequest> requestList = mBatchedResponses.get(mCacheKey);
+                if (requestList != null) {
+                    ListIterator<BatchedImageRequest> iterator = requestList.listIterator();
+                    while (iterator.hasNext()) {
+                        // request = mBatchedResponses.get(mCacheKey);
+                        request = iterator.next();
+                        request.removeContainerAndCancelIfNecessary(this);
+                        if (request.mContainers.size() == 0) {
+                            iterator.remove();
+                        }
+                    }
+                    if (requestList.size() == 0) {
                         mBatchedResponses.remove(mCacheKey);
                     }
                 }
@@ -479,7 +488,12 @@ public class ImageLoader {
      * @param request The BatchedImageRequest to be delivered.
      */
     private void batchResponse(String cacheKey, BatchedImageRequest request) {
-        mBatchedResponses.put(cacheKey, request);
+        List<BatchedImageRequest> batchedImageRequestList = mBatchedResponses.get(cacheKey);
+        if (batchedImageRequestList == null) {
+            batchedImageRequestList = new ArrayList<>();
+        }
+        batchedImageRequestList.add(request);
+        mBatchedResponses.put(cacheKey, batchedImageRequestList);
         // If we don't already have a batch delivery runnable in flight, make a new one.
         // Note that this will be used to deliver responses to all callers in mBatchedResponses.
         if (mRunnable == null) {
@@ -487,20 +501,24 @@ public class ImageLoader {
                     new Runnable() {
                         @Override
                         public void run() {
-                            for (BatchedImageRequest bir : mBatchedResponses.values()) {
-                                for (ImageContainer container : bir.mContainers) {
-                                    // If one of the callers in the batched request canceled the
-                                    // request
-                                    // after the response was received but before it was delivered,
-                                    // skip them.
-                                    if (container.mListener == null) {
-                                        continue;
-                                    }
-                                    if (bir.getError() == null) {
-                                        container.mBitmap = bir.mResponseBitmap;
-                                        container.mListener.onResponse(container, false);
-                                    } else {
-                                        container.mListener.onErrorResponse(bir.getError());
+
+                            for (List<BatchedImageRequest> birList : mBatchedResponses.values()) {
+                                for (BatchedImageRequest bir : birList) {
+                                    for (ImageContainer container : bir.mContainers) {
+                                        // If one of the callers in the batched request canceled the
+                                        // request
+                                        // after the response was received but before it was
+                                        // delivered,
+                                        // skip them.
+                                        if (container.mListener == null) {
+                                            continue;
+                                        }
+                                        if (bir.getError() == null) {
+                                            container.mBitmap = bir.mResponseBitmap;
+                                            container.mListener.onResponse(container, false);
+                                        } else {
+                                            container.mListener.onErrorResponse(bir.getError());
+                                        }
                                     }
                                 }
                             }
