@@ -239,8 +239,11 @@ public class ImageLoader {
         // Update the caller to let them know that they should use the default bitmap.
         imageListener.onResponse(imageContainer, true);
 
-        // Check to see if a request is already in-flight.
+        // Check to see if a request is already in-flight or completed but pending batch delivery.
         BatchedImageRequest request = mInFlightRequests.get(cacheKey);
+        if (request == null) {
+            request = mBatchedResponses.get(cacheKey);
+        }
         if (request != null) {
             // If it is, add this request to the list of listeners.
             request.addContainer(imageContainer);
