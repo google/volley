@@ -271,6 +271,29 @@ public class DiskBasedCacheTest {
     }
 
     @Test
+    public void testLargeEntryDoesntClearCache() {
+        // Writing a large entry to an empty cache should succeed
+        Cache.Entry largeEntry = randomData(MAX_SIZE - getEntrySizeOnDisk("largeEntry") - 1);
+        cache.put("largeEntry", largeEntry);
+
+        assertThatEntriesAreEqual(cache.get("largeEntry"), largeEntry);
+
+        // Reset and fill up ~half the cache.
+        cache.clear();
+        Cache.Entry entry = randomData(MAX_SIZE / 2 - getEntrySizeOnDisk("entry") - 1);
+        cache.put("entry", entry);
+
+        assertThatEntriesAreEqual(cache.get("entry"), entry);
+
+        // Writing the large entry should no-op, because otherwise the pruning algorithm would clear
+        // the whole cache, since the large entry is above the hysteresis threshold.
+        cache.put("largeEntry", largeEntry);
+
+        assertThat(cache.get("largeEntry"), is(nullValue()));
+        assertThatEntriesAreEqual(cache.get("entry"), entry);
+    }
+
+    @Test
     @SuppressWarnings("TryFinallyCanBeTryWithResources")
     public void testGetBadMagic() throws IOException {
         // Cache something
