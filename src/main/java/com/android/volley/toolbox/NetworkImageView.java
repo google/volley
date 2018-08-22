@@ -40,7 +40,7 @@ public class NetworkImageView extends ImageView {
     /** Current ImageContainer. (either in-flight or finished) */
     private ImageContainer mImageContainer;
     
-    /** ImageLoader response listener interface */
+    /** ImageLoader response listener interface. */
     private ResponseListener mResponseListener;
 
     public NetworkImageView(Context context) {
@@ -157,7 +157,7 @@ public class NetworkImageView extends ImageView {
                                     setImageResource(mErrorImageId);
                                 }
 
-                                if(mResponseListener != null) {
+                                if (mResponseListener != null) {
                                     mResponseListener.onError();
                                 }
                             }
@@ -189,7 +189,7 @@ public class NetworkImageView extends ImageView {
                                     setImageResource(mDefaultImageId);
                                 }
 
-                                if(mResponseListener != null) {
+                                if (mResponseListener != null) {
                                     mResponseListener.onSuccess();
                                 }
                             }
