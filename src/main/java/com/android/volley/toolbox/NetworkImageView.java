@@ -14,6 +14,7 @@
 package com.android.volley.toolbox;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.support.annotation.MainThread;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -39,9 +40,9 @@ public class NetworkImageView extends ImageView {
 
     /** Current ImageContainer. (either in-flight or finished) */
     private ImageContainer mImageContainer;
-    
+
     /** ImageLoader response listener interface. */
-    private ResponseListener mResponseListener;
+    private OnResponseListener mOnResponseListener;
 
     public NetworkImageView(Context context) {
         this(context, null);
@@ -53,6 +54,25 @@ public class NetworkImageView extends ImageView {
 
     public NetworkImageView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+    }
+
+    /**
+     * Sets URL of the image that should be loaded into this view. Note that calling this will
+     * immediately either set the cached image (if available) or the default image specified by
+     * {@link NetworkImageView#setDefaultImageResId(int)} on the view.
+     *
+     * <p>NOTE: If applicable, {@link NetworkImageView#setDefaultImageResId(int)} and {@link
+     * NetworkImageView#setErrorImageResId(int)} should be called prior to calling this function.
+     *
+     * <p>Must be called from the main thread.
+     *
+     * @param url The URL that should be loaded into this ImageView.
+     * @param imageLoader ImageLoader that will be used to make the request.
+     * @param onResponseListener OnResponseListener that will notify on success or error of request.
+     */
+    public void setImageUrl(String url, ImageLoader imageLoader, OnResponseListener onResponseListener) {
+        mOnResponseListener = onResponseListener;
+        setImageUrl(url, imageLoader);
     }
 
     /**
@@ -157,8 +177,8 @@ public class NetworkImageView extends ImageView {
                                     setImageResource(mErrorImageId);
                                 }
 
-                                if (mResponseListener != null) {
-                                    mResponseListener.onError();
+                                if (mOnResponseListener != null) {
+                                    mOnResponseListener.onError(error);
                                 }
                             }
 
@@ -185,12 +205,12 @@ public class NetworkImageView extends ImageView {
 
                                 if (response.getBitmap() != null) {
                                     setImageBitmap(response.getBitmap());
+
+                                    if (mOnResponseListener != null) {
+                                        mOnResponseListener.onSuccess(response.getBitmap());
+                                    }
                                 } else if (mDefaultImageId != 0) {
                                     setImageResource(mDefaultImageId);
-                                }
-
-                                if (mResponseListener != null) {
-                                    mResponseListener.onSuccess();
                                 }
                             }
                         },
@@ -232,12 +252,23 @@ public class NetworkImageView extends ImageView {
         invalidate();
     }
 
-    public interface ResponseListener {
-        public void onError();
-        public void onSuccess();
-    }
+    /**
+     * Response listener for the imageLoader
+     * to handle notifying when request is successful or encountered error
+     */
+    public interface OnResponseListener {
+        /**
+         * Called when imageLoader response returns success
+         *
+         * @param bitmap the fetched image resource
+         */
+        void onSuccess(Bitmap bitmap);
 
-    public void setResponseListener(ResponseListener listener) {
-        mResponseListener = listener;
+        /**
+         * Called when imageLoader response returns error
+         *
+         * @param error a VolleyError
+         */
+        void onError(VolleyError error);
     }
 }
