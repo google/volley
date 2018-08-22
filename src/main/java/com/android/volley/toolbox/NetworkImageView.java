@@ -39,6 +39,9 @@ public class NetworkImageView extends ImageView {
 
     /** Current ImageContainer. (either in-flight or finished) */
     private ImageContainer mImageContainer;
+    
+    /** ImageLoader response listener interface */
+    private ResponseListener mResponseListener;
 
     public NetworkImageView(Context context) {
         this(context, null);
@@ -153,6 +156,10 @@ public class NetworkImageView extends ImageView {
                                 if (mErrorImageId != 0) {
                                     setImageResource(mErrorImageId);
                                 }
+
+                                if(mResponseListener != null) {
+                                    mResponseListener.onError();
+                                }
                             }
 
                             @Override
@@ -180,6 +187,10 @@ public class NetworkImageView extends ImageView {
                                     setImageBitmap(response.getBitmap());
                                 } else if (mDefaultImageId != 0) {
                                     setImageResource(mDefaultImageId);
+                                }
+
+                                if(mResponseListener != null) {
+                                    mResponseListener.onSuccess();
                                 }
                             }
                         },
@@ -219,5 +230,14 @@ public class NetworkImageView extends ImageView {
     protected void drawableStateChanged() {
         super.drawableStateChanged();
         invalidate();
+    }
+
+    public interface ResponseListener {
+        public void onError();
+        public void onSuccess();
+    }
+
+    public void setResponseListener(ResponseListener listener) {
+        mResponseListener = listener;
     }
 }
