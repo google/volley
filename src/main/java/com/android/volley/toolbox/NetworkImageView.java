@@ -14,7 +14,9 @@
 package com.android.volley.toolbox;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.support.annotation.MainThread;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.ViewGroup.LayoutParams;
@@ -28,11 +30,29 @@ public class NetworkImageView extends ImageView {
     /** The URL of the network image to load */
     private String mUrl;
 
-    /** Resource ID of the image to be used as a placeholder until the network image is loaded. */
+    /**
+     * Resource ID of the image to be used as a placeholder until the network image is loaded. Won't
+     * be set at the same time as mDefaultImageBitmap.
+     */
     private int mDefaultImageId;
 
-    /** Resource ID of the image to be used if the network response fails. */
+    /**
+     * Bitmap of the image to be used as a placeholder until the network image is loaded. Won't be
+     * set at the same time as mDefaultImageId.
+     */
+    @Nullable Bitmap mDefaultImageBitmap;
+
+    /**
+     * Resource ID of the image to be used if the network response fails. Won't be set at the same
+     * time as mErrorImageBitmap.
+     */
     private int mErrorImageId;
+
+    /**
+     * Bitmap of the image to be used if the network response fails. Won't be set at the same time
+     * as mErrorImageId.
+     */
+    @Nullable private Bitmap mErrorImageBitmap;
 
     /** Local copy of the ImageLoader. */
     private ImageLoader mImageLoader;
@@ -57,8 +77,10 @@ public class NetworkImageView extends ImageView {
      * immediately either set the cached image (if available) or the default image specified by
      * {@link NetworkImageView#setDefaultImageResId(int)} on the view.
      *
-     * <p>NOTE: If applicable, {@link NetworkImageView#setDefaultImageResId(int)} and {@link
-     * NetworkImageView#setErrorImageResId(int)} should be called prior to calling this function.
+     * <p>NOTE: If applicable, {@link NetworkImageView#setDefaultImageResId(int)} or {@link
+     * NetworkImageView#setDefaultImageBitmap} and {@link NetworkImageView#setErrorImageResId(int)}
+     * or {@link NetworkImageView#setErrorImageBitmap(Bitmap)} should be called prior to calling
+     * this function.
      *
      * <p>Must be called from the main thread.
      *
@@ -77,17 +99,53 @@ public class NetworkImageView extends ImageView {
     /**
      * Sets the default image resource ID to be used for this view until the attempt to load it
      * completes.
+     *
+     * <p>Cannot be called with {@link NetworkImageView#setDefaultImageBitmap}.
      */
     public void setDefaultImageResId(int defaultImage) {
+        if (mDefaultImageBitmap != null) {
+            throw new IllegalArgumentException("Can't have a default image resource ID and bitmap");
+        }
         mDefaultImageId = defaultImage;
+    }
+
+    /**
+     * Sets the default image bitmap to be used for this view until the attempt to load it
+     * completes.
+     *
+     * <p>Cannot be called with {@link NetworkImageView#setDefaultImageResId}.
+     */
+    public void setDefaultImageBitmap(Bitmap defaultImage) {
+        if (mDefaultImageId != 0) {
+            throw new IllegalArgumentException("Can't have a default image resource ID and bitmap");
+        }
+        mDefaultImageBitmap = defaultImage;
     }
 
     /**
      * Sets the error image resource ID to be used for this view in the event that the image
      * requested fails to load.
+     *
+     * <p>Cannot be called with {@link NetworkImageView#setErrorImageBitmap}.
      */
     public void setErrorImageResId(int errorImage) {
+        if (mErrorImageBitmap != null) {
+            throw new IllegalArgumentException("Can't have an error image resource ID and bitmap");
+        }
         mErrorImageId = errorImage;
+    }
+
+    /**
+     * Sets the error image bitmap to be used for this view in the event that the image requested
+     * fails to load.
+     *
+     * <p>Cannot be called with {@link NetworkImageView#setErrorImageResId}.
+     */
+    public void setErrorImageBitmap(Bitmap errorImage) {
+        if (mErrorImageId != 0) {
+            throw new IllegalArgumentException("Can't have an error image resource ID and bitmap");
+        }
+        mErrorImageBitmap = errorImage;
     }
 
     /**
@@ -152,6 +210,8 @@ public class NetworkImageView extends ImageView {
                             public void onErrorResponse(VolleyError error) {
                                 if (mErrorImageId != 0) {
                                     setImageResource(mErrorImageId);
+                                } else if (mErrorImageBitmap != null) {
+                                    setImageBitmap(mErrorImageBitmap);
                                 }
                             }
 
@@ -180,6 +240,8 @@ public class NetworkImageView extends ImageView {
                                     setImageBitmap(response.getBitmap());
                                 } else if (mDefaultImageId != 0) {
                                     setImageResource(mDefaultImageId);
+                                } else if (mDefaultImageBitmap != null) {
+                                    setImageBitmap(mDefaultImageBitmap);
                                 }
                             }
                         },
@@ -191,6 +253,8 @@ public class NetworkImageView extends ImageView {
     private void setDefaultImageOrNull() {
         if (mDefaultImageId != 0) {
             setImageResource(mDefaultImageId);
+        } else if (mDefaultImageBitmap != null) {
+            setImageBitmap(mDefaultImageBitmap);
         } else {
             setImageBitmap(null);
         }
