@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.util.AttributeSet;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageView.ScaleType;
@@ -89,7 +90,9 @@ public class NetworkImageViewTest {
 
         assertNotNull(
                 NetworkImageView.class.getMethod("setImageUrl", String.class, ImageLoader.class));
+        assertNotNull(NetworkImageView.class.getMethod("setDefaultImageBitmap", Bitmap.class));
         assertNotNull(NetworkImageView.class.getMethod("setDefaultImageResId", int.class));
+        assertNotNull(NetworkImageView.class.getMethod("setErrorImageBitmap", Bitmap.class));
         assertNotNull(NetworkImageView.class.getMethod("setErrorImageResId", int.class));
     }
 }
