@@ -104,7 +104,7 @@ public class NetworkImageView extends ImageView {
      */
     public void setDefaultImageResId(int defaultImage) {
         if (mDefaultImageBitmap != null) {
-          throw new IllegalArgumentException("Can't have a default image resource ID and bitmap");
+            throw new IllegalArgumentException("Can't have a default image resource ID and bitmap");
         }
         mDefaultImageId = defaultImage;
     }
@@ -117,7 +117,7 @@ public class NetworkImageView extends ImageView {
      */
     public void setDefaultImageBitmap(Bitmap defaultImage) {
         if (mDefaultImageId != 0) {
-          throw new IllegalArgumentException("Can't have a default image resource ID and bitmap");
+            throw new IllegalArgumentException("Can't have a default image resource ID and bitmap");
         }
         mDefaultImageBitmap = defaultImage;
     }
