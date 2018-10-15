@@ -264,8 +264,14 @@ public class BasicNetwork implements Network {
         }
 
         if (entry.lastModified > 0) {
-            headers.put(
-                    "If-Modified-Since", HttpHeaderParser.formatEpochAsRfc1123(entry.lastModified));
+            try {
+                headers.put(
+                        "If-Modified-Since", HttpHeaderParser.formatEpochAsRfc1123(entry.lastModified));
+            } catch (AssertionError e) {
+                // This can happen if corruption of filesystem.
+                // This is ASOP issue, We added workaround until that isssue is fixed.
+                VolleyLog.v("Error occurred when getting date from cache entry");
+            }   
         }
 
         return headers;
