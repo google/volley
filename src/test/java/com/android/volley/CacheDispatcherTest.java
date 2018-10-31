@@ -18,6 +18,8 @@ package com.android.volley;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.never;
@@ -28,6 +30,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.utils.CacheTestUtils;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,6 +48,7 @@ public class CacheDispatcherTest {
     private @Mock BlockingQueue<Request<?>> mNetworkQueue;
     private @Mock Cache mCache;
     private @Mock ResponseDelivery mDelivery;
+    private @Mock Network mNetwork;
     private StringRequest mRequest;
 
     @Before
@@ -230,5 +234,40 @@ public class CacheDispatcherTest {
         verify(mNetworkQueue, never()).put(secondRequest);
         verify(mDelivery)
                 .postResponse(any(Request.class), any(Response.class), any(Runnable.class));
+    }
+
+    @Test
+    public void processRequestNotifiesListener() throws Exception {
+        final AtomicBoolean listenerWasCalledOnStart = new AtomicBoolean(false);
+        final AtomicBoolean listenerWasCalledOnFinish = new AtomicBoolean(false);
+
+        RequestQueue.RequestEventListener listener =
+                new RequestQueue.RequestEventListener() {
+                    @Override
+                    public void onRequestEvent(Request request, RequestQueue.RequestEvent event) {
+                        if (event == RequestQueue.RequestEvent.REQUEST_CACHE_LOOKUP_STARTED) {
+                            if (listenerWasCalledOnStart.get()) {
+                                fail("Listener called more than once");
+                            }
+                            listenerWasCalledOnStart.set(true);
+                        } else if (event
+                                == RequestQueue.RequestEvent.REQUEST_CACHE_LOOKUP_FINISHED) {
+                            if (listenerWasCalledOnFinish.get()) {
+                                fail("Listener called more than once");
+                            }
+                            listenerWasCalledOnFinish.set(true);
+                        }
+                    }
+                };
+        RequestQueue queue = new RequestQueue(mCache, mNetwork, 0, mDelivery);
+        queue.addRequestEventListener(listener);
+        mRequest.setRequestQueue(queue);
+
+        Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, false);
+        when(mCache.get(anyString())).thenReturn(entry);
+        mDispatcher.processRequest(mRequest);
+
+        assertTrue(listenerWasCalledOnStart.get());
+        assertTrue(listenerWasCalledOnFinish.get());
     }
 }

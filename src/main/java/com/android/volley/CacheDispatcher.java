@@ -122,75 +122,80 @@ public class CacheDispatcher extends Thread {
     @VisibleForTesting
     void processRequest(final Request<?> request) throws InterruptedException {
         request.addMarker("cache-queue-take");
+        request.sendEvent(RequestQueue.RequestEvent.REQUEST_CACHE_LOOKUP_STARTED);
 
-        // If the request has been canceled, don't bother dispatching it.
-        if (request.isCanceled()) {
-            request.finish("cache-discard-canceled");
-            return;
-        }
-
-        // Attempt to retrieve this item from cache.
-        Cache.Entry entry = mCache.get(request.getCacheKey());
-        if (entry == null) {
-            request.addMarker("cache-miss");
-            // Cache miss; send off to the network dispatcher.
-            if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
-                mNetworkQueue.put(request);
+        try {
+            // If the request has been canceled, don't bother dispatching it.
+            if (request.isCanceled()) {
+                request.finish("cache-discard-canceled");
+                return;
             }
-            return;
-        }
 
-        // If it is completely expired, just send it to the network.
-        if (entry.isExpired()) {
-            request.addMarker("cache-hit-expired");
-            request.setCacheEntry(entry);
-            if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
-                mNetworkQueue.put(request);
+            // Attempt to retrieve this item from cache.
+            Cache.Entry entry = mCache.get(request.getCacheKey());
+            if (entry == null) {
+                request.addMarker("cache-miss");
+                // Cache miss; send off to the network dispatcher.
+                if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
+                    mNetworkQueue.put(request);
+                }
+                return;
             }
-            return;
-        }
 
-        // We have a cache hit; parse its data for delivery back to the request.
-        request.addMarker("cache-hit");
-        Response<?> response =
-                request.parseNetworkResponse(
-                        new NetworkResponse(entry.data, entry.responseHeaders));
-        request.addMarker("cache-hit-parsed");
+            // If it is completely expired, just send it to the network.
+            if (entry.isExpired()) {
+                request.addMarker("cache-hit-expired");
+                request.setCacheEntry(entry);
+                if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
+                    mNetworkQueue.put(request);
+                }
+                return;
+            }
 
-        if (!entry.refreshNeeded()) {
-            // Completely unexpired cache hit. Just deliver the response.
-            mDelivery.postResponse(request, response);
-        } else {
-            // Soft-expired cache hit. We can deliver the cached response,
-            // but we need to also send the request to the network for
-            // refreshing.
-            request.addMarker("cache-hit-refresh-needed");
-            request.setCacheEntry(entry);
-            // Mark the response as intermediate.
-            response.intermediate = true;
+            // We have a cache hit; parse its data for delivery back to the request.
+            request.addMarker("cache-hit");
+            Response<?> response =
+                    request.parseNetworkResponse(
+                            new NetworkResponse(entry.data, entry.responseHeaders));
+            request.addMarker("cache-hit-parsed");
 
-            if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
-                // Post the intermediate response back to the user and have
-                // the delivery then forward the request along to the network.
-                mDelivery.postResponse(
-                        request,
-                        response,
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    mNetworkQueue.put(request);
-                                } catch (InterruptedException e) {
-                                    // Restore the interrupted status
-                                    Thread.currentThread().interrupt();
-                                }
-                            }
-                        });
-            } else {
-                // request has been added to list of waiting requests
-                // to receive the network response from the first request once it returns.
+            if (!entry.refreshNeeded()) {
+                // Completely unexpired cache hit. Just deliver the response.
                 mDelivery.postResponse(request, response);
+            } else {
+                // Soft-expired cache hit. We can deliver the cached response,
+                // but we need to also send the request to the network for
+                // refreshing.
+                request.addMarker("cache-hit-refresh-needed");
+                request.setCacheEntry(entry);
+                // Mark the response as intermediate.
+                response.intermediate = true;
+
+                if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
+                    // Post the intermediate response back to the user and have
+                    // the delivery then forward the request along to the network.
+                    mDelivery.postResponse(
+                            request,
+                            response,
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        mNetworkQueue.put(request);
+                                    } catch (InterruptedException e) {
+                                        // Restore the interrupted status
+                                        Thread.currentThread().interrupt();
+                                    }
+                                }
+                            });
+                } else {
+                    // request has been added to list of waiting requests
+                    // to receive the network response from the first request once it returns.
+                    mDelivery.postResponse(request, response);
+                }
             }
+        } finally {
+            request.sendEvent(RequestQueue.RequestEvent.REQUEST_CACHE_LOOKUP_FINISHED);
         }
     }
 
