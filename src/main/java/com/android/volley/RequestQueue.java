@@ -18,6 +18,9 @@ package com.android.volley;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.IntDef;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -45,20 +48,47 @@ public class RequestQueue {
     }
 
     /** Request event types listeners will be notified about. */
-    public enum RequestEvent {
-        REQUEST_QUEUED,
-        REQUEST_CACHE_LOOKUP_STARTED,
-        REQUEST_CACHE_LOOKUP_FINISHED,
-        REQUEST_PROCESSING_STARTED,
-        REQUEST_PROCESSING_FINISHED,
-        REQUEST_FINISHED
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({
+        RequestEvent.REQUEST_QUEUED,
+        RequestEvent.REQUEST_CACHE_LOOKUP_STARTED,
+        RequestEvent.REQUEST_CACHE_LOOKUP_FINISHED,
+        RequestEvent.REQUEST_PROCESSING_STARTED,
+        RequestEvent.REQUEST_PROCESSING_FINISHED,
+        RequestEvent.REQUEST_FINISHED
+    })
+    public @interface RequestEvent {
+        /** The request was added to the queue. */
+        public static final int REQUEST_QUEUED = 0;
+        /** The cache lookup started for the request. */
+        public static final int REQUEST_CACHE_LOOKUP_STARTED = 1;
+        /**
+         * The cache lookup finished for the request and cached response is delivered or request is
+         * queued for processing.
+         */
+        public static final int REQUEST_CACHE_LOOKUP_FINISHED = 2;
+        /** The processing (actual network access) started for the request. */
+        public static final int REQUEST_PROCESSING_STARTED = 3;
+        /**
+         * The processing (actual network access) finished for the request and response (if any) is
+         * delivered.
+         */
+        public static final int REQUEST_PROCESSING_FINISHED = 4;
+        /**
+         * All the work associated with the request is finished and request is removed from all the
+         * queues.
+         */
+        public static final int REQUEST_FINISHED = 5;
     }
 
     /** Callback interface for request life cycle events. */
     public interface RequestEventListener {
-        // Listener can be called from different threads but in synchronized way. Also it's
-        // guaranteed that the events will be sent in the order they have happened.
-        void onRequestEvent(Request request, RequestEvent event);
+        /**
+         * Called on every request lifecycle event. Can be called from different threads. The call
+         * is blocking request processing, so any processing should be kept at minimum or moved to
+         * another thread.
+         */
+        void onRequestEvent(Request<?> request, @RequestEvent int event);
     }
 
     /** Used for generating monotonically-increasing sequence numbers for requests. */
@@ -234,15 +264,14 @@ public class RequestQueue {
         // Process requests in the order they are added.
         request.setSequence(getSequenceNumber());
         request.addMarker("add-to-queue");
+        sendRequestEvent(request, RequestEvent.REQUEST_QUEUED);
 
         // If the request is uncacheable, skip the cache queue and go straight to the network.
         if (!request.shouldCache()) {
             mNetworkQueue.add(request);
-            sendRequestEvent(request, RequestEvent.REQUEST_QUEUED);
             return request;
         }
         mCacheQueue.add(request);
-        sendRequestEvent(request, RequestEvent.REQUEST_QUEUED);
         return request;
     }
 
@@ -265,7 +294,7 @@ public class RequestQueue {
     }
 
     /** Sends a request life cycle event to the listeners. */
-    void sendRequestEvent(Request request, RequestEvent event) {
+    void sendRequestEvent(Request<?> request, @RequestEvent int event) {
         synchronized (mEventListeners) {
             for (RequestEventListener listener : mEventListeners) {
                 listener.onRequestEvent(request, event);

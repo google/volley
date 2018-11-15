@@ -18,12 +18,13 @@ package com.android.volley;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -32,7 +33,6 @@ import com.android.volley.toolbox.StringRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,26 +75,7 @@ public class NetworkDispatcherTest {
 
     @Test
     public void successNotifiesListener() throws Exception {
-        final AtomicBoolean listenerWasCalledOnStart = new AtomicBoolean(false);
-        final AtomicBoolean listenerWasCalledOnFinish = new AtomicBoolean(false);
-
-        RequestQueue.RequestEventListener listener =
-                new RequestQueue.RequestEventListener() {
-                    @Override
-                    public void onRequestEvent(Request request, RequestQueue.RequestEvent event) {
-                        if (event == RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED) {
-                            if (listenerWasCalledOnStart.get()) {
-                                fail("Listener called more than once");
-                            }
-                            listenerWasCalledOnStart.set(true);
-                        } else if (event == RequestQueue.RequestEvent.REQUEST_PROCESSING_FINISHED) {
-                            if (listenerWasCalledOnFinish.get()) {
-                                fail("Listener called more than once");
-                            }
-                            listenerWasCalledOnFinish.set(true);
-                        }
-                    }
-                };
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
         RequestQueue queue = new RequestQueue(new NoCache(), mNetwork, 0, mDelivery);
         queue.addRequestEventListener(listener);
         mRequest.setRequestQueue(queue);
@@ -104,8 +85,11 @@ public class NetworkDispatcherTest {
 
         mDispatcher.processRequest(mRequest);
 
-        assertTrue(listenerWasCalledOnStart.get());
-        assertTrue(listenerWasCalledOnFinish.get());
+        verify(listener)
+                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        verify(listener)
+                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_PROCESSING_FINISHED);
+        verifyNoMoreInteractions(listener);
     }
 
     @Test
@@ -119,26 +103,7 @@ public class NetworkDispatcherTest {
 
     @Test
     public void exceptionNotifiesListener() throws Exception {
-        final AtomicBoolean listenerWasCalledOnStart = new AtomicBoolean(false);
-        final AtomicBoolean listenerWasCalledOnFinish = new AtomicBoolean(false);
-
-        RequestQueue.RequestEventListener listener =
-                new RequestQueue.RequestEventListener() {
-                    @Override
-                    public void onRequestEvent(Request request, RequestQueue.RequestEvent event) {
-                        if (event == RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED) {
-                            if (listenerWasCalledOnStart.get()) {
-                                fail("Listener called more than once");
-                            }
-                            listenerWasCalledOnStart.set(true);
-                        } else if (event == RequestQueue.RequestEvent.REQUEST_PROCESSING_FINISHED) {
-                            if (listenerWasCalledOnFinish.get()) {
-                                fail("Listener called more than once");
-                            }
-                            listenerWasCalledOnFinish.set(true);
-                        }
-                    }
-                };
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
         RequestQueue queue = new RequestQueue(new NoCache(), mNetwork, 0, mDelivery);
         queue.addRequestEventListener(listener);
         mRequest.setRequestQueue(queue);
@@ -147,8 +112,11 @@ public class NetworkDispatcherTest {
 
         mDispatcher.processRequest(mRequest);
 
-        assertTrue(listenerWasCalledOnStart.get());
-        assertTrue(listenerWasCalledOnFinish.get());
+        verify(listener)
+                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        verify(listener)
+                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_PROCESSING_FINISHED);
+        verifyNoMoreInteractions(listener);
     }
 
     @Test

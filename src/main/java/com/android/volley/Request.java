@@ -28,7 +28,6 @@ import com.android.volley.VolleyLog.MarkerLog;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -125,8 +124,6 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     @GuardedBy("mLock")
     private NetworkRequestCompleteListener mRequestCompleteListener;
 
-    private Map<String, Object> mTags = new HashMap<>();
-
     /**
      * Creates a new request with the given URL and error listener. Note that the normal response
      * listener is not provided here as delivery of responses is provided by subclasses, who have a
@@ -177,19 +174,6 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      */
     public Object getTag() {
         return mTag;
-    }
-
-    public Request<?> setTag(String key, Object tag) {
-        mTags.put(key, tag);
-        return this;
-    }
-
-    public Object getTag(String key) {
-        return mTags.get(key);
-    }
-
-    public Object removeTag(String key) {
-        return mTags.remove(key);
     }
 
     /** @return this request's {@link com.android.volley.Response.ErrorListener}. */
@@ -267,7 +251,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         }
     }
 
-    void sendEvent(RequestQueue.RequestEvent event) {
+    void sendEvent(@RequestQueue.RequestEvent int event) {
         if (mRequestQueue != null) {
             mRequestQueue.sendRequestEvent(this, event);
         }

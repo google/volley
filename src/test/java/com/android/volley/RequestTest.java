@@ -209,7 +209,8 @@ public class RequestTest {
         RequestQueue.RequestEventListener listener =
                 new RequestQueue.RequestEventListener() {
                     @Override
-                    public void onRequestEvent(Request request, RequestQueue.RequestEvent event) {
+                    public void onRequestEvent(
+                            Request<?> request, @RequestQueue.RequestEvent int event) {
                         listenerWasCalled.set(true);
                     }
                 };
@@ -231,42 +232,5 @@ public class RequestTest {
         request.sendEvent(RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
 
         assertTrue(listenerWasCalled.get());
-    }
-
-    @Test
-    public void setTag_setsTag() throws Exception {
-        Request<Object> request =
-                new Request<Object>(Method.POST, "url", null) {
-                    @Override
-                    protected void deliverResponse(Object response) {}
-
-                    @Override
-                    protected Response<Object> parseNetworkResponse(NetworkResponse response) {
-                        return null;
-                    }
-                };
-
-        request.setTag("test", "123");
-
-        assertEquals("123", request.getTag("test"));
-    }
-
-    @Test
-    public void removeTag_removesTag() throws Exception {
-        Request<Object> request =
-                new Request<Object>(Method.POST, "url", null) {
-                    @Override
-                    protected void deliverResponse(Object response) {}
-
-                    @Override
-                    protected Response<Object> parseNetworkResponse(NetworkResponse response) {
-                        return null;
-                    }
-                };
-
-        request.setTag("test", "123");
-        request.removeTag("test");
-
-        assertEquals(null, request.getTag("test"));
     }
 }

@@ -16,13 +16,10 @@
 
 package com.android.volley;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -30,7 +27,6 @@ import com.android.volley.mock.ShadowSystemClock;
 import com.android.volley.toolbox.NoCache;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.utils.ImmediateResponseDelivery;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -80,100 +76,53 @@ public class RequestQueueTest {
 
     @Test
     public void add_notifiesListener() throws Exception {
-        final AtomicBoolean listenerWasCalled = new AtomicBoolean(false);
-
-        RequestQueue.RequestEventListener listener =
-                new RequestQueue.RequestEventListener() {
-                    @Override
-                    public void onRequestEvent(Request request, RequestQueue.RequestEvent event) {
-                        if (event == RequestQueue.RequestEvent.REQUEST_QUEUED) {
-                            if (listenerWasCalled.get()) {
-                                fail("Listener called more than once");
-                            }
-                            listenerWasCalled.set(true);
-                        }
-                    }
-                };
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
         queue.addRequestEventListener(listener);
         StringRequest req = mock(StringRequest.class);
 
         queue.add(req);
 
-        assertTrue(listenerWasCalled.get());
+        verify(listener).onRequestEvent(req, RequestQueue.RequestEvent.REQUEST_QUEUED);
+        verifyNoMoreInteractions(listener);
     }
 
     @Test
     public void finish_notifiesListener() throws Exception {
-        final AtomicBoolean listenerWasCalled = new AtomicBoolean(false);
-
-        RequestQueue.RequestEventListener listener =
-                new RequestQueue.RequestEventListener() {
-                    @Override
-                    public void onRequestEvent(Request request, RequestQueue.RequestEvent event) {
-                        if (event == RequestQueue.RequestEvent.REQUEST_FINISHED) {
-                            if (listenerWasCalled.get()) {
-                                fail("Listener called more than once");
-                            }
-                            listenerWasCalled.set(true);
-                        }
-                    }
-                };
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
         queue.addRequestEventListener(listener);
         StringRequest req = mock(StringRequest.class);
 
         queue.finish(req);
 
-        assertTrue(listenerWasCalled.get());
+        verify(listener).onRequestEvent(req, RequestQueue.RequestEvent.REQUEST_FINISHED);
+        verifyNoMoreInteractions(listener);
     }
 
     @Test
     public void sendRequestEvent_notifiesListener() throws Exception {
-        final AtomicBoolean listenerWasCalled = new AtomicBoolean(false);
-        final StringRequest req = mock(StringRequest.class);
-
-        RequestQueue.RequestEventListener listener =
-                new RequestQueue.RequestEventListener() {
-                    @Override
-                    public void onRequestEvent(Request request, RequestQueue.RequestEvent event) {
-                        if (event == RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED) {
-                            if (listenerWasCalled.get()) {
-                                fail("Listener called more than once");
-                            }
-                            assertEquals(req, request);
-                            listenerWasCalled.set(true);
-                        } else {
-                            fail("Unexpected event");
-                        }
-                    }
-                };
+        StringRequest req = mock(StringRequest.class);
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
         queue.addRequestEventListener(listener);
 
         queue.sendRequestEvent(req, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
 
-        assertTrue(listenerWasCalled.get());
+        verify(listener).onRequestEvent(req, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        verifyNoMoreInteractions(listener);
     }
 
     @Test
     public void removeRequestEventListener_removesListener() throws Exception {
-        final AtomicBoolean listenerWasCalled = new AtomicBoolean(false);
-        final StringRequest req = mock(StringRequest.class);
-
-        RequestQueue.RequestEventListener listener =
-                new RequestQueue.RequestEventListener() {
-                    @Override
-                    public void onRequestEvent(Request request, RequestQueue.RequestEvent event) {
-                        listenerWasCalled.set(true);
-                    }
-                };
+        StringRequest req = mock(StringRequest.class);
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
         queue.addRequestEventListener(listener);
         queue.removeRequestEventListener(listener);
 
         queue.sendRequestEvent(req, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
 
-        assertFalse(listenerWasCalled.get());
+        verifyNoMoreInteractions(listener);
     }
 }
