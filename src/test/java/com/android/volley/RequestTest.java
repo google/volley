@@ -19,6 +19,9 @@ package com.android.volley;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import com.android.volley.Request.Method;
@@ -26,7 +29,6 @@ import com.android.volley.Request.Priority;
 import com.android.volley.toolbox.NoCache;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -204,16 +206,7 @@ public class RequestTest {
 
     @Test
     public void sendEvent_notifiesListeners() throws Exception {
-        final AtomicBoolean listenerWasCalled = new AtomicBoolean(false);
-
-        RequestQueue.RequestEventListener listener =
-                new RequestQueue.RequestEventListener() {
-                    @Override
-                    public void onRequestEvent(
-                            Request<?> request, @RequestQueue.RequestEvent int event) {
-                        listenerWasCalled.set(true);
-                    }
-                };
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
         RequestQueue queue = new RequestQueue(new NoCache(), mNetwork, 0, mDelivery);
         queue.addRequestEventListener(listener);
 
@@ -231,6 +224,8 @@ public class RequestTest {
 
         request.sendEvent(RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
 
-        assertTrue(listenerWasCalled.get());
+        verify(listener)
+                .onRequestEvent(request, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        verifyNoMoreInteractions(listener);
     }
 }
