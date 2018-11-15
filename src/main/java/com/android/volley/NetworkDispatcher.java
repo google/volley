@@ -114,7 +114,7 @@ public class NetworkDispatcher extends Thread {
     @VisibleForTesting
     void processRequest(Request<?> request) {
         long startTimeMs = SystemClock.elapsedRealtime();
-        request.sendEvent(RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        request.sendEvent(RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
         try {
             request.addMarker("network-queue-take");
 
@@ -166,7 +166,7 @@ public class NetworkDispatcher extends Thread {
             mDelivery.postError(request, volleyError);
             request.notifyListenerResponseNotUsable();
         } finally {
-            request.sendEvent(RequestQueue.RequestEvent.REQUEST_PROCESSING_FINISHED);
+            request.sendEvent(RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_FINISHED);
         }
     }
 

@@ -107,9 +107,10 @@ public class RequestQueueTest {
         RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
         queue.addRequestEventListener(listener);
 
-        queue.sendRequestEvent(req, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        queue.sendRequestEvent(req, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
 
-        verify(listener).onRequestEvent(req, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        verify(listener)
+                .onRequestEvent(req, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
         verifyNoMoreInteractions(listener);
     }
 
@@ -121,7 +122,7 @@ public class RequestQueueTest {
         queue.addRequestEventListener(listener);
         queue.removeRequestEventListener(listener);
 
-        queue.sendRequestEvent(req, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        queue.sendRequestEvent(req, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
 
         verifyNoMoreInteractions(listener);
     }

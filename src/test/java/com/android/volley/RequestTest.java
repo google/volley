@@ -222,10 +222,11 @@ public class RequestTest {
                 };
         request.setRequestQueue(queue);
 
-        request.sendEvent(RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+        request.sendEvent(RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
 
         verify(listener)
-                .onRequestEvent(request, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
+                .onRequestEvent(
+                        request, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
         verifyNoMoreInteractions(listener);
     }
 }

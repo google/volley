@@ -21,10 +21,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -37,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.robolectric.RobolectricTestRunner;
 
@@ -85,11 +86,14 @@ public class NetworkDispatcherTest {
 
         mDispatcher.processRequest(mRequest);
 
-        verify(listener)
-                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
-        verify(listener)
-                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_PROCESSING_FINISHED);
-        verifyNoMoreInteractions(listener);
+        InOrder inOrder = inOrder(listener);
+        inOrder.verify(listener)
+                .onRequestEvent(
+                        mRequest, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
+        inOrder.verify(listener)
+                .onRequestEvent(
+                        mRequest, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_FINISHED);
+        inOrder.verifyNoMoreInteractions();
     }
 
     @Test
@@ -112,11 +116,14 @@ public class NetworkDispatcherTest {
 
         mDispatcher.processRequest(mRequest);
 
-        verify(listener)
-                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_PROCESSING_STARTED);
-        verify(listener)
-                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_PROCESSING_FINISHED);
-        verifyNoMoreInteractions(listener);
+        InOrder inOrder = inOrder(listener);
+        inOrder.verify(listener)
+                .onRequestEvent(
+                        mRequest, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
+        inOrder.verify(listener)
+                .onRequestEvent(
+                        mRequest, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_FINISHED);
+        inOrder.verifyNoMoreInteractions();
     }
 
     @Test

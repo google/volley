@@ -20,10 +20,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -246,10 +247,11 @@ public class CacheDispatcherTest {
         when(mCache.get(anyString())).thenReturn(entry);
         mDispatcher.processRequest(mRequest);
 
-        verify(listener)
+        InOrder inOrder = inOrder(listener);
+        inOrder.verify(listener)
                 .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_CACHE_LOOKUP_STARTED);
-        verify(listener)
+        inOrder.verify(listener)
                 .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_CACHE_LOOKUP_FINISHED);
-        verifyNoMoreInteractions(listener);
+        inOrder.verifyNoMoreInteractions();
     }
 }

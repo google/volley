@@ -47,33 +47,30 @@ public class RequestQueue {
         void onRequestFinished(Request<T> request);
     }
 
-    /** Request event types listeners will be notified about. */
+    /** Request event types the listeners {@link RequestEventListener} will be notified about. */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({
         RequestEvent.REQUEST_QUEUED,
         RequestEvent.REQUEST_CACHE_LOOKUP_STARTED,
         RequestEvent.REQUEST_CACHE_LOOKUP_FINISHED,
-        RequestEvent.REQUEST_PROCESSING_STARTED,
-        RequestEvent.REQUEST_PROCESSING_FINISHED,
+        RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED,
+        RequestEvent.REQUEST_NETWORK_DISPATCH_FINISHED,
         RequestEvent.REQUEST_FINISHED
     })
     public @interface RequestEvent {
         /** The request was added to the queue. */
         public static final int REQUEST_QUEUED = 0;
-        /** The cache lookup started for the request. */
+        /** Cache lookup started for the request. */
         public static final int REQUEST_CACHE_LOOKUP_STARTED = 1;
         /**
-         * The cache lookup finished for the request and cached response is delivered or request is
-         * queued for processing.
+         * Cache lookup finished for the request and cached response is delivered or request is
+         * queued for network dispatching.
          */
         public static final int REQUEST_CACHE_LOOKUP_FINISHED = 2;
-        /** The processing (actual network access) started for the request. */
-        public static final int REQUEST_PROCESSING_STARTED = 3;
-        /**
-         * The processing (actual network access) finished for the request and response (if any) is
-         * delivered.
-         */
-        public static final int REQUEST_PROCESSING_FINISHED = 4;
+        /** Network dispatch started for the request. */
+        public static final int REQUEST_NETWORK_DISPATCH_STARTED = 3;
+        /** The network dispatch finished for the request and response (if any) is delivered. */
+        public static final int REQUEST_NETWORK_DISPATCH_FINISHED = 4;
         /**
          * All the work associated with the request is finished and request is removed from all the
          * queues.
