@@ -19,6 +19,7 @@ package com.android.volley;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -71,5 +72,58 @@ public class RequestQueueTest {
         verify(req3).cancel(); // A cancelled
         verify(req2, never()).cancel(); // B not cancelled
         verify(req4, never()).cancel(); // A added after cancel not cancelled
+    }
+
+    @Test
+    public void add_notifiesListener() throws Exception {
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
+        RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
+        queue.addRequestEventListener(listener);
+        StringRequest req = mock(StringRequest.class);
+
+        queue.add(req);
+
+        verify(listener).onRequestEvent(req, RequestQueue.RequestEvent.REQUEST_QUEUED);
+        verifyNoMoreInteractions(listener);
+    }
+
+    @Test
+    public void finish_notifiesListener() throws Exception {
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
+        RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
+        queue.addRequestEventListener(listener);
+        StringRequest req = mock(StringRequest.class);
+
+        queue.finish(req);
+
+        verify(listener).onRequestEvent(req, RequestQueue.RequestEvent.REQUEST_FINISHED);
+        verifyNoMoreInteractions(listener);
+    }
+
+    @Test
+    public void sendRequestEvent_notifiesListener() throws Exception {
+        StringRequest req = mock(StringRequest.class);
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
+        RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
+        queue.addRequestEventListener(listener);
+
+        queue.sendRequestEvent(req, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
+
+        verify(listener)
+                .onRequestEvent(req, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
+        verifyNoMoreInteractions(listener);
+    }
+
+    @Test
+    public void removeRequestEventListener_removesListener() throws Exception {
+        StringRequest req = mock(StringRequest.class);
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
+        RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 0, mDelivery);
+        queue.addRequestEventListener(listener);
+        queue.removeRequestEventListener(listener);
+
+        queue.sendRequestEvent(req, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
+
+        verifyNoMoreInteractions(listener);
     }
 }

@@ -18,6 +18,9 @@ package com.android.volley;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.IntDef;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -38,9 +41,51 @@ public class RequestQueue {
     // TODO: This should not be a generic class, because the request type can't be determined at
     // compile time, so all calls to onRequestFinished are unsafe. However, changing this would be
     // an API-breaking change. See also: https://github.com/google/volley/pull/109
+    @Deprecated // Use RequestEventListener instead.
     public interface RequestFinishedListener<T> {
         /** Called when a request has finished processing. */
         void onRequestFinished(Request<T> request);
+    }
+
+    /** Request event types the listeners {@link RequestEventListener} will be notified about. */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({
+        RequestEvent.REQUEST_QUEUED,
+        RequestEvent.REQUEST_CACHE_LOOKUP_STARTED,
+        RequestEvent.REQUEST_CACHE_LOOKUP_FINISHED,
+        RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED,
+        RequestEvent.REQUEST_NETWORK_DISPATCH_FINISHED,
+        RequestEvent.REQUEST_FINISHED
+    })
+    public @interface RequestEvent {
+        /** The request was added to the queue. */
+        public static final int REQUEST_QUEUED = 0;
+        /** Cache lookup started for the request. */
+        public static final int REQUEST_CACHE_LOOKUP_STARTED = 1;
+        /**
+         * Cache lookup finished for the request and cached response is delivered or request is
+         * queued for network dispatching.
+         */
+        public static final int REQUEST_CACHE_LOOKUP_FINISHED = 2;
+        /** Network dispatch started for the request. */
+        public static final int REQUEST_NETWORK_DISPATCH_STARTED = 3;
+        /** The network dispatch finished for the request and response (if any) is delivered. */
+        public static final int REQUEST_NETWORK_DISPATCH_FINISHED = 4;
+        /**
+         * All the work associated with the request is finished and request is removed from all the
+         * queues.
+         */
+        public static final int REQUEST_FINISHED = 5;
+    }
+
+    /** Callback interface for request life cycle events. */
+    public interface RequestEventListener {
+        /**
+         * Called on every request lifecycle event. Can be called from different threads. The call
+         * is blocking request processing, so any processing should be kept at minimum or moved to
+         * another thread.
+         */
+        void onRequestEvent(Request<?> request, @RequestEvent int event);
     }
 
     /** Used for generating monotonically-increasing sequence numbers for requests. */
@@ -77,6 +122,9 @@ public class RequestQueue {
     private CacheDispatcher mCacheDispatcher;
 
     private final List<RequestFinishedListener> mFinishedListeners = new ArrayList<>();
+
+    /** Collection of listeners for request life cycle events. */
+    private final List<RequestEventListener> mEventListeners = new ArrayList<>();
 
     /**
      * Creates the worker pool. Processing will not begin until {@link #start()} is called.
@@ -213,6 +261,7 @@ public class RequestQueue {
         // Process requests in the order they are added.
         request.setSequence(getSequenceNumber());
         request.addMarker("add-to-queue");
+        sendRequestEvent(request, RequestEvent.REQUEST_QUEUED);
 
         // If the request is uncacheable, skip the cache queue and go straight to the network.
         if (!request.shouldCache()) {
@@ -238,8 +287,33 @@ public class RequestQueue {
                 listener.onRequestFinished(request);
             }
         }
+        sendRequestEvent(request, RequestEvent.REQUEST_FINISHED);
     }
 
+    /** Sends a request life cycle event to the listeners. */
+    void sendRequestEvent(Request<?> request, @RequestEvent int event) {
+        synchronized (mEventListeners) {
+            for (RequestEventListener listener : mEventListeners) {
+                listener.onRequestEvent(request, event);
+            }
+        }
+    }
+
+    /** Add a listener for request life cycle events. */
+    public void addRequestEventListener(RequestEventListener listener) {
+        synchronized (mEventListeners) {
+            mEventListeners.add(listener);
+        }
+    }
+
+    /** Remove a listener for request life cycle events. */
+    public void removeRequestEventListener(RequestEventListener listener) {
+        synchronized (mEventListeners) {
+            mEventListeners.remove(listener);
+        }
+    }
+
+    @Deprecated // Use RequestEventListener instead.
     public <T> void addRequestFinishedListener(RequestFinishedListener<T> listener) {
         synchronized (mFinishedListeners) {
             mFinishedListeners.add(listener);
@@ -247,6 +321,7 @@ public class RequestQueue {
     }
 
     /** Remove a RequestFinishedListener. Has no effect if listener was not previously added. */
+    @Deprecated // Use RequestEventListener instead.
     public <T> void removeRequestFinishedListener(RequestFinishedListener<T> listener) {
         synchronized (mFinishedListeners) {
             mFinishedListeners.remove(listener);

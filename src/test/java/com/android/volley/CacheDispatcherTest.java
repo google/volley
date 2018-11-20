@@ -20,6 +20,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -45,6 +48,7 @@ public class CacheDispatcherTest {
     private @Mock BlockingQueue<Request<?>> mNetworkQueue;
     private @Mock Cache mCache;
     private @Mock ResponseDelivery mDelivery;
+    private @Mock Network mNetwork;
     private StringRequest mRequest;
 
     @Before
@@ -230,5 +234,24 @@ public class CacheDispatcherTest {
         verify(mNetworkQueue, never()).put(secondRequest);
         verify(mDelivery)
                 .postResponse(any(Request.class), any(Response.class), any(Runnable.class));
+    }
+
+    @Test
+    public void processRequestNotifiesListener() throws Exception {
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
+        RequestQueue queue = new RequestQueue(mCache, mNetwork, 0, mDelivery);
+        queue.addRequestEventListener(listener);
+        mRequest.setRequestQueue(queue);
+
+        Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, false);
+        when(mCache.get(anyString())).thenReturn(entry);
+        mDispatcher.processRequest(mRequest);
+
+        InOrder inOrder = inOrder(listener);
+        inOrder.verify(listener)
+                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_CACHE_LOOKUP_STARTED);
+        inOrder.verify(listener)
+                .onRequestEvent(mRequest, RequestQueue.RequestEvent.REQUEST_CACHE_LOOKUP_FINISHED);
+        inOrder.verifyNoMoreInteractions();
     }
 }

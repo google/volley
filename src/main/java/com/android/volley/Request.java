@@ -251,6 +251,12 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         }
     }
 
+    void sendEvent(@RequestQueue.RequestEvent int event) {
+        if (mRequestQueue != null) {
+            mRequestQueue.sendRequestEvent(this, event);
+        }
+    }
+
     /**
      * Associates this request with the given queue. The request queue will be notified when this
      * request has finished.

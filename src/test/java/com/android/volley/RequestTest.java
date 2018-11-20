@@ -19,17 +19,31 @@ package com.android.volley;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 import com.android.volley.Request.Method;
 import com.android.volley.Request.Priority;
+import com.android.volley.toolbox.NoCache;
 import java.util.Collections;
 import java.util.Map;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class RequestTest {
+    private @Mock ResponseDelivery mDelivery;
+    private @Mock Network mNetwork;
+
+    @Before
+    public void setUp() throws Exception {
+        initMocks(this);
+    }
 
     @Test
     public void compareTo() {
@@ -188,5 +202,31 @@ public class RequestTest {
         } catch (IllegalArgumentException e) {
             // expected
         }
+    }
+
+    @Test
+    public void sendEvent_notifiesListeners() throws Exception {
+        RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
+        RequestQueue queue = new RequestQueue(new NoCache(), mNetwork, 0, mDelivery);
+        queue.addRequestEventListener(listener);
+
+        Request<Object> request =
+                new Request<Object>(Method.POST, "url", null) {
+                    @Override
+                    protected void deliverResponse(Object response) {}
+
+                    @Override
+                    protected Response<Object> parseNetworkResponse(NetworkResponse response) {
+                        return null;
+                    }
+                };
+        request.setRequestQueue(queue);
+
+        request.sendEvent(RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
+
+        verify(listener)
+                .onRequestEvent(
+                        request, RequestQueue.RequestEvent.REQUEST_NETWORK_DISPATCH_STARTED);
+        verifyNoMoreInteractions(listener);
     }
 }
