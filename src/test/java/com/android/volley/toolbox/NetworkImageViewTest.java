@@ -80,6 +80,21 @@ public class NetworkImageViewTest {
     }
 
     @Test
+    public void clearDefaultImageBitmapWithDefaultImageResId() {
+        mNIV.setDefaultImageResId(1);
+        // Clearing the default image should always be safe
+        mNIV.setDefaultImageBitmap(null);
+    }
+
+    @Test
+    public void clearDefaultImageResIdWithDefaultImageBitmap() {
+        Bitmap bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+        mNIV.setDefaultImageBitmap(bitmap);
+        // Clearing the default image should always be safe
+        mNIV.setDefaultImageResId(0);
+    }
+
+    @Test
     public void publicMethods() throws Exception {
         // Catch-all test to find API-breaking changes.
         assertNotNull(NetworkImageView.class.getConstructor(Context.class));
