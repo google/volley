@@ -100,12 +100,10 @@ public class NetworkImageView extends ImageView {
      * Sets the default image resource ID to be used for this view until the attempt to load it
      * completes.
      *
-     * <p>Cannot be called with {@link NetworkImageView#setDefaultImageBitmap}.
+     * <p>This will clear anything set by {@link NetworkImageView#setDefaultImageBitmap}.
      */
     public void setDefaultImageResId(int defaultImage) {
-        if (mDefaultImageBitmap != null) {
-            throw new IllegalArgumentException("Can't have a default image resource ID and bitmap");
-        }
+        mDefaultImageBitmap = null;
         mDefaultImageId = defaultImage;
     }
 
@@ -113,12 +111,10 @@ public class NetworkImageView extends ImageView {
      * Sets the default image bitmap to be used for this view until the attempt to load it
      * completes.
      *
-     * <p>Cannot be called with {@link NetworkImageView#setDefaultImageResId}.
+     * <p>This will clear anything set by {@link NetworkImageView#setDefaultImageResId}.
      */
     public void setDefaultImageBitmap(Bitmap defaultImage) {
-        if (mDefaultImageId != 0) {
-            throw new IllegalArgumentException("Can't have a default image resource ID and bitmap");
-        }
+        mDefaultImageId = 0;
         mDefaultImageBitmap = defaultImage;
     }
 
@@ -126,12 +122,10 @@ public class NetworkImageView extends ImageView {
      * Sets the error image resource ID to be used for this view in the event that the image
      * requested fails to load.
      *
-     * <p>Cannot be called with {@link NetworkImageView#setErrorImageBitmap}.
+     * <p>This will clear anything set by {@link NetworkImageView#setErrorImageBitmap}.
      */
     public void setErrorImageResId(int errorImage) {
-        if (mErrorImageBitmap != null) {
-            throw new IllegalArgumentException("Can't have an error image resource ID and bitmap");
-        }
+        mErrorImageBitmap = null;
         mErrorImageId = errorImage;
     }
 
@@ -139,12 +133,10 @@ public class NetworkImageView extends ImageView {
      * Sets the error image bitmap to be used for this view in the event that the image requested
      * fails to load.
      *
-     * <p>Cannot be called with {@link NetworkImageView#setErrorImageResId}.
+     * <p>This will clear anything set by {@link NetworkImageView#setErrorImageResId}.
      */
     public void setErrorImageBitmap(Bitmap errorImage) {
-        if (mErrorImageId != 0) {
-            throw new IllegalArgumentException("Can't have an error image resource ID and bitmap");
-        }
+        mErrorImageId = 0;
         mErrorImageBitmap = errorImage;
     }
 
