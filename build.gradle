@@ -17,9 +17,10 @@
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:3.2.1'
     }
 }
 
@@ -47,8 +48,13 @@ group = 'com.android.volley'
 version = '1.2.0-SNAPSHOT'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion = '25.0.2'
+    compileSdkVersion 28
+    buildToolsVersion = '28.0.3'
+
+    defaultConfig {
+        // Keep in sync with src/main/AndroidManifest.xml
+        minSdkVersion 8
+    }
 }
 
 tasks.withType(JavaCompile) {
