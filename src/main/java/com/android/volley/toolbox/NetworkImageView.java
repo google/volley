@@ -15,8 +15,8 @@ package com.android.volley.toolbox;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.support.annotation.MainThread;
-import android.support.annotation.Nullable;
+import androidx.annotation.MainThread;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.ViewGroup.LayoutParams;
