@@ -20,7 +20,7 @@ tasks.withType(JavaCompile) {
 }
 
 dependencies {
-  provided "com.android.support:support-annotations:27.1.1"
+  provided "com.android.support:support-annotations:28.0.0"
 }
 
 // Check if the android plugin version supports unit testing.
