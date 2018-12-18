@@ -29,9 +29,7 @@ public class NetworkResponseTest {
         expectedHeaders.add(new Header("key1", "value1"));
         expectedHeaders.add(new Header("key2", "value2"));
 
-        assertThat(
-                expectedHeaders,
-                containsInAnyOrder(resp.allHeaders.toArray(new Header[resp.allHeaders.size()])));
+        assertThat(expectedHeaders, containsInAnyOrder(resp.allHeaders.toArray(new Header[0])));
     }
 
     @Test
