@@ -20,7 +20,7 @@ tasks.withType(JavaCompile) {
 }
 
 dependencies {
-    compileOnly "androidx.annotation:annotation:1.0.1"
+    implementation "androidx.annotation:annotation:1.0.1"
 }
 
 // Check if the android plugin version supports unit testing.
