@@ -121,10 +121,7 @@ public class BasicNetworkTest {
         expectedHeaders.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
         expectedHeaders.add(new Header("CachedKeyA", "CachedValueA"));
         expectedHeaders.add(new Header("CachedKeyB", "CachedValueB"));
-        assertThat(
-                expectedHeaders,
-                containsInAnyOrder(
-                        response.allHeaders.toArray(new Header[0])));
+        assertThat(expectedHeaders, containsInAnyOrder(response.allHeaders.toArray(new Header[0])));
     }
 
     @Test
@@ -161,7 +158,7 @@ public class BasicNetworkTest {
         assertThat(
                 expectedHeaders,
                 containsInAnyOrder(
-                        response.allHeaders.toArray(new Header[response.allHeaders.size()])));
+                        response.allHeaders.toArray(new Header[0])));
     }
 
     @Test
