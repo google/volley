@@ -17,7 +17,7 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.MainThread;
+import androidx.annotation.MainThread;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import com.android.volley.Request;
