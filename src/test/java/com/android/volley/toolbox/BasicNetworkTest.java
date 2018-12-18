@@ -124,7 +124,7 @@ public class BasicNetworkTest {
         assertThat(
                 expectedHeaders,
                 containsInAnyOrder(
-                        response.allHeaders.toArray(new Header[response.allHeaders.size()])));
+                        response.allHeaders.toArray(new Header[0])));
     }
 
     @Test

@@ -31,7 +31,7 @@ public class NetworkResponseTest {
 
         assertThat(
                 expectedHeaders,
-                containsInAnyOrder(resp.allHeaders.toArray(new Header[resp.allHeaders.size()])));
+                containsInAnyOrder(resp.allHeaders.toArray(new Header[0])));
     }
 
     @Test
