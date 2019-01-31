@@ -264,8 +264,15 @@ public class BasicNetwork implements Network {
         }
 
         if (entry.lastModified > 0) {
-            headers.put(
-                    "If-Modified-Since", HttpHeaderParser.formatEpochAsRfc1123(entry.lastModified));
+            try {
+                headers.put(
+                        "If-Modified-Since", HttpHeaderParser.formatEpochAsRfc1123(entry.lastModified));
+            }catch (AssertionError e){
+                VolleyLog.v("Assertion Error:" + e.getMessage() );
+
+            }catch (Exception e){
+                VolleyLog.v("Exception Error:" + e.getMessage() );
+            }
         }
 
         return headers;
