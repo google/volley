@@ -18,11 +18,10 @@ package com.android.volley;
 
 import android.os.Process;
 import android.support.annotation.VisibleForTesting;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Provides a thread for performing cache triage on a queue of requests.
@@ -54,6 +53,8 @@ public class CacheDispatcher extends Thread {
     /** Manage list of waiting requests and de-duplicate requests with same cache key. */
     private final WaitingRequestManager mWaitingRequestManager;
 
+    private final Map<String, Queue<Request<?>>> mWaitingRequestMap;
+
     /**
      * Creates a new cache triage dispatcher thread. You must call {@link #start()} in order to
      * begin processing.
@@ -66,13 +67,15 @@ public class CacheDispatcher extends Thread {
     public CacheDispatcher(
             BlockingQueue<Request<?>> cacheQueue,
             BlockingQueue<Request<?>> networkQueue,
+            Map<String, Queue<Request<?>>> waitingRequestMap,
             Cache cache,
             ResponseDelivery delivery) {
         mCacheQueue = cacheQueue;
         mNetworkQueue = networkQueue;
+        mWaitingRequestMap = waitingRequestMap;
         mCache = cache;
         mDelivery = delivery;
-        mWaitingRequestManager = new WaitingRequestManager(this);
+        mWaitingRequestManager = new WaitingRequestManager(this, waitingRequestMap);
     }
 
     /**
@@ -211,12 +214,14 @@ public class CacheDispatcher extends Thread {
          *       request is <em>not</em> contained in that list. Is null if no requests are staged.
          * </ul>
          */
-        private final Map<String, List<Request<?>>> mWaitingRequests = new HashMap<>();
+        private final Map<String, Queue<Request<?>>> mWaitingRequests;
 
         private final CacheDispatcher mCacheDispatcher;
 
-        WaitingRequestManager(CacheDispatcher cacheDispatcher) {
+        WaitingRequestManager(
+                CacheDispatcher cacheDispatcher, Map<String, Queue<Request<?>>> waitingRequests) {
             mCacheDispatcher = cacheDispatcher;
+            mWaitingRequests = waitingRequests;
         }
 
         /** Request received a valid response that can be used by other waiting requests. */
@@ -227,7 +232,7 @@ public class CacheDispatcher extends Thread {
                 return;
             }
             String cacheKey = request.getCacheKey();
-            List<Request<?>> waitingRequests;
+            Queue<Request<?>> waitingRequests;
             synchronized (this) {
                 waitingRequests = mWaitingRequests.remove(cacheKey);
             }
@@ -248,14 +253,14 @@ public class CacheDispatcher extends Thread {
         @Override
         public synchronized void onNoUsableResponseReceived(Request<?> request) {
             String cacheKey = request.getCacheKey();
-            List<Request<?>> waitingRequests = mWaitingRequests.remove(cacheKey);
+            Queue<Request<?>> waitingRequests = mWaitingRequests.remove(cacheKey);
             if (waitingRequests != null && !waitingRequests.isEmpty()) {
                 if (VolleyLog.DEBUG) {
                     VolleyLog.v(
                             "%d waiting requests for cacheKey=%s; resend to network",
                             waitingRequests.size(), cacheKey);
                 }
-                Request<?> nextInLine = waitingRequests.remove(0);
+                Request<?> nextInLine = waitingRequests.poll();
                 mWaitingRequests.put(cacheKey, waitingRequests);
                 nextInLine.setNetworkRequestCompleteListener(this);
                 try {
@@ -284,9 +289,9 @@ public class CacheDispatcher extends Thread {
             // in flight.
             if (mWaitingRequests.containsKey(cacheKey)) {
                 // There is already a request in flight. Queue up.
-                List<Request<?>> stagedRequests = mWaitingRequests.get(cacheKey);
+                Queue<Request<?>> stagedRequests = mWaitingRequests.get(cacheKey);
                 if (stagedRequests == null) {
-                    stagedRequests = new ArrayList<>();
+                    stagedRequests = new ConcurrentLinkedQueue<>();
                 }
                 request.addMarker("waiting-for-response");
                 stagedRequests.add(request);

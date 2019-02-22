@@ -24,7 +24,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -102,6 +105,9 @@ public class RequestQueue {
 
     /** The queue of requests that are actually going out to the network. */
     private final PriorityBlockingQueue<Request<?>> mNetworkQueue = new PriorityBlockingQueue<>();
+
+    /** Manage Map of waiting requests and de-duplicate requests with same cache key. */
+    private final Map<String, Queue<Request<?>>> mWaitingRequestMap = new ConcurrentHashMap<>();
 
     /** Number of network request dispatcher threads to start. */
     private static final int DEFAULT_NETWORK_THREAD_POOL_SIZE = 4;
@@ -196,7 +202,8 @@ public class RequestQueue {
         // it.
         for (int i = 0; i < mCacheDispatchers.length; i++) {
             CacheDispatcher cacheDispatcher =
-                    new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
+                    new CacheDispatcher(
+                            mCacheQueue, mNetworkQueue, mWaitingRequestMap, mCache, mDelivery);
             mCacheDispatchers[i] = cacheDispatcher;
             cacheDispatcher.start();
         }
