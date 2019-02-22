@@ -139,7 +139,11 @@ public class RequestQueue {
      * @param delivery A ResponseDelivery interface for posting responses and errors
      */
     public RequestQueue(
-            Cache cache, Network network, int cacheThreadPoolSize, int threadPoolSize, ResponseDelivery delivery) {
+            Cache cache,
+            Network network,
+            int cacheThreadPoolSize,
+            int threadPoolSize,
+            ResponseDelivery delivery) {
         mCache = cache;
         mNetwork = network;
         mCacheDispatchers = new CacheDispatcher[cacheThreadPoolSize];
@@ -188,9 +192,11 @@ public class RequestQueue {
     /** Starts the dispatchers in this queue. */
     public void start() {
         stop(); // Make sure any currently running dispatchers are stopped.
-        // Create the cache dispatchers (and corresponding threads) up to the pool size and start it.
-        for(int i = 0 ; i < mCacheDispatchers.length; i++) {
-            CacheDispatcher cacheDispatcher = new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
+        // Create the cache dispatchers (and corresponding threads) up to the pool size and start
+        // it.
+        for (int i = 0; i < mCacheDispatchers.length; i++) {
+            CacheDispatcher cacheDispatcher =
+                    new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
             mCacheDispatchers[i] = cacheDispatcher;
             cacheDispatcher.start();
         }
