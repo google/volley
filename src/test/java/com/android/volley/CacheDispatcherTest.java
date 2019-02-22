@@ -29,8 +29,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.utils.CacheTestUtils;
-import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,7 +46,6 @@ public class CacheDispatcherTest {
     private CacheDispatcher mDispatcher;
     private @Mock BlockingQueue<Request<?>> mCacheQueue;
     private @Mock BlockingQueue<Request<?>> mNetworkQueue;
-    private @Mock Map<String, Queue<Request<?>>> mWaitingRequestMap;
     private @Mock Cache mCache;
     private @Mock ResponseDelivery mDelivery;
     private @Mock Network mNetwork;
@@ -59,9 +56,7 @@ public class CacheDispatcherTest {
         initMocks(this);
 
         mRequest = new StringRequest(Request.Method.GET, "http://foo", null, null);
-        mDispatcher =
-                new CacheDispatcher(
-                        mCacheQueue, mNetworkQueue, mWaitingRequestMap, mCache, mDelivery);
+        mDispatcher = new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
     }
 
     private static class WaitForever implements Answer {
