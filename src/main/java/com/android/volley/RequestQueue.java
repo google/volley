@@ -106,6 +106,9 @@ public class RequestQueue {
     /** Number of network request dispatcher threads to start. */
     private static final int DEFAULT_NETWORK_THREAD_POOL_SIZE = 4;
 
+    /** Number of network request dispatcher threads to start. */
+    private static final int DEFAULT_CACHE_THREAD_POOL_SIZE = 1;
+
     /** Cache interface for retrieving and storing responses. */
     private final Cache mCache;
 
@@ -118,8 +121,8 @@ public class RequestQueue {
     /** The network dispatchers. */
     private final NetworkDispatcher[] mDispatchers;
 
-    /** The cache dispatcher. */
-    private CacheDispatcher mCacheDispatcher;
+    /** The cache dispatchers. */
+    private CacheDispatcher[] mCacheDispatchers;
 
     private final List<RequestFinishedListener> mFinishedListeners = new ArrayList<>();
 
@@ -131,15 +134,30 @@ public class RequestQueue {
      *
      * @param cache A Cache to use for persisting responses to disk
      * @param network A Network interface for performing HTTP requests
+     * @param cacheThreadPoolSize Number of cache dispatcher threads to create
+     * @param threadPoolSize Number of network dispatcher threads to create
+     * @param delivery A ResponseDelivery interface for posting responses and errors
+     */
+    public RequestQueue(
+            Cache cache, Network network, int cacheThreadPoolSize, int threadPoolSize, ResponseDelivery delivery) {
+        mCache = cache;
+        mNetwork = network;
+        mCacheDispatchers = new CacheDispatcher[cacheThreadPoolSize];
+        mDispatchers = new NetworkDispatcher[threadPoolSize];
+        mDelivery = delivery;
+    }
+
+    /**
+     * Creates the worker pool. Processing will not begin until {@link #start()} is called.
+     *
+     * @param cache A Cache to use for persisting responses to disk
+     * @param network A Network interface for performing HTTP requests
      * @param threadPoolSize Number of network dispatcher threads to create
      * @param delivery A ResponseDelivery interface for posting responses and errors
      */
     public RequestQueue(
             Cache cache, Network network, int threadPoolSize, ResponseDelivery delivery) {
-        mCache = cache;
-        mNetwork = network;
-        mDispatchers = new NetworkDispatcher[threadPoolSize];
-        mDelivery = delivery;
+        this(cache, network, DEFAULT_CACHE_THREAD_POOL_SIZE, threadPoolSize, delivery);
     }
 
     /**
@@ -170,9 +188,12 @@ public class RequestQueue {
     /** Starts the dispatchers in this queue. */
     public void start() {
         stop(); // Make sure any currently running dispatchers are stopped.
-        // Create the cache dispatcher and start it.
-        mCacheDispatcher = new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
-        mCacheDispatcher.start();
+        // Create the cache dispatchers (and corresponding threads) up to the pool size and start it.
+        for(int i = 0 ; i < mCacheDispatchers.length; i++) {
+            CacheDispatcher cacheDispatcher = new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
+            mCacheDispatchers[i] = cacheDispatcher;
+            cacheDispatcher.start();
+        }
 
         // Create network dispatchers (and corresponding threads) up to the pool size.
         for (int i = 0; i < mDispatchers.length; i++) {
@@ -185,8 +206,10 @@ public class RequestQueue {
 
     /** Stops the cache and network dispatchers. */
     public void stop() {
-        if (mCacheDispatcher != null) {
-            mCacheDispatcher.quit();
+        for (final CacheDispatcher mDispatcher : mCacheDispatchers) {
+            if (mDispatcher != null) {
+                mDispatcher.quit();
+            }
         }
         for (final NetworkDispatcher mDispatcher : mDispatchers) {
             if (mDispatcher != null) {
