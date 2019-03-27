@@ -17,8 +17,8 @@
 package com.android.volley.toolbox;
 
 import android.os.SystemClock;
-import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
+import androidx.annotation.VisibleForTesting;
 import com.android.volley.Cache;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
