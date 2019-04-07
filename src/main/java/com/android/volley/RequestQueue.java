@@ -121,6 +121,8 @@ public class RequestQueue {
     /** The network dispatchers. */
     private final NetworkDispatcher[] mDispatchers;
 
+    private final WaitingRequestManager mWaitingRequestManager;
+
     /** The cache dispatchers. */
     private CacheDispatcher[] mCacheDispatchers;
 
@@ -149,6 +151,7 @@ public class RequestQueue {
         mCacheDispatchers = new CacheDispatcher[cacheThreadPoolSize];
         mDispatchers = new NetworkDispatcher[threadPoolSize];
         mDelivery = delivery;
+        mWaitingRequestManager = new WaitingRequestManager(mNetworkQueue, delivery);
     }
 
     /**
@@ -196,7 +199,8 @@ public class RequestQueue {
         // it.
         for (int i = 0; i < mCacheDispatchers.length; i++) {
             CacheDispatcher cacheDispatcher =
-                    new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
+                    new CacheDispatcher(
+                            mCacheQueue, mNetworkQueue, mCache, mDelivery, mWaitingRequestManager);
             mCacheDispatchers[i] = cacheDispatcher;
             cacheDispatcher.start();
         }

@@ -49,6 +49,7 @@ public class CacheDispatcherTest {
     private @Mock Cache mCache;
     private @Mock ResponseDelivery mDelivery;
     private @Mock Network mNetwork;
+    private WaitingRequestManager mWaitingRequestManager;
     private StringRequest mRequest;
 
     @Before
@@ -56,7 +57,10 @@ public class CacheDispatcherTest {
         initMocks(this);
 
         mRequest = new StringRequest(Request.Method.GET, "http://foo", null, null);
-        mDispatcher = new CacheDispatcher(mCacheQueue, mNetworkQueue, mCache, mDelivery);
+        mWaitingRequestManager = new WaitingRequestManager(mNetworkQueue, mDelivery);
+        mDispatcher =
+                new CacheDispatcher(
+                        mCacheQueue, mNetworkQueue, mCache, mDelivery, mWaitingRequestManager);
     }
 
     private static class WaitForever implements Answer {
