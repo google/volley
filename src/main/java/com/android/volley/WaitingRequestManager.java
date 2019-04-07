@@ -116,9 +116,4 @@ public class WaitingRequestManager implements Request.NetworkRequestCompleteList
             return false;
         }
     }
-
-    @Override
-    public String toString() {
-        return mWaitingRequests + " " + mDelivery + " " + mNetworkQueue;
-    }
 }
