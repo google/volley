@@ -25,6 +25,7 @@ import com.android.volley.Response.Listener;
 import java.io.UnsupportedEncodingException;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 /** A request for retrieving a {@link JSONArray} response body at a given URL. */
 public class JsonArrayRequest extends JsonRequest<JSONArray> {
@@ -46,7 +47,7 @@ public class JsonArrayRequest extends JsonRequest<JSONArray> {
      *
      * @param method the HTTP method to use
      * @param url URL to fetch the JSON from
-     * @param jsonRequest A {@link JSONArray} to post with the request. Null indicates no parameters
+     * @param jsonRequest A {@link JSONObject} to post with the request. Null indicates no parameters
      *     will be posted along with request.
      * @param listener Listener to receive the JSON response
      * @param errorListener Error listener, or null to ignore errors.
@@ -54,7 +55,7 @@ public class JsonArrayRequest extends JsonRequest<JSONArray> {
     public JsonArrayRequest(
             int method,
             String url,
-            @Nullable JSONArray jsonRequest,
+            @Nullable JSONObject jsonRequest,
             Listener<JSONArray> listener,
             @Nullable ErrorListener errorListener) {
         super(
