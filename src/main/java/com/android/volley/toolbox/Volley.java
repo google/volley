@@ -91,17 +91,12 @@ public class Volley {
         // main thread without causing strict mode violation.
         DiskBasedCache.FileSupplier cacheSupplier =
                 new DiskBasedCache.FileSupplier() {
-                    private volatile File cacheDir = null;
+                    private File cacheDir = null;
 
                     @Override
                     public File get() {
                         if (cacheDir == null) {
-                            synchronized (this) {
-                                if (cacheDir == null) {
-                                    cacheDir =
-                                            new File(appContext.getCacheDir(), DEFAULT_CACHE_DIR);
-                                }
-                            }
+                            cacheDir = new File(appContext.getCacheDir(), DEFAULT_CACHE_DIR);
                         }
                         return cacheDir;
                     }
