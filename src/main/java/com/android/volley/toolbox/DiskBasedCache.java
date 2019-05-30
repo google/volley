@@ -55,8 +55,8 @@ public class DiskBasedCache implements Cache {
     /** Total amount of space currently used by the cache in bytes. */
     private long mTotalSize = 0;
 
-    /** The root directory to use for the cache. */
-    private final File mRootDirectory;
+    /** The supplier for the root directory to use for the cache. */
+    private final FileSupplier mRootDirectorySupplier;
 
     /** The maximum size of the cache in bytes. */
     private final int mMaxCacheSizeInBytes;
@@ -78,8 +78,27 @@ public class DiskBasedCache implements Cache {
      *     briefly exceed this size on disk when writing a new entry that pushes it over the limit
      *     until the ensuing pruning completes.
      */
-    public DiskBasedCache(File rootDirectory, int maxCacheSizeInBytes) {
-        mRootDirectory = rootDirectory;
+    public DiskBasedCache(final File rootDirectory, int maxCacheSizeInBytes) {
+        mRootDirectorySupplier =
+                new FileSupplier() {
+                    @Override
+                    public File get() {
+                        return rootDirectory;
+                    }
+                };
+        mMaxCacheSizeInBytes = maxCacheSizeInBytes;
+    }
+
+    /**
+     * Constructs an instance of the DiskBasedCache at the specified directory.
+     *
+     * @param rootDirectorySupplier The supplier for the root directory of the cache.
+     * @param maxCacheSizeInBytes The maximum size of the cache in bytes. Note that the cache may
+     *     briefly exceed this size on disk when writing a new entry that pushes it over the limit
+     *     until the ensuing pruning completes.
+     */
+    public DiskBasedCache(FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
+        mRootDirectorySupplier = rootDirectorySupplier;
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
 
@@ -93,10 +112,20 @@ public class DiskBasedCache implements Cache {
         this(rootDirectory, DEFAULT_DISK_USAGE_BYTES);
     }
 
+    /**
+     * Constructs an instance of the DiskBasedCache at the specified directory using the default
+     * maximum cache size of 5MB.
+     *
+     * @param rootDirectorySupplier The supplier for the root directory of the cache.
+     */
+    public DiskBasedCache(FileSupplier rootDirectorySupplier) {
+        this(rootDirectorySupplier, DEFAULT_DISK_USAGE_BYTES);
+    }
+
     /** Clears the cache. Deletes all cached files from disk. */
     @Override
     public synchronized void clear() {
-        File[] files = mRootDirectory.listFiles();
+        File[] files = mRootDirectorySupplier.get().listFiles();
         if (files != null) {
             for (File file : files) {
                 file.delete();
@@ -150,13 +179,14 @@ public class DiskBasedCache implements Cache {
      */
     @Override
     public synchronized void initialize() {
-        if (!mRootDirectory.exists()) {
-            if (!mRootDirectory.mkdirs()) {
-                VolleyLog.e("Unable to create cache dir %s", mRootDirectory.getAbsolutePath());
+        File rootDirectory = mRootDirectorySupplier.get();
+        if (!rootDirectory.exists()) {
+            if (!rootDirectory.mkdirs()) {
+                VolleyLog.e("Unable to create cache dir %s", rootDirectory.getAbsolutePath());
             }
             return;
         }
-        File[] files = mRootDirectory.listFiles();
+        File[] files = rootDirectory.listFiles();
         if (files == null) {
             return;
         }
@@ -262,7 +292,12 @@ public class DiskBasedCache implements Cache {
 
     /** Returns a file object for the given cache key. */
     public File getFileForKey(String key) {
-        return new File(mRootDirectory, getFilenameForKey(key));
+        return new File(mRootDirectorySupplier.get(), getFilenameForKey(key));
+    }
+
+    /** Represents a supplier for {@link File}s. */
+    public interface FileSupplier {
+        File get();
     }
 
     /** Prunes the cache to fit the maximum size. */
