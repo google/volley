@@ -79,12 +79,13 @@ public class DiskBasedCache implements Cache {
      *     until the ensuing pruning completes.
      */
     public DiskBasedCache(final File rootDirectory, int maxCacheSizeInBytes) {
-        mRootDirectorySupplier = new FileSupplier() {
-            @Override
-            public File get() {
-                return rootDirectory;
-            }
-        };
+        mRootDirectorySupplier =
+                new FileSupplier() {
+                    @Override
+                    public File get() {
+                        return rootDirectory;
+                    }
+                };
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
 
