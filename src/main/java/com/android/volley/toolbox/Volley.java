@@ -90,7 +90,7 @@ public class Volley {
         // Use a lazy supplier for the cache directory so that newRequestQueue() can be called on
         // main thread without causing strict mode violation.
         DiskBasedCache.FileSupplier cacheSupplier = new DiskBasedCache.FileSupplier() {
-            private volatile File cacheDir;
+            private volatile File cacheDir = null;
 
             @Override
             public File get() {

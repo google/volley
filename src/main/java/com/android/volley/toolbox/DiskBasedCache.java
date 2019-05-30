@@ -40,7 +40,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * Cache implementation that caches files directly onto the hard disk in the specified directory.
