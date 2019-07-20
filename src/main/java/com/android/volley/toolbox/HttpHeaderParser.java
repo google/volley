@@ -135,7 +135,15 @@ public class HttpHeaderParser {
             return newRfc1123Formatter().parse(dateStr).getTime();
         } catch (ParseException e) {
             // Date in invalid format, fallback to 0
-            VolleyLog.e(e, "Unable to parse dateStr: %s, falling back to 0", dateStr);
+            // If the value is either "0" or "-1" we only log to verbose,
+            // these values are pretty common and cause log spam.
+            String message = "Unable to parse dateStr: %s, falling back to 0";
+            if (dateStr.equals("0") || dateStr.equals("-1")) {
+                VolleyLog.v(message, dateStr);
+            } else {
+                VolleyLog.e(e, message, dateStr);
+            }
+
             return 0;
         }
     }
