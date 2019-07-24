@@ -138,7 +138,7 @@ public class HttpHeaderParser {
             // If the value is either "0" or "-1" we only log to verbose,
             // these values are pretty common and cause log spam.
             String message = "Unable to parse dateStr: %s, falling back to 0";
-            if (dateStr.equals("0") || dateStr.equals("-1")) {
+            if ("0".equals(dateStr) || "-1".equals(dateStr)) {
                 VolleyLog.v(message, dateStr);
             } else {
                 VolleyLog.e(e, message, dateStr);
