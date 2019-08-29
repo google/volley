@@ -37,7 +37,11 @@ public class HttpHeaderParser {
 
     private static final String DEFAULT_CONTENT_CHARSET = "ISO-8859-1";
 
-    private static final String RFC1123_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
+    private static final String RFC1123_PARSE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
+
+    // Hardcode 'GMT' rather than using 'zzz' since some platforms append an extraneous +00:00.
+    // See #287.
+    private static final String RFC1123_OUTPUT_FORMAT = "EEE, dd MMM yyyy HH:mm:ss 'GMT'";
 
     /**
      * Extracts a {@link com.android.volley.Cache.Entry} from a {@link NetworkResponse}.
@@ -132,7 +136,7 @@ public class HttpHeaderParser {
     public static long parseDateAsEpoch(String dateStr) {
         try {
             // Parse date in RFC1123 format if this header contains one
-            return newRfc1123Formatter().parse(dateStr).getTime();
+            return newUsGmtFormatter(RFC1123_PARSE_FORMAT).parse(dateStr).getTime();
         } catch (ParseException e) {
             // Date in invalid format, fallback to 0
             // If the value is either "0" or "-1" we only log to verbose,
@@ -150,11 +154,11 @@ public class HttpHeaderParser {
 
     /** Format an epoch date in RFC1123 format. */
     static String formatEpochAsRfc1123(long epoch) {
-        return newRfc1123Formatter().format(new Date(epoch));
+        return newUsGmtFormatter(RFC1123_OUTPUT_FORMAT).format(new Date(epoch));
     }
 
-    private static SimpleDateFormat newRfc1123Formatter() {
-        SimpleDateFormat formatter = new SimpleDateFormat(RFC1123_FORMAT, Locale.US);
+    private static SimpleDateFormat newUsGmtFormatter(String format) {
+        SimpleDateFormat formatter = new SimpleDateFormat(format, Locale.US);
         formatter.setTimeZone(TimeZone.getTimeZone("GMT"));
         return formatter;
     }
