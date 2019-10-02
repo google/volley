@@ -598,16 +598,15 @@ public class DiskBasedCacheTest {
     @Test
     public void initializeIfRootDirectoryDeleted() {
         temporaryFolder.delete();
-        DiskBasedCache uninitializedCache = new DiskBasedCache(temporaryFolder.getRoot(), MAX_SIZE);
-        // skip initialize() to get IOException
-        Cache.Entry entry = randomData(101);
-        uninitializedCache.put("key1", entry);
 
-        assertThat(uninitializedCache.get("key1"), is(nullValue()));
+        Cache.Entry entry = randomData(101);
+        cache.put("key1", entry);
+
+        assertThat(cache.get("key1"), is(nullValue()));
 
         // confirm that we can now store entries
-        uninitializedCache.put("key2", entry);
-        assertThatEntriesAreEqual(uninitializedCache.get("key2"), entry);
+        cache.put("key2", entry);
+        assertThatEntriesAreEqual(cache.get("key2"), entry);
     }
 
     /* Test helpers */
