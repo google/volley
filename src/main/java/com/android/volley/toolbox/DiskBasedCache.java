@@ -256,7 +256,6 @@ public class DiskBasedCache implements Cache {
             e.size = file.length();
             putEntry(key, e);
             pruneIfNeeded();
-            return;
         } catch (IOException e) {
             boolean deleted = file.delete();
             if (!deleted) {
