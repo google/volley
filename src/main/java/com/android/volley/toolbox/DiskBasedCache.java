@@ -256,12 +256,12 @@ public class DiskBasedCache implements Cache {
             e.size = file.length();
             putEntry(key, e);
             pruneIfNeeded();
-            return;
         } catch (IOException e) {
-        }
-        boolean deleted = file.delete();
-        if (!deleted) {
-            VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
+            boolean deleted = file.delete();
+            if (!deleted) {
+                VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
+            }
+            initializeIfRootDirectoryDeleted();
         }
     }
 
@@ -293,6 +293,16 @@ public class DiskBasedCache implements Cache {
     /** Returns a file object for the given cache key. */
     public File getFileForKey(String key) {
         return new File(mRootDirectorySupplier.get(), getFilenameForKey(key));
+    }
+
+    /** Re-initialize the cache if the directory was deleted. */
+    private void initializeIfRootDirectoryDeleted() {
+        if (!mRootDirectorySupplier.get().exists()) {
+            VolleyLog.d("Re-initializing cache after external clearing.");
+            mEntries.clear();
+            mTotalSize = 0;
+            initialize();
+        }
     }
 
     /** Represents a supplier for {@link File}s. */

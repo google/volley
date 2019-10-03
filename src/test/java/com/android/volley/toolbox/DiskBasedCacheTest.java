@@ -595,6 +595,20 @@ public class DiskBasedCacheTest {
         assertNotNull(DiskBasedCache.class.getMethod("getFileForKey", String.class));
     }
 
+    @Test
+    public void initializeIfRootDirectoryDeleted() {
+        temporaryFolder.delete();
+
+        Cache.Entry entry = randomData(101);
+        cache.put("key1", entry);
+
+        assertThat(cache.get("key1"), is(nullValue()));
+
+        // confirm that we can now store entries
+        cache.put("key2", entry);
+        assertThatEntriesAreEqual(cache.get("key2"), entry);
+    }
+
     /* Test helpers */
 
     private void assertThatEntriesAreEqual(Cache.Entry actual, Cache.Entry expected) {
