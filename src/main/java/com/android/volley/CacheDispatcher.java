@@ -226,16 +226,16 @@ public class CacheDispatcher extends Thread {
                 onNoUsableResponseReceived(request);
                 return;
             }
-            String cacheKey = request.getCacheKey();
+            String waitingKey = getWaitingKey(request);
             List<Request<?>> waitingRequests;
             synchronized (this) {
-                waitingRequests = mWaitingRequests.remove(cacheKey);
+                waitingRequests = mWaitingRequests.remove(waitingKey);
             }
             if (waitingRequests != null) {
                 if (VolleyLog.DEBUG) {
                     VolleyLog.v(
-                            "Releasing %d waiting requests for cacheKey=%s.",
-                            waitingRequests.size(), cacheKey);
+                            "Releasing %d waiting requests for waitingKey=%s.",
+                            waitingRequests.size(), waitingKey);
                 }
                 // Process all queued up requests.
                 for (Request<?> waiting : waitingRequests) {
@@ -247,16 +247,16 @@ public class CacheDispatcher extends Thread {
         /** No valid response received from network, release waiting requests. */
         @Override
         public synchronized void onNoUsableResponseReceived(Request<?> request) {
-            String cacheKey = request.getCacheKey();
-            List<Request<?>> waitingRequests = mWaitingRequests.remove(cacheKey);
+            String waitingKey = getWaitingKey(request);
+            List<Request<?>> waitingRequests = mWaitingRequests.remove(waitingKey);
             if (waitingRequests != null && !waitingRequests.isEmpty()) {
                 if (VolleyLog.DEBUG) {
                     VolleyLog.v(
-                            "%d waiting requests for cacheKey=%s; resend to network",
-                            waitingRequests.size(), cacheKey);
+                            "%d waiting requests for waitingKey=%s; resend to network",
+                            waitingRequests.size(), waitingKey);
                 }
                 Request<?> nextInLine = waitingRequests.remove(0);
-                mWaitingRequests.put(cacheKey, waitingRequests);
+                mWaitingRequests.put(waitingKey, waitingRequests);
                 nextInLine.setNetworkRequestCompleteListener(this);
                 try {
                     mCacheDispatcher.mNetworkQueue.put(nextInLine);
@@ -279,32 +279,36 @@ public class CacheDispatcher extends Thread {
          *     in-flight request finishes.
          */
         private synchronized boolean maybeAddToWaitingRequests(Request<?> request) {
-            String cacheKey = request.getCacheKey();
+            String waitingKey = getWaitingKey(request);
             // Insert request into stage if there's already a request with the same cache key
             // in flight.
-            if (mWaitingRequests.containsKey(cacheKey)) {
+            if (mWaitingRequests.containsKey(waitingKey)) {
                 // There is already a request in flight. Queue up.
-                List<Request<?>> stagedRequests = mWaitingRequests.get(cacheKey);
+                List<Request<?>> stagedRequests = mWaitingRequests.get(waitingKey);
                 if (stagedRequests == null) {
                     stagedRequests = new ArrayList<>();
                 }
                 request.addMarker("waiting-for-response");
                 stagedRequests.add(request);
-                mWaitingRequests.put(cacheKey, stagedRequests);
+                mWaitingRequests.put(waitingKey, stagedRequests);
                 if (VolleyLog.DEBUG) {
-                    VolleyLog.d("Request for cacheKey=%s is in flight, putting on hold.", cacheKey);
+                    VolleyLog.d("Request for waitingKey=%s is in flight, putting on hold.", waitingKey);
                 }
                 return true;
             } else {
-                // Insert 'null' queue for this cacheKey, indicating there is now a request in
+                // Insert 'null' queue for this waitingKey, indicating there is now a request in
                 // flight.
-                mWaitingRequests.put(cacheKey, null);
+                mWaitingRequests.put(waitingKey, null);
                 request.setNetworkRequestCompleteListener(this);
                 if (VolleyLog.DEBUG) {
-                    VolleyLog.d("new request, sending to network %s", cacheKey);
+                    VolleyLog.d("new request, sending to network %s", waitingKey);
                 }
                 return false;
             }
+        }
+
+        private String getWaitingKey(Request request) {
+            return request.getCacheKey() + ":priority-" +request.getPriority();
         }
     }
 }

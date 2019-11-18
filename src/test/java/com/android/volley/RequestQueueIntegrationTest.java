@@ -101,6 +101,46 @@ public class RequestQueueIntegrationTest {
         queue.stop();
     }
 
+    @Test
+    public void add_requestProcessedInCorrectOrderWithSameCacheKey() throws Exception {
+        // Enqueue 2 requests with the same cache key, and different priorities. The first low priority request takes 20ms. Assert that the
+        // second request does not wait for the first request to be executed.
+        MockRequest lowerPriorityReq = new MockRequest();
+        MockRequest higherPriorityReq = new MockRequest();
+        lowerPriorityReq.setPriority(Priority.LOW);
+        higherPriorityReq.setPriority(Priority.HIGH);
+
+        Answer<NetworkResponse> delayAnswer =
+                new Answer<NetworkResponse>() {
+                    @Override
+                    public NetworkResponse answer(InvocationOnMock invocationOnMock)
+                            throws Throwable {
+                        Thread.sleep(40);
+                        return mock(NetworkResponse.class);
+                    }
+                };
+
+        // delay only for lower request
+        when(mMockNetwork.performRequest(lowerPriorityReq)).thenAnswer(delayAnswer);
+        when(mMockNetwork.performRequest(higherPriorityReq)).thenReturn(mock(NetworkResponse.class));
+
+        // RequestQueue has 2 network threads
+        RequestQueue queue = new RequestQueue(new NoCache(), mMockNetwork, 2, mDelivery);
+        queue.addRequestFinishedListener(mMockListener);
+        queue.start(); // start the queue before adding requests to make sure WaitingRequestManager is initialized
+        queue.add(lowerPriorityReq);
+        Thread.sleep(20); // Give some time to make sure lower request is being processed first
+        queue.add(higherPriorityReq);
+
+        InOrder inOrder = inOrder(mMockListener);
+        // verify higherPriorityReq goes through first
+        inOrder.verify(mMockListener, timeout(10000)).onRequestFinished(higherPriorityReq);
+        // verify lowerPriorityReq goes last
+        inOrder.verify(mMockListener, timeout(10000)).onRequestFinished(lowerPriorityReq);
+
+        queue.stop();
+    }
+
     /** Asserts that requests with same cache key are processed in order. */
     @Test
     public void add_dedupeByCacheKey() throws Exception {
