@@ -156,6 +156,7 @@ public class CacheDispatcherTest {
         verify(mNetworkQueue).put(request);
         assertNull(request.getCacheEntry());
         verify(mCache).invalidate("cache/key", true);
+        verify(request).addMarker("cache-parsing-failed");
     }
 
     @Test

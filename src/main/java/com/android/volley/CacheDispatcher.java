@@ -160,6 +160,7 @@ public class CacheDispatcher extends Thread {
             request.addMarker("cache-hit-parsed");
 
             if (!response.isSuccess()) {
+                request.addMarker("cache-parsing-failed");
                 mCache.invalidate(request.getCacheKey(), true);
                 request.setCacheEntry(null);
                 if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
