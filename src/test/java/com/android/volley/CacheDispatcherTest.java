@@ -140,6 +140,25 @@ public class CacheDispatcherTest {
         assertSame(entry, mRequest.getCacheEntry());
     }
 
+    // An fresh cache hit with parse error, does not post a response and queues to the network.
+    @Test
+    public void freshCacheHit_parseError() throws Exception {
+        Request request = mock(Request.class);
+        when(request.parseNetworkResponse(any(NetworkResponse.class)))
+                .thenReturn(Response.error(new ParseError()));
+        when(request.getCacheKey()).thenReturn("cache/key");
+        Cache.Entry entry = CacheTestUtils.makeRandomCacheEntry(null, false, false);
+        when(mCache.get(anyString())).thenReturn(entry);
+
+        mDispatcher.processRequest(request);
+
+        verifyNoResponse(mDelivery);
+        verify(mNetworkQueue).put(request);
+        assertNull(request.getCacheEntry());
+        verify(mCache).invalidate("cache/key", true);
+        verify(request).addMarker("cache-parsing-failed");
+    }
+
     @Test
     public void duplicateCacheMiss() throws Exception {
         StringRequest secondRequest =
