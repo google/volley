@@ -16,6 +16,8 @@
 
 package com.android.volley;
 
+import androidx.annotation.Nullable;
+
 /**
  * Encapsulates a parsed response for delivery.
  *
@@ -39,7 +41,7 @@ public class Response<T> {
     }
 
     /** Returns a successful response containing the parsed result. */
-    public static <T> Response<T> success(T result, Cache.Entry cacheEntry) {
+    public static <T> Response<T> success(@Nullable T result, @Nullable Cache.Entry cacheEntry) {
         return new Response<>(result, cacheEntry);
     }
 
@@ -51,14 +53,14 @@ public class Response<T> {
         return new Response<>(error);
     }
 
-    /** Parsed response, or null in the case of error. */
-    public final T result;
+    /** Parsed response, can be null; always null in the case of error. */
+    @Nullable public final T result;
 
-    /** Cache metadata for this response, or null in the case of error. */
-    public final Cache.Entry cacheEntry;
+    /** Cache metadata for this response; null if not cached or in the case of error. */
+    @Nullable public final Cache.Entry cacheEntry;
 
     /** Detailed error information if <code>errorCode != OK</code>. */
-    public final VolleyError error;
+    @Nullable public final VolleyError error;
 
     /** True if this response was a soft-expired one and a second one MAY be coming. */
     public boolean intermediate = false;
@@ -68,7 +70,7 @@ public class Response<T> {
         return error == null;
     }
 
-    private Response(T result, Cache.Entry cacheEntry) {
+    private Response(@Nullable T result, @Nullable Cache.Entry cacheEntry) {
         this.result = result;
         this.cacheEntry = cacheEntry;
         this.error = null;
