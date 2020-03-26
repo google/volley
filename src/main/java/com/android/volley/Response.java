@@ -53,10 +53,10 @@ public class Response<T> {
         return new Response<>(error);
     }
 
-    /** Parsed response, or null in the case of error. */
+    /** Parsed response, can be null; always null in the case of error. */
     @Nullable public final T result;
 
-    /** Cache metadata for this response, or null in the case of error. */
+    /** Cache metadata for this response; null if not cached or in the case of error. */
     @Nullable public final Cache.Entry cacheEntry;
 
     /** Detailed error information if <code>errorCode != OK</code>. */
