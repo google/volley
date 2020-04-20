@@ -40,6 +40,22 @@ public class Response<T> {
         void onErrorResponse(VolleyError error);
     }
 
+    /** Callback interface for delivering the upload progress of the responses. */
+    public interface UploadProgressListener {
+        /**
+         * Callback method thats called on each byte transfer.
+         */
+        void onProgress(long transferredBytes, long totalSize);
+    }
+
+    /** Callback interface for delivering the download progress of the responses. */
+    public interface DownloadProgressListener {
+        /**
+         * Callback method thats called on each byte transfer.
+         */
+        void onProgress(int statusCode, long transferredBytes, long totalSize);
+    }
+
     /** Returns a successful response containing the parsed result. */
     public static <T> Response<T> success(@Nullable T result, @Nullable Cache.Entry cacheEntry) {
         return new Response<>(result, cacheEntry);

@@ -289,8 +289,17 @@ public class HurlStack extends BaseHttpStack {
             connection.setRequestProperty(
                     HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         }
-        DataOutputStream out = new DataOutputStream(connection.getOutputStream());
-        out.write(body);
+        DataOutputStream out = new DataOutputStream (connection.getOutputStream());
+        int offset = 0, transferredBytes = 0, contentLength = body.length;
+
+        while (transferredBytes < contentLength) {
+            int length = Math.min (contentLength - transferredBytes, 1024);
+            out.write (body, offset, length);
+            offset += length;
+            transferredBytes += length;
+            // inform upload progress
+            request.onUploadProgress(transferredBytes, contentLength);
+        }
         out.close();
     }
 }

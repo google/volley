@@ -124,6 +124,12 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     @GuardedBy("mLock")
     private NetworkRequestCompleteListener mRequestCompleteListener;
 
+    /** Used to report upload progress.  */
+    private UploadProgressListener mUploadProgressListener;
+
+    /** Used to report download progress.  */
+    private DownloadProgressListener mDownloadProgressListener;
+
     /**
      * Creates a new request with the given URL and error listener. Note that the normal response
      * listener is not provided here as delivery of responses is provided by subclasses, who have a
@@ -496,6 +502,49 @@ public abstract class Request<T> implements Comparable<Request<T>> {
         } catch (UnsupportedEncodingException uee) {
             throw new RuntimeException("Encoding not supported: " + paramsEncoding, uee);
         }
+    }
+
+    /**
+     * Call to inform upload progress.
+     *
+     * @param transferredBytes Transferred bytes
+     * @param totalSize Total of bytes
+     */
+    public void onUploadProgress(long transferredBytes, long totalSize) {
+        if(null != mUploadProgressListener){
+            mUploadProgressListener.onProgress(transferredBytes, totalSize);
+        }
+    }
+
+    /**
+     * Set listener for tracking upload progress.
+     *
+     * @param listener Listener to add
+     */
+    public void setOnUploadProgressListener(UploadProgressListener listener){
+        mUploadProgressListener = listener;
+    }
+
+    /**
+     * Call to inform download progress.
+     *
+     * @param statusCode WebResponse status code
+     * @param transferredBytes Transferred bytes
+     * @param totalSize Total of bytes
+     */
+    public void onDownloadProgress(int statusCode,long transferredBytes, long totalSize) {
+        if(null != mDownloadProgressListener){
+            mDownloadProgressListener.onProgress(statusCode, transferredBytes, totalSize);
+        }
+    }
+
+    /**
+     * Set listener for tracking download progress.
+     *
+     * @param listener Listener to add
+     */
+    public void setOnDownloadProgressListener(DownloadProgressListener listener){
+        mDownloadProgressListener = listener;
     }
 
     /**
