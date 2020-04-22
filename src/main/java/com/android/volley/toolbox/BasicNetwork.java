@@ -286,12 +286,9 @@ public class BasicNetwork implements Network {
                 throw new ServerError();
             }
             buffer = mPool.getBuf(1024);
-            int count, transferredBytes = 0;
+            int count;
             while ((count = in.read(buffer)) != -1) {
                 bytes.write(buffer, 0, count);
-                transferredBytes += count;
-                // Inform download progress with status code
-                request.onDownloadProgress(statusCode, transferredBytes, contentLength);
             }
             return bytes.toByteArray();
         } finally {

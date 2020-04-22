@@ -91,7 +91,7 @@ public class HurlStack extends BaseHttpStack {
             for (String headerName : map.keySet()) {
                 connection.setRequestProperty(headerName, map.get(headerName));
             }
-            setConnectionParametersForRequest(connection, request);
+            setConnectionParametersForRequest(this, connection, request);
             // Initialize HttpResponse with data from the HttpURLConnection.
             int responseCode = connection.getResponseCode();
             if (responseCode == -1) {
@@ -107,11 +107,12 @@ public class HurlStack extends BaseHttpStack {
             // Need to keep the connection open until the stream is consumed by the caller. Wrap the
             // stream such that close() will disconnect the connection.
             keepConnectionOpen = true;
+            int contentLength = connection.getContentLength ();
             return new HttpResponse(
                     responseCode,
                     convertHeaders(connection.getHeaderFields()),
                     connection.getContentLength(),
-                    new UrlConnectionInputStream(connection));
+                    createInputStream(request, connection, responseCode, contentLength));
         } finally {
             if (!keepConnectionOpen) {
                 connection.disconnect();
@@ -153,10 +154,10 @@ public class HurlStack extends BaseHttpStack {
      * Wrapper for a {@link HttpURLConnection}'s InputStream which disconnects the connection on
      * stream close.
      */
-    static class UrlConnectionInputStream extends FilterInputStream {
+    protected static class UrlConnectionInputStream extends FilterInputStream {
         private final HttpURLConnection mConnection;
 
-        UrlConnectionInputStream(HttpURLConnection connection) {
+        public UrlConnectionInputStream(HttpURLConnection connection) {
             super(inputStreamFromConnection(connection));
             mConnection = connection;
         }
@@ -166,6 +167,19 @@ public class HurlStack extends BaseHttpStack {
             super.close();
             mConnection.disconnect();
         }
+    }
+
+    /**
+     * Overload this method for manipulate input stream.
+     *
+     * @param request current request
+     * @param connection current connection of request
+     * @param responseCode response code
+     * @param length size of response
+     * @return an UrlConnectionInputStream object for read response.
+     */
+    protected UrlConnectionInputStream createInputStream (Request<?> request, HttpURLConnection connection, int responseCode, int length) {
+        return new UrlConnectionInputStream (connection);
     }
 
     /**
@@ -223,7 +237,7 @@ public class HurlStack extends BaseHttpStack {
     // NOTE: Any request headers added here (via setRequestProperty or addRequestProperty) should be
     // checked against the existing properties in the connection and not overridden if already set.
     @SuppressWarnings("deprecation")
-    /* package */ static void setConnectionParametersForRequest(
+    /* package */ static void setConnectionParametersForRequest(HurlStack stack,
             HttpURLConnection connection, Request<?> request) throws IOException, AuthFailureError {
         switch (request.getMethod()) {
             case Method.DEPRECATED_GET_OR_POST:
@@ -233,7 +247,7 @@ public class HurlStack extends BaseHttpStack {
                 byte[] postBody = request.getPostBody();
                 if (postBody != null) {
                     connection.setRequestMethod("POST");
-                    addBody(connection, request, postBody);
+                    addBody(stack, connection, request, postBody);
                 }
                 break;
             case Method.GET:
@@ -246,11 +260,11 @@ public class HurlStack extends BaseHttpStack {
                 break;
             case Method.POST:
                 connection.setRequestMethod("POST");
-                addBodyIfExists(connection, request);
+                addBodyIfExists(stack, connection, request);
                 break;
             case Method.PUT:
                 connection.setRequestMethod("PUT");
-                addBodyIfExists(connection, request);
+                addBodyIfExists(stack, connection, request);
                 break;
             case Method.HEAD:
                 connection.setRequestMethod("HEAD");
@@ -263,22 +277,22 @@ public class HurlStack extends BaseHttpStack {
                 break;
             case Method.PATCH:
                 connection.setRequestMethod("PATCH");
-                addBodyIfExists(connection, request);
+                addBodyIfExists(stack, connection, request);
                 break;
             default:
                 throw new IllegalStateException("Unknown method type.");
         }
     }
 
-    private static void addBodyIfExists(HttpURLConnection connection, Request<?> request)
+    private static void addBodyIfExists(HurlStack stack, HttpURLConnection connection, Request<?> request)
             throws IOException, AuthFailureError {
         byte[] body = request.getBody();
         if (body != null) {
-            addBody(connection, request, body);
+            addBody(stack, connection, request, body);
         }
     }
 
-    private static void addBody(HttpURLConnection connection, Request<?> request, byte[] body)
+    private static void addBody(HurlStack stack, HttpURLConnection connection, Request<?> request, byte[] body)
             throws IOException {
         // Prepare output. There is no need to set Content-Length explicitly,
         // since this is handled by HttpURLConnection using the size of the prepared
@@ -289,17 +303,28 @@ public class HurlStack extends BaseHttpStack {
             connection.setRequestProperty(
                     HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         }
-        DataOutputStream out = new DataOutputStream (connection.getOutputStream());
-        int offset = 0, transferredBytes = 0, contentLength = body.length;
+        DataOutputStream out = stack.createOutputStream ( request, connection, body.length );
+        int offset = 0, bodyLength = body.length;
 
-        while (transferredBytes < contentLength) {
-            int length = Math.min (contentLength - transferredBytes, 1024);
-            out.write (body, offset, length);
+        while ( offset < bodyLength )
+            {
+            int length = Math.min ( bodyLength - offset, 1024 );
+            out.write ( body, offset, length );
             offset += length;
-            transferredBytes += length;
-            // inform upload progress
-            request.onUploadProgress(transferredBytes, contentLength);
-        }
-        out.close();
+            }
+
+        out.close ();
+    }
+
+    /**
+     * Overload this method for manipulate output stream.
+     *
+     * @param request current request
+     * @param connection current connection of request
+     * @param length size of body
+     * @return an DataOutputStream object for write request body.
+     */
+    protected DataOutputStream createOutputStream (Request<?> request, HttpURLConnection connection, int length) throws IOException {
+        return new DataOutputStream (connection.getOutputStream ());
     }
 }
