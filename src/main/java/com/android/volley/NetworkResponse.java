@@ -16,6 +16,7 @@
 
 package com.android.volley;
 
+import androidx.annotation.Nullable;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,7 +43,7 @@ public class NetworkResponse {
     public NetworkResponse(
             int statusCode,
             byte[] data,
-            Map<String, String> headers,
+            @Nullable Map<String, String> headers,
             boolean notModified,
             long networkTimeMs) {
         this(statusCode, data, headers, toAllHeaderList(headers), notModified, networkTimeMs);
@@ -62,7 +63,7 @@ public class NetworkResponse {
             byte[] data,
             boolean notModified,
             long networkTimeMs,
-            List<Header> allHeaders) {
+            @Nullable List<Header> allHeaders) {
         this(statusCode, data, toHeaderMap(allHeaders), allHeaders, notModified, networkTimeMs);
     }
 
@@ -79,7 +80,7 @@ public class NetworkResponse {
      */
     @Deprecated
     public NetworkResponse(
-            int statusCode, byte[] data, Map<String, String> headers, boolean notModified) {
+            int statusCode, byte[] data, @Nullable Map<String, String> headers, boolean notModified) {
         this(statusCode, data, headers, notModified, /* networkTimeMs= */ 0);
     }
 
@@ -107,7 +108,7 @@ public class NetworkResponse {
      *     constructor may be removed in a future release of Volley.
      */
     @Deprecated
-    public NetworkResponse(byte[] data, Map<String, String> headers) {
+    public NetworkResponse(byte[] data, @Nullable Map<String, String> headers) {
         this(
                 HttpURLConnection.HTTP_OK,
                 data,
@@ -161,7 +162,7 @@ public class NetworkResponse {
     /** Network roundtrip time in milliseconds. */
     public final long networkTimeMs;
 
-    private static Map<String, String> toHeaderMap(List<Header> allHeaders) {
+    private static Map<String, String> toHeaderMap(@Nullable List<Header> allHeaders) {
         if (allHeaders == null) {
             return null;
         }
@@ -176,7 +177,7 @@ public class NetworkResponse {
         return headers;
     }
 
-    private static List<Header> toAllHeaderList(Map<String, String> headers) {
+    private static List<Header> toAllHeaderList(@Nullable Map<String, String> headers) {
         if (headers == null) {
             return null;
         }

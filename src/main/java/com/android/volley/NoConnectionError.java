@@ -16,6 +16,8 @@
 
 package com.android.volley;
 
+import androidx.annotation.Nullable;
+
 /** Error indicating that no connection could be established when performing a Volley request. */
 @SuppressWarnings("serial")
 public class NoConnectionError extends NetworkError {
@@ -23,7 +25,7 @@ public class NoConnectionError extends NetworkError {
         super();
     }
 
-    public NoConnectionError(Throwable reason) {
+    public NoConnectionError(@Nullable Throwable reason) {
         super(reason);
     }
 }

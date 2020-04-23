@@ -17,6 +17,7 @@
 package com.android.volley;
 
 import android.content.Intent;
+import androidx.annotation.Nullable;
 
 /** Error indicating that there was an authentication failure when performing a Request. */
 @SuppressWarnings("serial")
@@ -26,27 +27,29 @@ public class AuthFailureError extends VolleyError {
 
     public AuthFailureError() {}
 
-    public AuthFailureError(Intent intent) {
+    public AuthFailureError(@Nullable Intent intent) {
         mResolutionIntent = intent;
     }
 
-    public AuthFailureError(NetworkResponse response) {
+    public AuthFailureError(@Nullable NetworkResponse response) {
         super(response);
     }
 
-    public AuthFailureError(String message) {
+    public AuthFailureError(@Nullable String message) {
         super(message);
     }
 
-    public AuthFailureError(String message, Exception reason) {
+    public AuthFailureError(@Nullable String message, @Nullable Exception reason) {
         super(message, reason);
     }
 
+    @Nullable
     public Intent getResolutionIntent() {
         return mResolutionIntent;
     }
 
     @Override
+    @Nullable
     public String getMessage() {
         if (mResolutionIntent != null) {
             return "User needs to (re)enter credentials.";

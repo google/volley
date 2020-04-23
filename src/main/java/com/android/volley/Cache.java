@@ -16,6 +16,7 @@
 
 package com.android.volley;
 
+import androidx.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ public interface Cache {
      * @param key Cache key
      * @return An {@link Entry} or null in the event of a cache miss
      */
+    @Nullable
     Entry get(String key);
 
     /**

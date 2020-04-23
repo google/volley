@@ -16,6 +16,8 @@
 
 package com.android.volley;
 
+import androidx.annotation.Nullable;
+
 /**
  * Indicates that the server responded with an error response indicating that the client has erred.
  *
@@ -24,7 +26,7 @@ package com.android.volley;
  */
 @SuppressWarnings("serial")
 public class ClientError extends ServerError {
-    public ClientError(NetworkResponse networkResponse) {
+    public ClientError(@Nullable NetworkResponse networkResponse) {
         super(networkResponse);
     }
 

@@ -16,10 +16,12 @@
 
 package com.android.volley;
 
+import androidx.annotation.Nullable;
+
 /** Indicates that the server responded with an error response. */
 @SuppressWarnings("serial")
 public class ServerError extends VolleyError {
-    public ServerError(NetworkResponse networkResponse) {
+    public ServerError(@Nullable NetworkResponse networkResponse) {
         super(networkResponse);
     }
 
