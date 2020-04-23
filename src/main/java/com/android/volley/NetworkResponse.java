@@ -120,8 +120,8 @@ public class NetworkResponse {
     private NetworkResponse(
             int statusCode,
             byte[] data,
-            Map<String, String> headers,
-            List<Header> allHeaders,
+            @Nullable Map<String, String> headers,
+            @Nullable List<Header> allHeaders,
             boolean notModified,
             long networkTimeMs) {
         this.statusCode = statusCode;
@@ -151,9 +151,11 @@ public class NetworkResponse {
      * map will only contain the last one. Use {@link #allHeaders} to inspect all headers returned
      * by the server.
      */
+    @Nullable
     public final Map<String, String> headers;
 
     /** All response headers. Must not be mutated directly. */
+    @Nullable
     public final List<Header> allHeaders;
 
     /** True if the server returned a 304 (Not Modified). */
@@ -162,6 +164,7 @@ public class NetworkResponse {
     /** Network roundtrip time in milliseconds. */
     public final long networkTimeMs;
 
+    @Nullable
     private static Map<String, String> toHeaderMap(@Nullable List<Header> allHeaders) {
         if (allHeaders == null) {
             return null;
@@ -177,6 +180,7 @@ public class NetworkResponse {
         return headers;
     }
 
+    @Nullable
     private static List<Header> toAllHeaderList(@Nullable Map<String, String> headers) {
         if (headers == null) {
             return null;
