@@ -23,6 +23,7 @@ import androidx.annotation.Nullable;
 @SuppressWarnings("serial")
 public class AuthFailureError extends VolleyError {
     /** An intent that can be used to resolve this exception. (Brings up the password dialog.) */
+    @Nullable
     private Intent mResolutionIntent;
 
     public AuthFailureError() {}
