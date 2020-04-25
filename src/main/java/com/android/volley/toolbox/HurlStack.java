@@ -170,15 +170,17 @@ public class HurlStack extends BaseHttpStack {
     }
 
     /**
-     * Overload this method for manipulate input stream.
+     * Overload this method for manipulate response stream (Use 'write (byte[] b, int off, int len)' in subclasse).
      *
-     * @param request current request
-     * @param connection current connection of request
-     * @param responseCode response code
-     * @param length size of response
+     * @param request current request.
+     * @param connection current connection of request.
+     * @param responseCode response code.
+     * @param length size of response stream.
      * @return an UrlConnectionInputStream object for read response.
      */
-    protected UrlConnectionInputStream createInputStream (Request<?> request, HttpURLConnection connection, int responseCode, int length) {
+    protected UrlConnectionInputStream createInputStream (Request<?> request, HttpURLConnection connection,
+        int responseCode, int length) {
+
         return new UrlConnectionInputStream (connection);
     }
 
@@ -304,27 +306,21 @@ public class HurlStack extends BaseHttpStack {
                     HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         }
         DataOutputStream out = stack.createOutputStream ( request, connection, body.length );
-        int offset = 0, bodyLength = body.length;
-
-        while ( offset < bodyLength )
-            {
-            int length = Math.min ( bodyLength - offset, 1024 );
-            out.write ( body, offset, length );
-            offset += length;
-            }
-
+        out.write(body);
         out.close ();
     }
 
     /**
-     * Overload this method for manipulate output stream.
+     * Overload this method for manipulate request stream (Use 'write (byte[] b)' in subclasse).
      *
-     * @param request current request
-     * @param connection current connection of request
-     * @param length size of body
+     * @param request current request.
+     * @param connection current connection of request.
+     * @param length size of stream to write.
      * @return an DataOutputStream object for write request body.
      */
-    protected DataOutputStream createOutputStream (Request<?> request, HttpURLConnection connection, int length) throws IOException {
+    protected DataOutputStream createOutputStream (Request<?> request, HttpURLConnection connection, 
+		int length) throws IOException {
+
         return new DataOutputStream (connection.getOutputStream ());
     }
 }
