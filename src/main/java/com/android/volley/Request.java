@@ -115,7 +115,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * entry will be stored here so that in the event of a "Not Modified" response, we can be sure
      * it hasn't been evicted from cache.
      */
-    private Cache.Entry mCacheEntry = null;
+    @Nullable private Cache.Entry mCacheEntry = null;
 
     /** An opaque token tagging this request; used for bulk cancellation. */
     private Object mTag;
@@ -319,6 +319,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     }
 
     /** Returns the annotated cache entry, or null if there isn't one. */
+    @Nullable
     public Cache.Entry getCacheEntry() {
         return mCacheEntry;
     }
@@ -374,6 +375,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * @deprecated Use {@link #getParams()} instead.
      */
     @Deprecated
+    @Nullable
     protected Map<String, String> getPostParams() throws AuthFailureError {
         return getParams();
     }
@@ -431,6 +433,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      *
      * @throws AuthFailureError in the event of auth failure
      */
+    @Nullable
     protected Map<String, String> getParams() throws AuthFailureError {
         return null;
     }

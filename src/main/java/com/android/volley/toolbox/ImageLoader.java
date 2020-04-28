@@ -20,6 +20,7 @@ import android.os.Looper;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import androidx.annotation.MainThread;
+import androidx.annotation.Nullable;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response.ErrorListener;
@@ -70,6 +71,7 @@ public class ImageLoader {
      * LruCache is recommended.
      */
     public interface ImageCache {
+        @Nullable
         Bitmap getBitmap(String url);
 
         void putBitmap(String url, Bitmap bitmap);
