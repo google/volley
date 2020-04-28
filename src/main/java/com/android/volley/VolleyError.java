@@ -21,8 +21,7 @@ import androidx.annotation.Nullable;
 /** Exception style class encapsulating Volley errors */
 @SuppressWarnings("serial")
 public class VolleyError extends Exception {
-    @Nullable
-    public final NetworkResponse networkResponse;
+    @Nullable public final NetworkResponse networkResponse;
 
     private long networkTimeMs;
 

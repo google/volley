@@ -80,7 +80,10 @@ public class NetworkResponse {
      */
     @Deprecated
     public NetworkResponse(
-            int statusCode, byte[] data, @Nullable Map<String, String> headers, boolean notModified) {
+            int statusCode,
+            byte[] data,
+            @Nullable Map<String, String> headers,
+            boolean notModified) {
         this(statusCode, data, headers, notModified, /* networkTimeMs= */ 0);
     }
 
@@ -151,12 +154,10 @@ public class NetworkResponse {
      * map will only contain the last one. Use {@link #allHeaders} to inspect all headers returned
      * by the server.
      */
-    @Nullable
-    public final Map<String, String> headers;
+    @Nullable public final Map<String, String> headers;
 
     /** All response headers. Must not be mutated directly. */
-    @Nullable
-    public final List<Header> allHeaders;
+    @Nullable public final List<Header> allHeaders;
 
     /** True if the server returned a 304 (Not Modified). */
     public final boolean notModified;

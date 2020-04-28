@@ -115,8 +115,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * entry will be stored here so that in the event of a "Not Modified" response, we can be sure
      * it hasn't been evicted from cache.
      */
-    @Nullable
-    private Cache.Entry mCacheEntry = null;
+    @Nullable private Cache.Entry mCacheEntry = null;
 
     /** An opaque token tagging this request; used for bulk cancellation. */
     private Object mTag;
