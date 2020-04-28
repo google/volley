@@ -16,31 +16,34 @@
 
 package com.android.volley;
 
+import androidx.annotation.Nullable;
+
 /** Exception style class encapsulating Volley errors */
 @SuppressWarnings("serial")
 public class VolleyError extends Exception {
-    public final NetworkResponse networkResponse;
+    @Nullable public final NetworkResponse networkResponse;
+
     private long networkTimeMs;
 
     public VolleyError() {
         networkResponse = null;
     }
 
-    public VolleyError(NetworkResponse response) {
+    public VolleyError(@Nullable NetworkResponse response) {
         networkResponse = response;
     }
 
-    public VolleyError(String exceptionMessage) {
+    public VolleyError(@Nullable String exceptionMessage) {
         super(exceptionMessage);
         networkResponse = null;
     }
 
-    public VolleyError(String exceptionMessage, Throwable reason) {
+    public VolleyError(@Nullable String exceptionMessage, @Nullable Throwable reason) {
         super(exceptionMessage, reason);
         networkResponse = null;
     }
 
-    public VolleyError(Throwable cause) {
+    public VolleyError(@Nullable Throwable cause) {
         super(cause);
         networkResponse = null;
     }

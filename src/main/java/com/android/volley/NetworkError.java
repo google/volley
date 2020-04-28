@@ -16,6 +16,8 @@
 
 package com.android.volley;
 
+import androidx.annotation.Nullable;
+
 /** Indicates that there was a network error when performing a Volley request. */
 @SuppressWarnings("serial")
 public class NetworkError extends VolleyError {
@@ -23,11 +25,11 @@ public class NetworkError extends VolleyError {
         super();
     }
 
-    public NetworkError(Throwable cause) {
+    public NetworkError(@Nullable Throwable cause) {
         super(cause);
     }
 
-    public NetworkError(NetworkResponse networkResponse) {
+    public NetworkError(@Nullable NetworkResponse networkResponse) {
         super(networkResponse);
     }
 }
