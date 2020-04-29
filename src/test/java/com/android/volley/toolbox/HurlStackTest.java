@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -24,11 +25,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.android.volley.Header;
+import com.android.volley.Request;
 import com.android.volley.Request.Method;
 import com.android.volley.mock.TestRequest;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FilterInputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -61,6 +67,26 @@ public class HurlStackTest {
                     @Override
                     protected HttpURLConnection createConnection(URL url) {
                         return mMockConnection;
+                    }
+
+                    @Override
+                    protected InputStream createInputStream(
+                            Request<?> request, HttpURLConnection connection) {
+                        return new MonitoringInputStream(
+                                super.createInputStream(request, connection));
+                    }
+
+                    @Override
+                    protected OutputStream createOutputStream(
+                            Request<?> request, HttpURLConnection connection, int length)
+                            throws IOException {
+                        if (request instanceof MonitoredRequest) {
+                            return new MonitoringOutputStream(
+                                    super.createOutputStream(request, connection, length),
+                                    (MonitoredRequest) request,
+                                    length);
+                        }
+                        return super.createOutputStream(request, connection, length);
                     }
                 };
     }
@@ -255,5 +281,57 @@ public class HurlStackTest {
         expected.add(new Header("HeaderB", "ValueB_1"));
         expected.add(new Header("HeaderB", "ValueB_2"));
         assertEquals(expected, result);
+    }
+
+    @Test
+    public void interceptResponseStream() throws Exception {
+        when(mMockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(mMockConnection.getInputStream())
+                .thenReturn(new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8)));
+        HttpResponse response =
+                mHurlStack.executeRequest(
+                        new TestRequest.Get(), Collections.<String, String>emptyMap());
+        assertTrue(response.getContent() instanceof MonitoringInputStream);
+    }
+
+    @Test
+    public void interceptRequestStream() throws Exception {
+        MonitoredRequest request = new MonitoredRequest();
+        mHurlStack.executeRequest(request, Collections.<String, String>emptyMap());
+        assertTrue(request.totalRequestBytes > 0);
+        assertEquals(request.totalRequestBytes, request.requestBytesRead);
+    }
+
+    private static class MonitoringInputStream extends FilterInputStream {
+        private MonitoringInputStream(InputStream in) {
+            super(in);
+        }
+    }
+
+    private static class MonitoringOutputStream extends FilterOutputStream {
+        private MonitoredRequest request;
+
+        private MonitoringOutputStream(OutputStream out, MonitoredRequest request, int length) {
+            super(out);
+            this.request = request;
+            this.request.totalRequestBytes = length;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            this.request.requestBytesRead++;
+            out.write(b);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            this.request.requestBytesRead += len;
+            out.write(b, off, len);
+        }
+    }
+
+    private static class MonitoredRequest extends TestRequest.PostWithBody {
+        int requestBytesRead = 0;
+        int totalRequestBytes = 0;
     }
 }

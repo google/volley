@@ -108,12 +108,11 @@ public class HurlStack extends BaseHttpStack {
             // Need to keep the connection open until the stream is consumed by the caller. Wrap the
             // stream such that close() will disconnect the connection.
             keepConnectionOpen = true;
-            int contentLength = connection.getContentLength();
             return new HttpResponse(
                     responseCode,
                     convertHeaders(connection.getHeaderFields()),
                     connection.getContentLength(),
-                    createInputStream(request, connection, responseCode, contentLength));
+                    createInputStream(request, connection));
         } finally {
             if (!keepConnectionOpen) {
                 connection.disconnect();
@@ -171,18 +170,15 @@ public class HurlStack extends BaseHttpStack {
     }
 
     /**
-     * Create and return an InputStream with which the response will be read.
+     * Create and return an InputStream from which the response will be read.
      *
      * <p>May be overridden by subclasses to manipulate or monitor this input stream.
      *
      * @param request current request.
      * @param connection current connection of request.
-     * @param responseCode response code.
-     * @param length size of response stream.
-     * @return an InputStream object for read response.
+     * @return an InputStream from which the response will be read.
      */
-    protected InputStream createInputStream(
-            Request<?> request, HttpURLConnection connection, int responseCode, int length) {
+    protected InputStream createInputStream(Request<?> request, HttpURLConnection connection) {
         return new UrlConnectionInputStream(connection);
     }
 
@@ -322,7 +318,7 @@ public class HurlStack extends BaseHttpStack {
      * @param connection current connection of request.
      * @param length size of stream to write.
      * @return an OutputStream to which the request body will be written.
-     * @throws IOException
+     * @throws IOException if an I/O error occurs while creating the stream.
      */
     protected OutputStream createOutputStream(
             Request<?> request, HttpURLConnection connection, int length) throws IOException {
