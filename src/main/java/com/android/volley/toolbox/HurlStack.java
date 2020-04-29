@@ -108,7 +108,7 @@ public class HurlStack extends BaseHttpStack {
             // Need to keep the connection open until the stream is consumed by the caller. Wrap the
             // stream such that close() will disconnect the connection.
             keepConnectionOpen = true;
-            int contentLength = connection.getContentLength ();
+            int contentLength = connection.getContentLength();
             return new HttpResponse(
                     responseCode,
                     convertHeaders(connection.getHeaderFields()),
@@ -322,7 +322,8 @@ public class HurlStack extends BaseHttpStack {
      * @return an OutputStream to which the request body will be written.
      * @throws IOException
      */
-    protected OutputStream createOutputStream (Request<?> request, HttpURLConnection connection, int length) throws IOException {
+    protected OutputStream createOutputStream (Request<?> request, HttpURLConnection connection, int length)
+            throws IOException {
         return connection.getOutputStream();
     }
 }
