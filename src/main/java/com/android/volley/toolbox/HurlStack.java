@@ -25,6 +25,7 @@ import java.io.DataOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -111,7 +112,7 @@ public class HurlStack extends BaseHttpStack {
                     responseCode,
                     convertHeaders(connection.getHeaderFields()),
                     connection.getContentLength(),
-                    new UrlConnectionInputStream(connection));
+                    createInputStream(request, connection));
         } finally {
             if (!keepConnectionOpen) {
                 connection.disconnect();
@@ -169,6 +170,19 @@ public class HurlStack extends BaseHttpStack {
     }
 
     /**
+     * Create and return an InputStream from which the response will be read.
+     *
+     * <p>May be overridden by subclasses to manipulate or monitor this input stream.
+     *
+     * @param request current request.
+     * @param connection current connection of request.
+     * @return an InputStream from which the response will be read.
+     */
+    protected InputStream createInputStream(Request<?> request, HttpURLConnection connection) {
+        return new UrlConnectionInputStream(connection);
+    }
+
+    /**
      * Initializes an {@link InputStream} from the given {@link HttpURLConnection}.
      *
      * @param connection
@@ -223,7 +237,7 @@ public class HurlStack extends BaseHttpStack {
     // NOTE: Any request headers added here (via setRequestProperty or addRequestProperty) should be
     // checked against the existing properties in the connection and not overridden if already set.
     @SuppressWarnings("deprecation")
-    /* package */ static void setConnectionParametersForRequest(
+    /* package */ void setConnectionParametersForRequest(
             HttpURLConnection connection, Request<?> request) throws IOException, AuthFailureError {
         switch (request.getMethod()) {
             case Method.DEPRECATED_GET_OR_POST:
@@ -270,7 +284,7 @@ public class HurlStack extends BaseHttpStack {
         }
     }
 
-    private static void addBodyIfExists(HttpURLConnection connection, Request<?> request)
+    private void addBodyIfExists(HttpURLConnection connection, Request<?> request)
             throws IOException, AuthFailureError {
         byte[] body = request.getBody();
         if (body != null) {
@@ -278,7 +292,7 @@ public class HurlStack extends BaseHttpStack {
         }
     }
 
-    private static void addBody(HttpURLConnection connection, Request<?> request, byte[] body)
+    private void addBody(HttpURLConnection connection, Request<?> request, byte[] body)
             throws IOException {
         // Prepare output. There is no need to set Content-Length explicitly,
         // since this is handled by HttpURLConnection using the size of the prepared
@@ -289,8 +303,25 @@ public class HurlStack extends BaseHttpStack {
             connection.setRequestProperty(
                     HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         }
-        DataOutputStream out = new DataOutputStream(connection.getOutputStream());
+        DataOutputStream out =
+                new DataOutputStream(createOutputStream(request, connection, body.length));
         out.write(body);
         out.close();
+    }
+
+    /**
+     * Create and return an OutputStream to which the request body will be written.
+     *
+     * <p>May be overridden by subclasses to manipulate or monitor this output stream.
+     *
+     * @param request current request.
+     * @param connection current connection of request.
+     * @param length size of stream to write.
+     * @return an OutputStream to which the request body will be written.
+     * @throws IOException if an I/O error occurs while creating the stream.
+     */
+    protected OutputStream createOutputStream(
+            Request<?> request, HttpURLConnection connection, int length) throws IOException {
+        return connection.getOutputStream();
     }
 }
