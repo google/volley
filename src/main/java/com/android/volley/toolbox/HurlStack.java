@@ -307,8 +307,8 @@ public class HurlStack extends BaseHttpStack {
             connection.setRequestProperty(
                     HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         }
-        DataOutputStream out = new DataOutputStream(createOutputStream(request, connection,
-                body.length));
+        DataOutputStream out =
+                new DataOutputStream(createOutputStream(request, connection, body.length));
         out.write(body);
         out.close();
     }
