@@ -181,7 +181,7 @@ public class HurlStack extends BaseHttpStack {
      * @param length size of response stream.
      * @return an InputStream object for read response.
      */
-    protected InputStream createInputStream (Request<?> request, HttpURLConnection connection,
+    protected InputStream createInputStream(Request<?> request, HttpURLConnection connection,
                                              int responseCode, int length) {
         return new UrlConnectionInputStream(connection);
     }
@@ -324,7 +324,7 @@ public class HurlStack extends BaseHttpStack {
      * @return an OutputStream to which the request body will be written.
      * @throws IOException
      */
-    protected OutputStream createOutputStream (Request<?> request, HttpURLConnection connection,
+    protected OutputStream createOutputStream(Request<?> request, HttpURLConnection connection,
                                                int length) throws IOException {
         return connection.getOutputStream();
     }
