@@ -21,11 +21,11 @@ import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.Request;
 import com.android.volley.Request.Method;
+import java.io.OutputStream;
 import java.io.DataOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -181,16 +181,14 @@ public class HurlStack extends BaseHttpStack {
      * @param length size of response stream.
      * @return an InputStream object for read response.
      */
-    protected InputStream createInputStream (Request<?> request, HttpURLConnection connection,
-        int responseCode, int length) {
-
-        return new UrlConnectionInputStream (connection);
+    protected InputStream createInputStream (Request<?> request, HttpURLConnection connection, int responseCode, int length) {
+        return new UrlConnectionInputStream(connection);
     }
 
     /**
      * Initializes an {@link InputStream} from the given {@link HttpURLConnection}.
      *
-     * @param connection Request connection
+     * @param connection
      * @return an HttpEntity populated with data from <code>connection</code>.
      */
     private static InputStream inputStreamFromConnection(HttpURLConnection connection) {
@@ -308,7 +306,7 @@ public class HurlStack extends BaseHttpStack {
             connection.setRequestProperty(
                     HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         }
-        OutputStream out = new DataOutputStream (this.createOutputStream(request, connection, body.length));
+        DataOutputStream out = new DataOutputStream(createOutputStream(request, connection, body.length));
         out.write(body);
         out.close();
     }
@@ -322,10 +320,9 @@ public class HurlStack extends BaseHttpStack {
      * @param connection current connection of request.
      * @param length size of stream to write.
      * @return an OutputStream to which the request body will be written.
+     * @throws IOException
      */
-    protected OutputStream createOutputStream (Request<?> request, HttpURLConnection connection,
-		int length) throws IOException {
-
+    protected OutputStream createOutputStream (Request<?> request, HttpURLConnection connection, int length) throws IOException {
         return connection.getOutputStream();
     }
 }
