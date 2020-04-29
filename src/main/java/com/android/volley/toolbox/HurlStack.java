@@ -155,7 +155,7 @@ public class HurlStack extends BaseHttpStack {
      * Wrapper for a {@link HttpURLConnection}'s InputStream which disconnects the connection on
      * stream close.
      */
-    private static class UrlConnectionInputStream extends FilterInputStream {
+    static class UrlConnectionInputStream extends FilterInputStream {
         private final HttpURLConnection mConnection;
 
         UrlConnectionInputStream(HttpURLConnection connection) {
@@ -171,15 +171,17 @@ public class HurlStack extends BaseHttpStack {
     }
 
     /**
-     * Overload this method for manipulate response stream (Use 'write (byte[] b, int off, int len)' in subclasse).
+     * Create and return an InputStream with which the response will be read.
+     *
+     * May be overridden by subclasses to manipulate or monitor this input stream.
      *
      * @param request current request.
      * @param connection current connection of request.
      * @param responseCode response code.
      * @param length size of response stream.
-     * @return an UrlConnectionInputStream object for read response.
+     * @return an InputStream object for read response.
      */
-    protected FilterInputStream createInputStream (Request<?> request, HttpURLConnection connection,
+    protected InputStream createInputStream (Request<?> request, HttpURLConnection connection,
         int responseCode, int length) {
 
         return new UrlConnectionInputStream (connection);
@@ -306,22 +308,24 @@ public class HurlStack extends BaseHttpStack {
             connection.setRequestProperty(
                     HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         }
-        OutputStream out = this.createOutputStream ( request, connection, body.length );
+        OutputStream out = new DataOutputStream (this.createOutputStream(request, connection, body.length));
         out.write(body);
-        out.close ();
+        out.close();
     }
 
     /**
-     * Overload this method for manipulate request stream (Use 'write (byte[] b)' in subclasse).
+     * Create and return an OutputStream to which the request body will be written.
+     *
+     * May be overridden by subclasses to manipulate or monitor this output stream.
      *
      * @param request current request.
      * @param connection current connection of request.
      * @param length size of stream to write.
-     * @return an OutputStream object for write request body.
+     * @return an OutputStream to which the request body will be written.
      */
     protected OutputStream createOutputStream (Request<?> request, HttpURLConnection connection,
 		int length) throws IOException {
 
-        return new DataOutputStream (connection.getOutputStream ());
+        return connection.getOutputStream();
     }
 }
