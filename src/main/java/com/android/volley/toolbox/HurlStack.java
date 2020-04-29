@@ -173,7 +173,7 @@ public class HurlStack extends BaseHttpStack {
     /**
      * Create and return an InputStream with which the response will be read.
      *
-     * May be overridden by subclasses to manipulate or monitor this input stream.
+     * <p>May be overridden by subclasses to manipulate or monitor this input stream.
      *
      * @param request current request.
      * @param connection current connection of request.
@@ -307,8 +307,8 @@ public class HurlStack extends BaseHttpStack {
             connection.setRequestProperty(
                     HttpHeaderParser.HEADER_CONTENT_TYPE, request.getBodyContentType());
         }
-        DataOutputStream out = new DataOutputStream(
-                createOutputStream(request, connection, body.length));
+        DataOutputStream out =
+                new DataOutputStream(createOutputStream(request, connection, body.length));
         out.write(body);
         out.close();
     }
@@ -316,7 +316,7 @@ public class HurlStack extends BaseHttpStack {
     /**
      * Create and return an OutputStream to which the request body will be written.
      *
-     * May be overridden by subclasses to manipulate or monitor this output stream.
+     * <p>May be overridden by subclasses to manipulate or monitor this output stream.
      *
      * @param request current request.
      * @param connection current connection of request.
