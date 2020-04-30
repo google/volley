@@ -16,6 +16,7 @@
 
 package com.android.volley.toolbox;
 
+import androidx.annotation.Nullable;
 import com.android.volley.Cache;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
@@ -49,10 +50,14 @@ public class HttpHeaderParser {
      * @param response The network response to parse headers from
      * @return a cache entry for the given response, or null if the response is not cacheable.
      */
+    @Nullable
     public static Cache.Entry parseCacheHeaders(NetworkResponse response) {
         long now = System.currentTimeMillis();
 
         Map<String, String> headers = response.headers;
+        if (headers == null) {
+            return null;
+        }
 
         long serverDate = 0;
         long lastModified = 0;
@@ -171,7 +176,11 @@ public class HttpHeaderParser {
      * @return Returns the charset specified in the Content-Type of this header, or the
      *     defaultCharset if none can be found.
      */
-    public static String parseCharset(Map<String, String> headers, String defaultCharset) {
+    public static String parseCharset(
+            @Nullable Map<String, String> headers, String defaultCharset) {
+        if (headers == null) {
+            return defaultCharset;
+        }
         String contentType = headers.get(HEADER_CONTENT_TYPE);
         if (contentType != null) {
             String[] params = contentType.split(";", 0);
@@ -192,7 +201,7 @@ public class HttpHeaderParser {
      * Returns the charset specified in the Content-Type of this header, or the HTTP default
      * (ISO-8859-1) if none can be found.
      */
-    public static String parseCharset(Map<String, String> headers) {
+    public static String parseCharset(@Nullable Map<String, String> headers) {
         return parseCharset(headers, DEFAULT_CONTENT_CHARSET);
     }
 
