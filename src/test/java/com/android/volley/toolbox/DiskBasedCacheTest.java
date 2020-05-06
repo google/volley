@@ -59,7 +59,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(manifest = "src/main/AndroidManifest.xml", sdk = 16)
+@Config(sdk = 16)
 public class DiskBasedCacheTest {
 
     private static final int MAX_SIZE = 1024 * 1024;
