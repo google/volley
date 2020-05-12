@@ -67,6 +67,12 @@ public class HttpHeaderParserTest {
     }
 
     @Test
+    public void parseCacheHeaders_nullHeaders() {
+        response = new NetworkResponse(0, null, null, false);
+        assertNull(HttpHeaderParser.parseCacheHeaders(response));
+    }
+
+    @Test
     public void parseCacheHeaders_headersSet() {
         headers.put("MyCustomHeader", "42");
 
@@ -282,6 +288,9 @@ public class HttpHeaderParserTest {
         // None specified, extra semicolon
         headers.put("Content-Type", "text/plain;");
         assertEquals("ISO-8859-1", HttpHeaderParser.parseCharset(headers));
+
+        // No headers, use default charset
+        assertEquals("utf-8", HttpHeaderParser.parseCharset(null, "utf-8"));
     }
 
     @Test
