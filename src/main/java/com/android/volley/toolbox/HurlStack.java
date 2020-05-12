@@ -178,7 +178,8 @@ public class HurlStack extends BaseHttpStack {
      * @param connection current connection of request.
      * @return an InputStream from which the response will be read.
      */
-    protected InputStream createInputStream(Request<?> request, HttpURLConnection connection) throws IOException {
+    protected InputStream createInputStream(Request<?> request, HttpURLConnection connection)
+            throws IOException {
         return new UrlConnectionInputStream(connection);
     }
 
