@@ -24,7 +24,7 @@ dependencies {
 }
 
 // Check if the android plugin version supports unit testing.
-if (configurations.findByName("testCompile")) {
+if (configurations.findByName("testImplementation")) {
   dependencies {
       testImplementation "junit:junit:4.12"
       testImplementation "org.hamcrest:hamcrest-library:1.3"
