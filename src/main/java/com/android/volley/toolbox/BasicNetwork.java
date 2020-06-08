@@ -179,7 +179,7 @@ public class BasicNetwork implements Network {
                     statusCode = httpResponse.getStatusCode();
                 } else {
                     if (request.shouldRetryConnectionErrors()) {
-                        attemptRetryOnException("connection", request, new NoConnectionError(e));
+                        attemptRetryOnException("no-connection", request, new NoConnectionError(e));
                         continue;
                     } else {
                         throw new NoConnectionError(e);
