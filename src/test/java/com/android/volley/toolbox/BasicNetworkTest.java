@@ -30,6 +30,7 @@ import com.android.volley.AuthFailureError;
 import com.android.volley.Cache.Entry;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
+import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.RetryPolicy;
@@ -176,12 +177,49 @@ public class BasicNetworkTest {
     }
 
     @Test
-    public void noConnection() throws Exception {
+    public void noConnectionDefault() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         mockHttpStack.setExceptionToThrow(new IOException());
         BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
+        doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
+        try {
+            httpNetwork.performRequest(request);
+        } catch (VolleyError e) {
+            // expected
+        }
+        // should not retry when there is no connection
+        verify(mMockRetryPolicy, never()).retry(any(VolleyError.class));
+    }
+
+    @Test
+    public void noConnectionRetry() throws Exception {
+        MockHttpStack mockHttpStack = new MockHttpStack();
+        mockHttpStack.setExceptionToThrow(new IOException());
+        BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
+        Request<String> request = buildRequest();
+        request.setRetryPolicy(mMockRetryPolicy);
+        request.setShouldRetryConnectionErrors(true);
+        doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
+        try {
+            httpNetwork.performRequest(request);
+        } catch (VolleyError e) {
+            // expected
+        }
+        // should retry when there is no connection
+        verify(mMockRetryPolicy).retry(any(NoConnectionError.class));
+        reset(mMockRetryPolicy);
+    }
+
+    @Test
+    public void noConnectionNoRetry() throws Exception {
+        MockHttpStack mockHttpStack = new MockHttpStack();
+        mockHttpStack.setExceptionToThrow(new IOException());
+        BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
+        Request<String> request = buildRequest();
+        request.setRetryPolicy(mMockRetryPolicy);
+        request.setShouldRetryConnectionErrors(false);
         doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
         try {
             httpNetwork.performRequest(request);
