@@ -177,7 +177,7 @@ public class BasicNetworkTest {
     }
 
     @Test
-    public void noConnection() throws Exception {
+    public void noConnectionDefault() throws Exception {
         MockHttpStack mockHttpStack = new MockHttpStack();
         mockHttpStack.setExceptionToThrow(new IOException());
         BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
@@ -210,6 +210,24 @@ public class BasicNetworkTest {
         // should retry when there is no connection
         verify(mMockRetryPolicy).retry(any(NoConnectionError.class));
         reset(mMockRetryPolicy);
+    }
+
+    @Test
+    public void noConnectionNoRetry() throws Exception {
+        MockHttpStack mockHttpStack = new MockHttpStack();
+        mockHttpStack.setExceptionToThrow(new IOException());
+        BasicNetwork httpNetwork = new BasicNetwork(mockHttpStack);
+        Request<String> request = buildRequest();
+        request.setRetryPolicy(mMockRetryPolicy);
+        request.setShouldRetryConnectionErrors(false);
+        doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
+        try {
+            httpNetwork.performRequest(request);
+        } catch (VolleyError e) {
+            // expected
+        }
+        // should not retry when there is no connection
+        verify(mMockRetryPolicy, never()).retry(any(VolleyError.class));
     }
 
     @Test
