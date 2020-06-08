@@ -107,7 +107,7 @@ public abstract class Request<T> implements Comparable<Request<T>> {
     /** Whether the request should be retried in the event of an HTTP 5xx (server) error. */
     private boolean mShouldRetryServerErrors = false;
 
-    /** Whether the request should be retried in the event of a NoConnectionError. */
+    /** Whether the request should be retried in the event of a {@link NoConnectionError}. */
     private boolean mShouldRetryConnectionErrors = false;
 
     /** The retry policy for this request. */
@@ -542,8 +542,8 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      *
      * @return This Request object to allow for chaining.
      */
-    public final Request<?> setShouldRetryConnectionErrors(boolean shouldRetryConnection) {
-        mShouldRetryConnectionErrors = shouldRetryConnection;
+    public final Request<?> setShouldRetryConnectionErrors(boolean shouldRetryConnectionErrors) {
+        mShouldRetryConnectionErrors = shouldRetryConnectionErrors;
         return this;
     }
 
