@@ -64,42 +64,6 @@ public class DiskBasedAsyncCacheFallback extends AsyncCache {
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
 
-    /**
-     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory.
-     *
-     * @param rootDirectorySupplier The supplier for the root directory of the cache.
-     * @param maxCacheSizeInBytes The maximum size of the cache in bytes. Note that the cache may
-     *     briefly exceed this size on disk when writing a new entry that pushes it over the limit
-     *     until the ensuing pruning completes.
-     */
-    public DiskBasedAsyncCacheFallback(
-            DiskBasedAsyncCacheFallback.FileSupplier rootDirectorySupplier,
-            int maxCacheSizeInBytes) {
-        mRootDirectorySupplier = rootDirectorySupplier;
-        mMaxCacheSizeInBytes = maxCacheSizeInBytes;
-    }
-
-    /**
-     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory using
-     * the default maximum cache size of 5MB.
-     *
-     * @param rootDirectory The root directory of the cache.
-     */
-    public DiskBasedAsyncCacheFallback(File rootDirectory) {
-        this(rootDirectory, DEFAULT_DISK_USAGE_BYTES);
-    }
-
-    /**
-     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory using
-     * the default maximum cache size of 5MB.
-     *
-     * @param rootDirectorySupplier The supplier for the root directory of the cache.
-     */
-    public DiskBasedAsyncCacheFallback(
-            DiskBasedAsyncCacheFallback.FileSupplier rootDirectorySupplier) {
-        this(rootDirectorySupplier, DEFAULT_DISK_USAGE_BYTES);
-    }
-
     /** Clears the cache. Deletes all cached files from disk. */
     @Override
     public synchronized void clear() {
@@ -345,25 +309,6 @@ public class DiskBasedAsyncCacheFallback extends AsyncCache {
             e.responseHeaders = HttpHeaderParser.toHeaderMap(allResponseHeaders);
             e.allResponseHeaders = Collections.unmodifiableList(allResponseHeaders);
             return e;
-        }
-
-        /** Writes the contents of this CacheHeader to the specified OutputStream. */
-        boolean writeHeader(OutputStream os) {
-            try {
-                writeInt(os, CACHE_MAGIC);
-                writeString(os, key);
-                writeString(os, etag == null ? "" : etag);
-                writeLong(os, serverDate);
-                writeLong(os, lastModified);
-                writeLong(os, ttl);
-                writeLong(os, softTtl);
-                writeHeaderList(allResponseHeaders, os);
-                os.flush();
-                return true;
-            } catch (IOException e) {
-                VolleyLog.d("%s", e.toString());
-                return false;
-            }
         }
     }
 
