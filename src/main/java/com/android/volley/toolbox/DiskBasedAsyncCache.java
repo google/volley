@@ -1,19 +1,13 @@
 package com.android.volley.toolbox;
 
 import android.annotation.SuppressLint;
-import android.os.SystemClock;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.AsyncCache;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +20,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

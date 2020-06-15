@@ -1,27 +1,22 @@
 package com.android.volley.toolbox;
 
-import android.annotation.SuppressLint;
-import android.os.SystemClock;
 import android.text.TextUtils;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.AsyncCache;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,14 +73,15 @@ public class DiskBasedAsyncCacheFallback extends AsyncCache {
      *     until the ensuing pruning completes.
      */
     public DiskBasedAsyncCacheFallback(
-            DiskBasedAsyncCacheFallback.FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
+            DiskBasedAsyncCacheFallback.FileSupplier rootDirectorySupplier,
+            int maxCacheSizeInBytes) {
         mRootDirectorySupplier = rootDirectorySupplier;
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
 
     /**
-     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory using the
-     * default maximum cache size of 5MB.
+     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory using
+     * the default maximum cache size of 5MB.
      *
      * @param rootDirectory The root directory of the cache.
      */
@@ -94,12 +90,13 @@ public class DiskBasedAsyncCacheFallback extends AsyncCache {
     }
 
     /**
-     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory using the
-     * default maximum cache size of 5MB.
+     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory using
+     * the default maximum cache size of 5MB.
      *
      * @param rootDirectorySupplier The supplier for the root directory of the cache.
      */
-    public DiskBasedAsyncCacheFallback(DiskBasedAsyncCacheFallback.FileSupplier rootDirectorySupplier) {
+    public DiskBasedAsyncCacheFallback(
+            DiskBasedAsyncCacheFallback.FileSupplier rootDirectorySupplier) {
         this(rootDirectorySupplier, DEFAULT_DISK_USAGE_BYTES);
     }
 
@@ -154,8 +151,8 @@ public class DiskBasedAsyncCacheFallback extends AsyncCache {
     }
 
     /**
-     * Initializes the DiskBasedAsyncCacheFallback by scanning for all files currently in the specified
-     * root directory. Creates the root directory if necessary.
+     * Initializes the DiskBasedAsyncCacheFallback by scanning for all files currently in the
+     * specified root directory. Creates the root directory if necessary.
      */
     @Override
     public synchronized void initialize() {
@@ -475,7 +472,8 @@ public class DiskBasedAsyncCacheFallback extends AsyncCache {
         os.write(b, 0, b.length);
     }
 
-    static String readString(DiskBasedAsyncCacheFallback.CountingInputStream cis) throws IOException {
+    static String readString(DiskBasedAsyncCacheFallback.CountingInputStream cis)
+            throws IOException {
         long n = readLong(cis);
         byte[] b = streamToBytes(cis, n);
         return new String(b, "UTF-8");
