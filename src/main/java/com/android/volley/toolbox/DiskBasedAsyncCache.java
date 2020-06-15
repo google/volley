@@ -112,15 +112,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
     /** Clears the cache. Deletes all cached files from disk. */
     @Override
     public synchronized void clear() {
-        File[] files = mRootDirectorySupplier.get().listFiles();
-        if (files != null) {
-            for (File file : files) {
-                file.delete();
-            }
-        }
-        mEntries.clear();
-        mTotalSize = 0;
-        VolleyLog.d("Cache cleared.");
+        // TODO (sphill99): Implement
     }
 
     /** Returns the cache entry with the specified key if it exists, null otherwise. */
@@ -160,52 +152,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
 
     @Override
     public void put(String key, Entry entry, OnPutCompleteCallback callback) {
-        final OnPutCompleteCallback cb = callback;
-        final String key1 = key;
-        // Maybe do this check in a shared method.
-        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
-                && entry.data.length > mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
-            return;
-        }
-        File file = getFileForKey(key);
-        Path path = Paths.get(file.getPath());
-        try {
-            final DiskBasedAsyncCache.CacheHeader e =
-                    new DiskBasedAsyncCache.CacheHeader(key, entry);
-            AsynchronousFileChannel afc =
-                    AsynchronousFileChannel.open(path, StandardOpenOption.WRITE);
-            // TODO: Write the header of the file!!
-            ByteBuffer buffer =
-                    ByteBuffer.allocate(
-                            entry.data.length + 1024); // add size of header instead of 1024
-            buffer.put(entry.data);
-            buffer.flip();
-            afc.write(
-                    buffer,
-                    0,
-                    buffer,
-                    new CompletionHandler<Integer, ByteBuffer>() {
-                        @Override
-                        public void completed(Integer integer, ByteBuffer byteBuffer) {
-                            e.size = byteBuffer.capacity();
-                            putEntry(key1, e);
-                            pruneIfNeeded();
-                            cb.onPutComplete(true);
-                        }
-
-                        @Override
-                        public void failed(Throwable throwable, ByteBuffer byteBuffer) {
-                            throw new RuntimeException();
-                        }
-                    });
-        } catch (Exception e) {
-            boolean deleted = file.delete();
-            if (!deleted) {
-                VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
-            }
-            initializeIfRootDirectoryDeleted();
-            cb.onPutComplete(false);
-        }
+        // TODO (sphill99): Implement
     }
 
     /**
@@ -214,38 +161,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
      */
     @Override
     public synchronized void initialize() {
-        File rootDirectory = mRootDirectorySupplier.get();
-        if (!rootDirectory.exists()) {
-            if (!rootDirectory.mkdirs()) {
-                VolleyLog.e("Unable to create cache dir %s", rootDirectory.getAbsolutePath());
-            }
-            return;
-        }
-        File[] files = rootDirectory.listFiles();
-        if (files == null) {
-            return;
-        }
-        for (File file : files) {
-            try {
-                long entrySize = file.length();
-                DiskBasedAsyncCache.CountingInputStream cis =
-                        new DiskBasedAsyncCache.CountingInputStream(
-                                new BufferedInputStream(createInputStream(file)), entrySize);
-                try {
-                    DiskBasedAsyncCache.CacheHeader entry =
-                            DiskBasedAsyncCache.CacheHeader.readHeader(cis);
-                    entry.size = entrySize;
-                    putEntry(entry.key, entry);
-                } finally {
-                    // Any IOException thrown here is handled by the below catch block by design.
-                    //noinspection ThrowFromFinallyBlock
-                    cis.close();
-                }
-            } catch (IOException e) {
-                //noinspection ResultOfMethodCallIgnored
-                file.delete();
-            }
-        }
+        // TODO (sphill99): Implement
     }
 
     /**
@@ -256,61 +172,13 @@ public class DiskBasedAsyncCache extends AsyncCache {
      */
     @Override
     public synchronized void invalidate(String key, boolean fullExpire) {
-        Entry entry = get(key);
-        if (entry != null) {
-            entry.softTtl = 0;
-            if (fullExpire) {
-                entry.ttl = 0;
-            }
-            put(key, entry);
-        }
-    }
-
-    /** Puts the entry with the specified key into the cache. */
-    @Override
-    public synchronized void put(String key, Entry entry) {
-        // If adding this entry would trigger a prune, but pruning would cause the new entry to be
-        // deleted, then skip writing the entry in the first place, as this is just churn.
-        // Note that we don't include the cache header overhead in this calculation for simplicity,
-        // so putting entries which are just below the threshold may still cause this churn.
-        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
-                && entry.data.length > mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
-            return;
-        }
-        File file = getFileForKey(key);
-        try {
-            BufferedOutputStream fos = new BufferedOutputStream(createOutputStream(file));
-            DiskBasedAsyncCache.CacheHeader e = new DiskBasedAsyncCache.CacheHeader(key, entry);
-            boolean success = e.writeHeader(fos);
-            if (!success) {
-                fos.close();
-                VolleyLog.d("Failed to write header for %s", file.getAbsolutePath());
-                throw new IOException();
-            }
-            fos.write(entry.data);
-            fos.close();
-            e.size = file.length();
-            putEntry(key, e);
-            pruneIfNeeded();
-        } catch (IOException e) {
-            boolean deleted = file.delete();
-            if (!deleted) {
-                VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
-            }
-            initializeIfRootDirectoryDeleted();
-        }
+        // TODO (sphill99): Implement
     }
 
     /** Removes the specified key from the cache if it exists. */
     @Override
     public synchronized void remove(String key) {
-        boolean deleted = getFileForKey(key).delete();
-        removeEntry(key);
-        if (!deleted) {
-            VolleyLog.d(
-                    "Could not delete cache entry for key=%s, filename=%s",
-                    key, getFilenameForKey(key));
-        }
+        // TODO (sphill99): Implement
     }
 
     /**
@@ -331,84 +199,9 @@ public class DiskBasedAsyncCache extends AsyncCache {
         return new File(mRootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
-    /** Re-initialize the cache if the directory was deleted. */
-    private void initializeIfRootDirectoryDeleted() {
-        if (!mRootDirectorySupplier.get().exists()) {
-            VolleyLog.d("Re-initializing cache after external clearing.");
-            mEntries.clear();
-            mTotalSize = 0;
-            initialize();
-        }
-    }
-
     /** Represents a supplier for {@link File}s. */
     public interface FileSupplier {
         File get();
-    }
-
-    /** Prunes the cache to fit the maximum size. */
-    private void pruneIfNeeded() {
-        if (mTotalSize < mMaxCacheSizeInBytes) {
-            return;
-        }
-        if (VolleyLog.DEBUG) {
-            VolleyLog.v("Pruning old cache entries.");
-        }
-
-        long before = mTotalSize;
-        int prunedFiles = 0;
-        long startTime = SystemClock.elapsedRealtime();
-
-        Iterator<Map.Entry<String, DiskBasedAsyncCache.CacheHeader>> iterator =
-                mEntries.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, DiskBasedAsyncCache.CacheHeader> entry = iterator.next();
-            DiskBasedAsyncCache.CacheHeader e = entry.getValue();
-            boolean deleted = getFileForKey(e.key).delete();
-            if (deleted) {
-                mTotalSize -= e.size;
-            } else {
-                VolleyLog.d(
-                        "Could not delete cache entry for key=%s, filename=%s",
-                        e.key, getFilenameForKey(e.key));
-            }
-            iterator.remove();
-            prunedFiles++;
-
-            if (mTotalSize < mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
-                break;
-            }
-        }
-
-        if (VolleyLog.DEBUG) {
-            VolleyLog.v(
-                    "pruned %d files, %d bytes, %d ms",
-                    prunedFiles, (mTotalSize - before), SystemClock.elapsedRealtime() - startTime);
-        }
-    }
-
-    /**
-     * Puts the entry with the specified key into the cache.
-     *
-     * @param key The key to identify the entry by.
-     * @param entry The entry to cache.
-     */
-    private void putEntry(String key, DiskBasedAsyncCache.CacheHeader entry) {
-        if (!mEntries.containsKey(key)) {
-            mTotalSize += entry.size;
-        } else {
-            DiskBasedAsyncCache.CacheHeader oldEntry = mEntries.get(key);
-            mTotalSize += (entry.size - oldEntry.size);
-        }
-        mEntries.put(key, entry);
-    }
-
-    /** Removes the entry identified by 'key' from the cache. */
-    private void removeEntry(String key) {
-        DiskBasedAsyncCache.CacheHeader removed = mEntries.remove(key);
-        if (removed != null) {
-            mTotalSize -= removed.size;
-        }
     }
 
     /**
@@ -429,16 +222,6 @@ public class DiskBasedAsyncCache extends AsyncCache {
         byte[] bytes = new byte[(int) length];
         new DataInputStream(cis).readFully(bytes);
         return bytes;
-    }
-
-    @VisibleForTesting
-    InputStream createInputStream(File file) throws FileNotFoundException {
-        return new FileInputStream(file);
-    }
-
-    @VisibleForTesting
-    OutputStream createOutputStream(File file) throws FileNotFoundException {
-        return new FileOutputStream(file);
     }
 
     /** Handles holding onto the cache headers for an entry. */

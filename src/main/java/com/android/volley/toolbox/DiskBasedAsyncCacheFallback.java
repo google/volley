@@ -26,18 +26,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-@SuppressLint("NewApi")
-public class DiskBasedAsyncCacheOld extends AsyncCache {
+public class DiskBasedAsyncCacheFallback extends AsyncCache {
 
     /** Map of the Key, CacheHeader pairs */
-    private final Map<String, DiskBasedAsyncCacheOld.CacheHeader> mEntries =
+    private final Map<String, DiskBasedAsyncCacheFallback.CacheHeader> mEntries =
             new LinkedHashMap<>(16, .75f, true);
 
     /** Total amount of space currently used by the cache in bytes. */
     private long mTotalSize = 0;
 
     /** The supplier for the root directory to use for the cache. */
-    private final DiskBasedAsyncCacheOld.FileSupplier mRootDirectorySupplier;
+    private final DiskBasedAsyncCacheFallback.FileSupplier mRootDirectorySupplier;
 
     /** The maximum size of the cache in bytes. */
     private final int mMaxCacheSizeInBytes;
@@ -52,16 +51,16 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
     private static final int CACHE_MAGIC = 0x20150306;
 
     /**
-     * Constructs an instance of the DiskBasedAsyncCacheOld at the specified directory.
+     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory.
      *
      * @param rootDirectory The root directory of the cache.
      * @param maxCacheSizeInBytes The maximum size of the cache in bytes. Note that the cache may
      *     briefly exceed this size on disk when writing a new entry that pushes it over the limit
      *     until the ensuing pruning completes.
      */
-    public DiskBasedAsyncCacheOld(final File rootDirectory, int maxCacheSizeInBytes) {
+    public DiskBasedAsyncCacheFallback(final File rootDirectory, int maxCacheSizeInBytes) {
         mRootDirectorySupplier =
-                new DiskBasedAsyncCacheOld.FileSupplier() {
+                new DiskBasedAsyncCacheFallback.FileSupplier() {
                     @Override
                     public File get() {
                         return rootDirectory;
@@ -71,57 +70,49 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
     }
 
     /**
-     * Constructs an instance of the DiskBasedAsyncCacheOld at the specified directory.
+     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory.
      *
      * @param rootDirectorySupplier The supplier for the root directory of the cache.
      * @param maxCacheSizeInBytes The maximum size of the cache in bytes. Note that the cache may
      *     briefly exceed this size on disk when writing a new entry that pushes it over the limit
      *     until the ensuing pruning completes.
      */
-    public DiskBasedAsyncCacheOld(
-            DiskBasedAsyncCacheOld.FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
+    public DiskBasedAsyncCacheFallback(
+            DiskBasedAsyncCacheFallback.FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
         mRootDirectorySupplier = rootDirectorySupplier;
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
 
     /**
-     * Constructs an instance of the DiskBasedAsyncCacheOld at the specified directory using the
+     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory using the
      * default maximum cache size of 5MB.
      *
      * @param rootDirectory The root directory of the cache.
      */
-    public DiskBasedAsyncCacheOld(File rootDirectory) {
+    public DiskBasedAsyncCacheFallback(File rootDirectory) {
         this(rootDirectory, DEFAULT_DISK_USAGE_BYTES);
     }
 
     /**
-     * Constructs an instance of the DiskBasedAsyncCacheOld at the specified directory using the
+     * Constructs an instance of the DiskBasedAsyncCacheFallback at the specified directory using the
      * default maximum cache size of 5MB.
      *
      * @param rootDirectorySupplier The supplier for the root directory of the cache.
      */
-    public DiskBasedAsyncCacheOld(DiskBasedAsyncCacheOld.FileSupplier rootDirectorySupplier) {
+    public DiskBasedAsyncCacheFallback(DiskBasedAsyncCacheFallback.FileSupplier rootDirectorySupplier) {
         this(rootDirectorySupplier, DEFAULT_DISK_USAGE_BYTES);
     }
 
     /** Clears the cache. Deletes all cached files from disk. */
     @Override
     public synchronized void clear() {
-        File[] files = mRootDirectorySupplier.get().listFiles();
-        if (files != null) {
-            for (File file : files) {
-                file.delete();
-            }
-        }
-        mEntries.clear();
-        mTotalSize = 0;
-        VolleyLog.d("Cache cleared.");
+        // TODO (sphill99): Implement
     }
 
     /** Returns the cache entry with the specified key if it exists, null otherwise. */
     @Override
     public synchronized void get(String key, OnGetCompleteCallback callback) {
-        DiskBasedAsyncCacheOld.CacheHeader entry = mEntries.get(key);
+        DiskBasedAsyncCacheFallback.CacheHeader entry = mEntries.get(key);
         // if the entry does not exist, return.
         if (entry == null) {
             callback.onGetComplete(null);
@@ -129,12 +120,12 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
         File file = getFileForKey(key);
 
         try {
-            DiskBasedAsyncCacheOld.CountingInputStream cis =
-                    new DiskBasedAsyncCacheOld.CountingInputStream(
+            DiskBasedAsyncCacheFallback.CountingInputStream cis =
+                    new DiskBasedAsyncCacheFallback.CountingInputStream(
                             new BufferedInputStream(createInputStream(file)), file.length());
             try {
-                DiskBasedAsyncCacheOld.CacheHeader entryOnDisk =
-                        DiskBasedAsyncCacheOld.CacheHeader.readHeader(cis);
+                DiskBasedAsyncCacheFallback.CacheHeader entryOnDisk =
+                        DiskBasedAsyncCacheFallback.CacheHeader.readHeader(cis);
                 if (!TextUtils.equals(key, entryOnDisk.key)) {
                     // File was shared by two keys and now holds data for a different entry!
                     VolleyLog.d(
@@ -159,79 +150,16 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
 
     @Override
     public void put(String key, Entry entry, OnPutCompleteCallback callback) {
-        // If adding this entry would trigger a prune, but pruning would cause the new entry to be
-        // deleted, then skip writing the entry in the first place, as this is just churn.
-        // Note that we don't include the cache header overhead in this calculation for simplicity,
-        // so putting entries which are just below the threshold may still cause this churn.
-        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
-                && entry.data.length > mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
-            return;
-        }
-        File file = getFileForKey(key);
-        try {
-            BufferedOutputStream fos = new BufferedOutputStream(createOutputStream(file));
-            DiskBasedAsyncCacheOld.CacheHeader e =
-                    new DiskBasedAsyncCacheOld.CacheHeader(key, entry);
-            boolean success = e.writeHeader(fos);
-            if (!success) {
-                fos.close();
-                VolleyLog.d("Failed to write header for %s", file.getAbsolutePath());
-                throw new IOException();
-            }
-            fos.write(entry.data);
-            fos.close();
-            e.size = file.length();
-            putEntry(key, e);
-            pruneIfNeeded();
-            callback.onPutComplete(true);
-        } catch (IOException e) {
-            boolean deleted = file.delete();
-            if (!deleted) {
-                VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
-            }
-            initializeIfRootDirectoryDeleted();
-            callback.onPutComplete(false);
-        }
+        // TODO (sphill99): Implement
     }
 
     /**
-     * Initializes the DiskBasedAsyncCacheOld by scanning for all files currently in the specified
+     * Initializes the DiskBasedAsyncCacheFallback by scanning for all files currently in the specified
      * root directory. Creates the root directory if necessary.
      */
     @Override
     public synchronized void initialize() {
-        File rootDirectory = mRootDirectorySupplier.get();
-        if (!rootDirectory.exists()) {
-            if (!rootDirectory.mkdirs()) {
-                VolleyLog.e("Unable to create cache dir %s", rootDirectory.getAbsolutePath());
-            }
-            return;
-        }
-        File[] files = rootDirectory.listFiles();
-        if (files == null) {
-            return;
-        }
-        for (File file : files) {
-            try {
-                long entrySize = file.length();
-                DiskBasedAsyncCacheOld.CountingInputStream cis =
-                        new DiskBasedAsyncCacheOld.CountingInputStream(
-                                new BufferedInputStream(createInputStream(file)), entrySize);
-                try {
-                    DiskBasedAsyncCacheOld.CacheHeader entry =
-                            DiskBasedAsyncCacheOld.CacheHeader.readHeader(cis);
-                    entry.size = entrySize;
-                    putEntry(entry.key, entry);
-                } finally {
-                    // Any IOException thrown here is handled by the below catch block by design.
-                    //noinspection ThrowFromFinallyBlock
-                    cis.close();
-                }
-            } catch (IOException e) {
-                //noinspection ResultOfMethodCallIgnored
-                file.delete();
-            }
-        }
+        // TODO (sphill99): Implement
     }
 
     /**
@@ -242,62 +170,13 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
      */
     @Override
     public synchronized void invalidate(String key, boolean fullExpire) {
-        Entry entry = get(key);
-        if (entry != null) {
-            entry.softTtl = 0;
-            if (fullExpire) {
-                entry.ttl = 0;
-            }
-            put(key, entry);
-        }
-    }
-
-    /** Puts the entry with the specified key into the cache. */
-    @Override
-    public synchronized void put(String key, Entry entry) {
-        // If adding this entry would trigger a prune, but pruning would cause the new entry to be
-        // deleted, then skip writing the entry in the first place, as this is just churn.
-        // Note that we don't include the cache header overhead in this calculation for simplicity,
-        // so putting entries which are just below the threshold may still cause this churn.
-        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
-                && entry.data.length > mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
-            return;
-        }
-        File file = getFileForKey(key);
-        try {
-            BufferedOutputStream fos = new BufferedOutputStream(createOutputStream(file));
-            DiskBasedAsyncCacheOld.CacheHeader e =
-                    new DiskBasedAsyncCacheOld.CacheHeader(key, entry);
-            boolean success = e.writeHeader(fos);
-            if (!success) {
-                fos.close();
-                VolleyLog.d("Failed to write header for %s", file.getAbsolutePath());
-                throw new IOException();
-            }
-            fos.write(entry.data);
-            fos.close();
-            e.size = file.length();
-            putEntry(key, e);
-            pruneIfNeeded();
-        } catch (IOException e) {
-            boolean deleted = file.delete();
-            if (!deleted) {
-                VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
-            }
-            initializeIfRootDirectoryDeleted();
-        }
+        // TODO (sphill99): Implement
     }
 
     /** Removes the specified key from the cache if it exists. */
     @Override
     public synchronized void remove(String key) {
-        boolean deleted = getFileForKey(key).delete();
-        removeEntry(key);
-        if (!deleted) {
-            VolleyLog.d(
-                    "Could not delete cache entry for key=%s, filename=%s",
-                    key, getFilenameForKey(key));
-        }
+        // TODO (sphill99): Implement
     }
 
     /**
@@ -318,81 +197,14 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
         return new File(mRootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
-    /** Re-initialize the cache if the directory was deleted. */
-    private void initializeIfRootDirectoryDeleted() {
-        if (!mRootDirectorySupplier.get().exists()) {
-            VolleyLog.d("Re-initializing cache after external clearing.");
-            mEntries.clear();
-            mTotalSize = 0;
-            initialize();
-        }
-    }
-
     /** Represents a supplier for {@link File}s. */
     public interface FileSupplier {
         File get();
     }
 
-    /** Prunes the cache to fit the maximum size. */
-    private void pruneIfNeeded() {
-        if (mTotalSize < mMaxCacheSizeInBytes) {
-            return;
-        }
-        if (VolleyLog.DEBUG) {
-            VolleyLog.v("Pruning old cache entries.");
-        }
-
-        long before = mTotalSize;
-        int prunedFiles = 0;
-        long startTime = SystemClock.elapsedRealtime();
-
-        Iterator<Map.Entry<String, DiskBasedAsyncCacheOld.CacheHeader>> iterator =
-                mEntries.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, DiskBasedAsyncCacheOld.CacheHeader> entry = iterator.next();
-            DiskBasedAsyncCacheOld.CacheHeader e = entry.getValue();
-            boolean deleted = getFileForKey(e.key).delete();
-            if (deleted) {
-                mTotalSize -= e.size;
-            } else {
-                VolleyLog.d(
-                        "Could not delete cache entry for key=%s, filename=%s",
-                        e.key, getFilenameForKey(e.key));
-            }
-            iterator.remove();
-            prunedFiles++;
-
-            if (mTotalSize < mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
-                break;
-            }
-        }
-
-        if (VolleyLog.DEBUG) {
-            VolleyLog.v(
-                    "pruned %d files, %d bytes, %d ms",
-                    prunedFiles, (mTotalSize - before), SystemClock.elapsedRealtime() - startTime);
-        }
-    }
-
-    /**
-     * Puts the entry with the specified key into the cache.
-     *
-     * @param key The key to identify the entry by.
-     * @param entry The entry to cache.
-     */
-    private void putEntry(String key, DiskBasedAsyncCacheOld.CacheHeader entry) {
-        if (!mEntries.containsKey(key)) {
-            mTotalSize += entry.size;
-        } else {
-            DiskBasedAsyncCacheOld.CacheHeader oldEntry = mEntries.get(key);
-            mTotalSize += (entry.size - oldEntry.size);
-        }
-        mEntries.put(key, entry);
-    }
-
     /** Removes the entry identified by 'key' from the cache. */
     private void removeEntry(String key) {
-        DiskBasedAsyncCacheOld.CacheHeader removed = mEntries.remove(key);
+        DiskBasedAsyncCacheFallback.CacheHeader removed = mEntries.remove(key);
         if (removed != null) {
             mTotalSize -= removed.size;
         }
@@ -406,7 +218,7 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
      * @throws IOException if fails to read all bytes
      */
     @VisibleForTesting
-    static byte[] streamToBytes(DiskBasedAsyncCacheOld.CountingInputStream cis, long length)
+    static byte[] streamToBytes(DiskBasedAsyncCacheFallback.CountingInputStream cis, long length)
             throws IOException {
         long maxLength = cis.bytesRemaining();
         // Length cannot be negative or greater than bytes remaining, and must not overflow int.
@@ -421,11 +233,6 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
     @VisibleForTesting
     InputStream createInputStream(File file) throws FileNotFoundException {
         return new FileInputStream(file);
-    }
-
-    @VisibleForTesting
-    OutputStream createOutputStream(File file) throws FileNotFoundException {
-        return new FileOutputStream(file);
     }
 
     /** Handles holding onto the cache headers for an entry. */
@@ -511,8 +318,8 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
          * @param is The InputStream to read from.
          * @throws IOException if fails to read header
          */
-        static DiskBasedAsyncCacheOld.CacheHeader readHeader(
-                DiskBasedAsyncCacheOld.CountingInputStream is) throws IOException {
+        static DiskBasedAsyncCacheFallback.CacheHeader readHeader(
+                DiskBasedAsyncCacheFallback.CountingInputStream is) throws IOException {
             int magic = readInt(is);
             if (magic != CACHE_MAGIC) {
                 // don't bother deleting, it'll get pruned eventually
@@ -525,7 +332,7 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
             long ttl = readLong(is);
             long softTtl = readLong(is);
             List<Header> allResponseHeaders = readHeaderList(is);
-            return new DiskBasedAsyncCacheOld.CacheHeader(
+            return new DiskBasedAsyncCacheFallback.CacheHeader(
                     key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
         }
 
@@ -668,7 +475,7 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
         os.write(b, 0, b.length);
     }
 
-    static String readString(DiskBasedAsyncCacheOld.CountingInputStream cis) throws IOException {
+    static String readString(DiskBasedAsyncCacheFallback.CountingInputStream cis) throws IOException {
         long n = readLong(cis);
         byte[] b = streamToBytes(cis, n);
         return new String(b, "UTF-8");
@@ -686,7 +493,7 @@ public class DiskBasedAsyncCacheOld extends AsyncCache {
         }
     }
 
-    static List<Header> readHeaderList(DiskBasedAsyncCacheOld.CountingInputStream cis)
+    static List<Header> readHeaderList(DiskBasedAsyncCacheFallback.CountingInputStream cis)
             throws IOException {
         int size = readInt(cis);
         if (size < 0) {
