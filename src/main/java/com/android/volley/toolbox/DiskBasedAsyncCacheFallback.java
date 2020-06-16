@@ -81,12 +81,11 @@ public class DiskBasedAsyncCacheFallback extends AsyncCache {
         File file = getFileForKey(key);
 
         try {
-            DiskBasedAsyncCacheFallback.CountingInputStream cis =
-                    new DiskBasedAsyncCacheFallback.CountingInputStream(
+            CountingInputStream cis =
+                    new CountingInputStream(
                             new BufferedInputStream(createInputStream(file)), file.length());
             try {
-                DiskBasedAsyncCacheFallback.CacheHeader entryOnDisk =
-                        DiskBasedAsyncCacheFallback.CacheHeader.readHeader(cis);
+                CacheHeader entryOnDisk = CacheHeader.readHeader(cis);
                 if (!TextUtils.equals(key, entryOnDisk.key)) {
                     // File was shared by two keys and now holds data for a different entry!
                     VolleyLog.d(

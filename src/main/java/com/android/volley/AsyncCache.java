@@ -1,19 +1,20 @@
 package com.android.volley;
 
+import androidx.annotation.Nullable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AsyncCache implements Cache {
 
     public interface OnGetCompleteCallback {
-        void onGetComplete(Entry entry);
+        void onGetComplete(@Nullable Entry entry);
     }
 
     public abstract void get(String key, OnGetCompleteCallback callback);
 
-    // TODO: Handle callback never being invoked? Match behavior when sync cache throws
     // RuntimeException.
 
+    @Nullable
     @Override
     public Entry get(String key) {
         final CountDownLatch latch = new CountDownLatch(1);
@@ -36,7 +37,7 @@ public abstract class AsyncCache implements Cache {
         }
     }
 
-    // TODO: Implement the rest.
+    // TODO(#181): Implement the rest.
 
     public interface OnPutCompleteCallback {
         void onPutComplete(boolean success);

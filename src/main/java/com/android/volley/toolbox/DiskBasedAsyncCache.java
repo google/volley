@@ -5,6 +5,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.volley.AsyncCache;
 import com.android.volley.Header;
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
@@ -71,6 +72,11 @@ public class DiskBasedAsyncCache extends AsyncCache {
     public void get(String key, OnGetCompleteCallback callback) {
         final OnGetCompleteCallback cb = callback;
         final DiskBasedAsyncCache.CacheHeader entry = mEntries.get(key);
+        // if the entry does not exist, return.
+        if (entry == null) {
+            cb.onGetComplete(null);
+            return;
+        }
         File file = getFileForKey(key);
         Path path = Paths.get(file.getPath());
         try {
@@ -78,9 +84,9 @@ public class DiskBasedAsyncCache extends AsyncCache {
                     AsynchronousFileChannel.open(path, StandardOpenOption.READ);
             ByteBuffer buffer = ByteBuffer.allocate((int) file.length());
             afc.read(
-                    buffer,
-                    0,
-                    buffer,
+                    /* destination */ buffer,
+                    /* position */ 0,
+                    /* attachment */ buffer,
                     new CompletionHandler<Integer, ByteBuffer>() {
                         @Override
                         public void completed(Integer result, ByteBuffer attachment) {
@@ -96,7 +102,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             cb.onGetComplete(null);
                         }
                     });
-        } catch (Exception e) {
+        } catch (IOException e) {
             cb.onGetComplete(null);
         }
     }
