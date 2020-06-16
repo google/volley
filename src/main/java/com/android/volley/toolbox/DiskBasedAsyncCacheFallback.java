@@ -21,6 +21,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * AsyncCache implementation that uses Java's standard IO libraries to perform disc reads and writes
+ * This should be used as a fallback for devices with an API level below 26, as the operations are
+ * synchronous.
+ */
 public class DiskBasedAsyncCacheFallback extends AsyncCache {
 
     /** Map of the Key, CacheHeader pairs */

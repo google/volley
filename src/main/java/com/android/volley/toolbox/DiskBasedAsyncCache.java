@@ -17,6 +17,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * AsyncCache implementation that uses Java NIO's AsynchronousFileChannel to perform asynchronous
+ * disk reads and writes. This should only be used by devices with an API level of 26 or above.
+ */
 @SuppressLint("NewApi")
 public class DiskBasedAsyncCache extends AsyncCache {
 
