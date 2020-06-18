@@ -27,6 +27,9 @@ public class DiskBasedAsyncCache extends AsyncCache {
     /** The supplier for the root directory to use for the cache. */
     private final DiskBasedCacheUtility.FileSupplier mRootDirectorySupplier;
 
+    /** Total amount of space currently used by the cache in bytes. */
+    private long mTotalSize = 0;
+
     /**
      * Constructs an instance of the DiskBasedAsyncCache at the specified directory.
      *
@@ -53,17 +56,18 @@ public class DiskBasedAsyncCache extends AsyncCache {
     public void get(String key, OnGetCompleteCallback callback) {
         final OnGetCompleteCallback cb = callback;
         final CacheHeader entry = mEntries.get(key);
-        // if the entry does not exist, return.
+        // if the entry does not exist, return null.
         if (entry == null) {
             cb.onGetComplete(null);
             return;
         }
         final File file = getFileForKey(key);
+        final int size = (int) file.length();
         Path path = Paths.get(file.getPath());
         try {
             AsynchronousFileChannel afc =
                     AsynchronousFileChannel.open(path, StandardOpenOption.READ);
-            ByteBuffer buffer = ByteBuffer.allocate((int) file.length());
+            ByteBuffer buffer = ByteBuffer.allocate(size);
             afc.read(
                     /* destination= */ buffer,
                     /* position= */ 0,
@@ -71,6 +75,10 @@ public class DiskBasedAsyncCache extends AsyncCache {
                     new CompletionHandler<Integer, ByteBuffer>() {
                         @Override
                         public void completed(Integer result, ByteBuffer attachment) {
+                            // if the file size changes, return null
+                            if (size != file.length()) {
+                                cb.onGetComplete(null);
+                            }
                             if (attachment.hasArray()) {
                                 int offset = attachment.arrayOffset();
                                 byte[] data = attachment.array();
