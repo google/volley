@@ -17,6 +17,16 @@ import java.util.Collections;
 import java.util.List;
 
 class DiskBasedCacheUtility {
+
+    /** Default maximum disk usage in bytes. */
+    static final int DEFAULT_DISK_USAGE_BYTES = 5 * 1024 * 1024;
+
+    /** High water mark percentage for the cache */
+    @VisibleForTesting static final float HYSTERESIS_FACTOR = 0.9f;
+
+    /** Magic number for current version of cache file format. */
+    static final int CACHE_MAGIC = 0x20150306;
+
     /** Represents a supplier for {@link File}s. */
     public interface FileSupplier {
         File get();

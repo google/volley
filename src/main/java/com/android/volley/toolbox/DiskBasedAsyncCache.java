@@ -1,8 +1,8 @@
 package com.android.volley.toolbox;
 
 import android.annotation.SuppressLint;
-import androidx.annotation.VisibleForTesting;
 import com.android.volley.AsyncCache;
+import com.android.volley.VolleyLog;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -24,33 +24,15 @@ public class DiskBasedAsyncCache extends AsyncCache {
     /** Map of the Key, CacheHeader pairs */
     private final Map<String, CacheHeader> mEntries = new LinkedHashMap<>(16, .75f, true);
 
-    /** Total amount of space currently used by the cache in bytes. */
-    private long mTotalSize = 0;
-
     /** The supplier for the root directory to use for the cache. */
     private final DiskBasedCacheUtility.FileSupplier mRootDirectorySupplier;
-
-    /** The maximum size of the cache in bytes. */
-    private final int mMaxCacheSizeInBytes;
-
-    /** Default maximum disk usage in bytes. */
-    private static final int DEFAULT_DISK_USAGE_BYTES = 5 * 1024 * 1024;
-
-    /** High water mark percentage for the cache */
-    @VisibleForTesting static final float HYSTERESIS_FACTOR = 0.9f;
-
-    /** Magic number for current version of cache file format. */
-    private static final int CACHE_MAGIC = 0x20150306;
 
     /**
      * Constructs an instance of the DiskBasedAsyncCache at the specified directory.
      *
      * @param rootDirectory The root directory of the cache.
-     * @param maxCacheSizeInBytes The maximum size of the cache in bytes. Note that the cache may
-     *     briefly exceed this size on disk when writing a new entry that pushes it over the limit
-     *     until the ensuing pruning completes.
      */
-    public DiskBasedAsyncCache(final File rootDirectory, int maxCacheSizeInBytes) {
+    public DiskBasedAsyncCache(final File rootDirectory) {
         mRootDirectorySupplier =
                 new DiskBasedCacheUtility.FileSupplier() {
                     @Override
@@ -58,7 +40,6 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         return rootDirectory;
                     }
                 };
-        mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
 
     /** Clears the cache. Deletes all cached files from disk. */
@@ -77,16 +58,16 @@ public class DiskBasedAsyncCache extends AsyncCache {
             cb.onGetComplete(null);
             return;
         }
-        File file = getFileForKey(key);
+        final File file = getFileForKey(key);
         Path path = Paths.get(file.getPath());
         try {
             AsynchronousFileChannel afc =
                     AsynchronousFileChannel.open(path, StandardOpenOption.READ);
             ByteBuffer buffer = ByteBuffer.allocate((int) file.length());
             afc.read(
-                    /* destination */ buffer,
-                    /* position */ 0,
-                    /* attachment */ buffer,
+                    /* destination= */ buffer,
+                    /* position= */ 0,
+                    /* attachment= */ buffer,
                     new CompletionHandler<Integer, ByteBuffer>() {
                         @Override
                         public void completed(Integer result, ByteBuffer attachment) {
@@ -99,10 +80,12 @@ public class DiskBasedAsyncCache extends AsyncCache {
 
                         @Override
                         public void failed(Throwable exc, ByteBuffer attachment) {
+                            VolleyLog.d("%s: %s", file.getAbsolutePath(), exc.toString());
                             cb.onGetComplete(null);
                         }
                     });
         } catch (IOException e) {
+            VolleyLog.d("%s: %s", file.getAbsolutePath(), e.toString());
             cb.onGetComplete(null);
         }
     }

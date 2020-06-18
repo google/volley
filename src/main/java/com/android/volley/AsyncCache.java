@@ -29,7 +29,7 @@ public abstract class AsyncCache implements Cache {
 
     @Nullable
     @Override
-    public Entry get(String key) {
+    public final Entry get(String key) {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Entry> entryRef = new AtomicReference<>();
         get(
@@ -45,6 +45,7 @@ public abstract class AsyncCache implements Cache {
             latch.await();
             return entryRef.get();
         } catch (InterruptedException e) {
+            VolleyLog.d("%s: %s", key, e.toString());
             Thread.currentThread().interrupt();
             return null;
         }
@@ -59,7 +60,7 @@ public abstract class AsyncCache implements Cache {
     public abstract void put(String key, Entry entry, OnPutCompleteCallback callback);
 
     @Override
-    public void put(String key, Entry entry) {
+    public final void put(String key, Entry entry) {
         final CountDownLatch latch = new CountDownLatch(1);
         put(
                 key,
