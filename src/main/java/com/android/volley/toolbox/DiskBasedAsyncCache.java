@@ -82,6 +82,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                             "s% s%",
                                             file.getAbsolutePath(), "file changed while reading");
                                     cb.onGetComplete(null);
+                                    return;
                                 }
                                 if (attachment.hasArray()) {
                                     final int offset = attachment.arrayOffset();
