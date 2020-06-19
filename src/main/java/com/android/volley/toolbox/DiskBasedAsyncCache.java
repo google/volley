@@ -68,45 +68,43 @@ public class DiskBasedAsyncCache extends AsyncCache {
         try {
             afc = AsynchronousFileChannel.open(path, StandardOpenOption.READ);
             ByteBuffer buffer = ByteBuffer.allocate(size);
-            afc.read(
-                    /* destination= */ buffer,
-                    /* position= */ 0,
-                    /* attachment= */ buffer,
-                    new CompletionHandler<Integer, ByteBuffer>() {
-                        @Override
-                        public void completed(Integer result, ByteBuffer attachment) {
-                            // if the file size changes, return null
-                            if (size != file.length()) {
-                                VolleyLog.d(
-                                        "s% s%",
-                                        file.getAbsolutePath(), "file changed while reading");
+            try {
+                afc.read(
+                        /* destination= */ buffer,
+                        /* position= */ 0,
+                        /* attachment= */ buffer,
+                        new CompletionHandler<Integer, ByteBuffer>() {
+                            @Override
+                            public void completed(Integer result, ByteBuffer attachment) {
+                                // if the file size changes, return null
+                                if (size != file.length()) {
+                                    VolleyLog.d(
+                                            "s% s%",
+                                            file.getAbsolutePath(), "file changed while reading");
+                                    cb.onGetComplete(null);
+                                }
+                                if (attachment.hasArray()) {
+                                    final int offset = attachment.arrayOffset();
+                                    byte[] data = attachment.array();
+                                    cb.onGetComplete(entry.toCacheEntry(data));
+                                }
+                            }
+
+                            @Override
+                            public void failed(Throwable exc, ByteBuffer attachment) {
+                                VolleyLog.d("%s: %s", file.getAbsolutePath(), exc.toString());
                                 cb.onGetComplete(null);
                             }
-                            if (attachment.hasArray()) {
-                                final int offset = attachment.arrayOffset();
-                                byte[] data = attachment.array();
-                                cb.onGetComplete(entry.toCacheEntry(data));
-                            }
-                        }
-
-                        @Override
-                        public void failed(Throwable exc, ByteBuffer attachment) {
-                            VolleyLog.d("%s: %s", file.getAbsolutePath(), exc.toString());
-                            cb.onGetComplete(null);
-                        }
-                    });
+                        });
+            } finally {
+                if (afc != null) {
+                    afc.close();
+                }
+            }
         } catch (IOException e) {
             VolleyLog.d("%s: %s", file.getAbsolutePath(), e.toString());
             cb.onGetComplete(null);
-        } finally {
-            if (afc != null) {
-                try {
-                    afc.close();
-                } catch (IOException e) {
-                    VolleyLog.d("%s: %s", file.getAbsolutePath(), e.toString());
-                    cb.onGetComplete(null);
-                }
-            }
+            return;
         }
     }
 
