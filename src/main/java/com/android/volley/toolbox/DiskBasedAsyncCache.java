@@ -64,9 +64,9 @@ public class DiskBasedAsyncCache extends AsyncCache {
         final File file = getFileForKey(key);
         final int size = (int) file.length();
         Path path = Paths.get(file.getPath());
+        AsynchronousFileChannel afc = null;
         try {
-            AsynchronousFileChannel afc =
-                    AsynchronousFileChannel.open(path, StandardOpenOption.READ);
+            afc = AsynchronousFileChannel.open(path, StandardOpenOption.READ);
             ByteBuffer buffer = ByteBuffer.allocate(size);
             afc.read(
                     /* destination= */ buffer,
@@ -77,10 +77,13 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         public void completed(Integer result, ByteBuffer attachment) {
                             // if the file size changes, return null
                             if (size != file.length()) {
+                                VolleyLog.d(
+                                        "s% s%",
+                                        file.getAbsolutePath(), "file changed while reading");
                                 cb.onGetComplete(null);
                             }
                             if (attachment.hasArray()) {
-                                int offset = attachment.arrayOffset();
+                                final int offset = attachment.arrayOffset();
                                 byte[] data = attachment.array();
                                 cb.onGetComplete(entry.toCacheEntry(data));
                             }
@@ -95,6 +98,15 @@ public class DiskBasedAsyncCache extends AsyncCache {
         } catch (IOException e) {
             VolleyLog.d("%s: %s", file.getAbsolutePath(), e.toString());
             cb.onGetComplete(null);
+        } finally {
+            if (afc != null) {
+                try {
+                    afc.close();
+                } catch (IOException e) {
+                    VolleyLog.d("%s: %s", file.getAbsolutePath(), e.toString());
+                    cb.onGetComplete(null);
+                }
+            }
         }
     }
 

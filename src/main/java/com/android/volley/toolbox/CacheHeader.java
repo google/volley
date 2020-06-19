@@ -1,5 +1,6 @@
 package com.android.volley.toolbox;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.Cache;
 import com.android.volley.Header;
@@ -12,6 +13,9 @@ import java.util.List;
 /** Handles holding onto the cache headers for an entry. */
 @VisibleForTesting
 class CacheHeader {
+    /** Magic number for current version of cache file format. */
+    private static final int CACHE_MAGIC = 0x20150306;
+
     /**
      * The size of the data identified by this CacheHeader on disk (both header and data).
      *
@@ -19,16 +23,13 @@ class CacheHeader {
      *
      * <p>This is not serialized to disk.
      */
-    /** Magic number for current version of cache file format. */
-    private static final int CACHE_MAGIC = 0x20150306;
-
     long size;
 
     /** The key that identifies the cache entry. */
     final String key;
 
     /** ETag for cache coherence. */
-    final String etag;
+    @Nullable final String etag;
 
     /** Date of this response as reported by the server. */
     final long serverDate;
