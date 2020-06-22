@@ -3,6 +3,7 @@ package com.android.volley.toolbox;
 import android.os.Build;
 import androidx.annotation.RequiresApi;
 import com.android.volley.AsyncCache;
+import com.android.volley.Cache;
 import com.android.volley.VolleyLog;
 import java.io.File;
 import java.io.IOException;
@@ -44,12 +45,6 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         return rootDirectory;
                     }
                 };
-    }
-
-    /** Clears the cache. Deletes all cached files from disk. */
-    @Override
-    public synchronized void clear() {
-        // TODO (sphill99): Implement
     }
 
     /** Returns the cache entry with the specified key if it exists, null otherwise. */
@@ -99,33 +94,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
     }
 
     @Override
-    public void put(String key, Entry entry, OnPutCompleteCallback callback) {
-        // TODO (sphill99): Implement
-    }
-
-    /**
-     * Initializes the DiskBasedAsyncCache by scanning for all files currently in the specified root
-     * directory. Creates the root directory if necessary.
-     */
-    @Override
-    public synchronized void initialize() {
-        // TODO (sphill99): Implement
-    }
-
-    /**
-     * Invalidates an entry in the cache.
-     *
-     * @param key Cache key
-     * @param fullExpire True to fully expire the entry, false to soft expire
-     */
-    @Override
-    public synchronized void invalidate(String key, boolean fullExpire) {
-        // TODO (sphill99): Implement
-    }
-
-    /** Removes the specified key from the cache if it exists. */
-    @Override
-    public synchronized void remove(String key) {
+    public void put(String key, Cache.Entry entry, OnPutCompleteCallback callback) {
         // TODO (sphill99): Implement
     }
 
