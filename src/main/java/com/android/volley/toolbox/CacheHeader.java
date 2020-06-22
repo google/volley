@@ -1,7 +1,6 @@
 package com.android.volley.toolbox;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
 import com.android.volley.Cache;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
@@ -11,7 +10,6 @@ import java.util.Collections;
 import java.util.List;
 
 /** Handles holding onto the cache headers for an entry. */
-@VisibleForTesting
 class CacheHeader {
     /** Magic number for current version of cache file format. */
     private static final int CACHE_MAGIC = 0x20150306;

@@ -1,6 +1,7 @@
 package com.android.volley.toolbox;
 
-import android.annotation.SuppressLint;
+import android.os.Build;
+import androidx.annotation.RequiresApi;
 import com.android.volley.AsyncCache;
 import com.android.volley.VolleyLog;
 import java.io.File;
@@ -16,9 +17,9 @@ import java.util.Map;
 
 /**
  * AsyncCache implementation that uses Java NIO's AsynchronousFileChannel to perform asynchronous
- * disk reads and writes. This should only be used by devices with an API level of 26 or above.
+ * disk reads and writes.
  */
-@SuppressLint("NewApi")
+@RequiresApi(Build.VERSION_CODES.O)
 public class DiskBasedAsyncCache extends AsyncCache {
 
     /** Map of the Key, CacheHeader pairs */
@@ -64,48 +65,36 @@ public class DiskBasedAsyncCache extends AsyncCache {
         final File file = getFileForKey(key);
         final int size = (int) file.length();
         Path path = Paths.get(file.getPath());
-        AsynchronousFileChannel afc = null;
-        try {
-            afc = AsynchronousFileChannel.open(path, StandardOpenOption.READ);
-            ByteBuffer buffer = ByteBuffer.allocate(size);
-            try {
-                afc.read(
-                        /* destination= */ buffer,
-                        /* position= */ 0,
-                        /* attachment= */ buffer,
-                        new CompletionHandler<Integer, ByteBuffer>() {
-                            @Override
-                            public void completed(Integer result, ByteBuffer attachment) {
-                                // if the file size changes, return null
-                                if (size != file.length()) {
-                                    VolleyLog.d(
-                                            "s% s%",
-                                            file.getAbsolutePath(), "file changed while reading");
-                                    cb.onGetComplete(null);
-                                    return;
-                                }
-                                if (attachment.hasArray()) {
-                                    final int offset = attachment.arrayOffset();
-                                    byte[] data = attachment.array();
-                                    cb.onGetComplete(entry.toCacheEntry(data));
-                                }
-                            }
-
-                            @Override
-                            public void failed(Throwable exc, ByteBuffer attachment) {
-                                VolleyLog.d("%s: %s", file.getAbsolutePath(), exc.toString());
+        try (AsynchronousFileChannel afc =
+                AsynchronousFileChannel.open(path, StandardOpenOption.READ)) {
+            final ByteBuffer buffer = ByteBuffer.allocate(size);
+            afc.read(
+                    /* destination= */ buffer,
+                    /* position= */ 0,
+                    /* attachment= */ null,
+                    new CompletionHandler<Integer, Void>() {
+                        @Override
+                        public void completed(Integer result, Void v) {
+                            // if the file size changes, return null
+                            if (size != result) {
+                                VolleyLog.e(
+                                        "File changed while reading: %s", file.getAbsolutePath());
                                 cb.onGetComplete(null);
+                                return;
                             }
-                        });
-            } finally {
-                if (afc != null) {
-                    afc.close();
-                }
-            }
+                            byte[] data = buffer.array();
+                            cb.onGetComplete(entry.toCacheEntry(data));
+                        }
+
+                        @Override
+                        public void failed(Throwable exc, Void v) {
+                            VolleyLog.e(exc, "Failed to read file %s", file.getAbsolutePath());
+                            cb.onGetComplete(null);
+                        }
+                    });
         } catch (IOException e) {
-            VolleyLog.d("%s: %s", file.getAbsolutePath(), e.toString());
+            VolleyLog.e("%s %s", file.getAbsolutePath(), e.toString());
             cb.onGetComplete(null);
-            return;
         }
     }
 

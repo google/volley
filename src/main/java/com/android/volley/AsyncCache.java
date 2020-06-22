@@ -68,18 +68,13 @@ public abstract class AsyncCache implements Cache {
                 new OnPutCompleteCallback() {
                     @Override
                     public void onPutComplete(boolean success) {
-                        if (success) {
-                            latch.countDown();
-                        } else {
-                            return;
-                        }
+                        latch.countDown();
                     }
                 });
         try {
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return;
         }
     }
 
