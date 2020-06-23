@@ -1,6 +1,5 @@
 package com.android.volley.toolbox;
 
-import androidx.annotation.VisibleForTesting;
 import com.android.volley.Header;
 import com.android.volley.toolbox.DiskBasedCache.CountingInputStream;
 import java.io.EOFException;
@@ -18,10 +17,7 @@ class DiskBasedCacheUtility {
     static final int DEFAULT_DISK_USAGE_BYTES = 5 * 1024 * 1024;
 
     /** High water mark percentage for the cache */
-    @VisibleForTesting static final float HYSTERESIS_FACTOR = 0.9f;
-
-    /** Magic number for current version of cache file format. */
-    static final int CACHE_MAGIC = 0x20150306;
+    static final float HYSTERESIS_FACTOR = 0.9f;
 
     /** Represents a supplier for {@link File}s. */
     public interface FileSupplier {

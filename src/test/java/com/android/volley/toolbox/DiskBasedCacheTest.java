@@ -211,7 +211,7 @@ public class DiskBasedCacheTest {
 
         Cache.Entry entry =
                 randomData(
-                        (int) (DiskBasedCache.HYSTERESIS_FACTOR * MAX_SIZE)
+                        (int) (DiskBasedCacheUtility.HYSTERESIS_FACTOR * MAX_SIZE)
                                 - getEntrySizeOnDisk("max"));
         cache.put("max", entry);
 
@@ -236,7 +236,7 @@ public class DiskBasedCacheTest {
 
         Cache.Entry entry =
                 randomData(
-                        (int) (DiskBasedCache.HYSTERESIS_FACTOR * MAX_SIZE)
+                        (int) (DiskBasedCacheUtility.HYSTERESIS_FACTOR * MAX_SIZE)
                                 - getEntrySizeOnDisk("max")
                                 + 1);
         cache.put("max", entry);

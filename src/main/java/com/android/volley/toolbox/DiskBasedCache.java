@@ -56,15 +56,6 @@ public class DiskBasedCache implements Cache {
     /** The maximum size of the cache in bytes. */
     private final int mMaxCacheSizeInBytes;
 
-    /** Default maximum disk usage in bytes. */
-    private static final int DEFAULT_DISK_USAGE_BYTES = 5 * 1024 * 1024;
-
-    /** High water mark percentage for the cache */
-    @VisibleForTesting static final float HYSTERESIS_FACTOR = 0.9f;
-
-    /** Magic number for current version of cache file format. */
-    private static final int CACHE_MAGIC = 0x20150306;
-
     /**
      * Constructs an instance of the DiskBasedCache at the specified directory.
      *
@@ -104,7 +95,7 @@ public class DiskBasedCache implements Cache {
      * @param rootDirectory The root directory of the cache.
      */
     public DiskBasedCache(File rootDirectory) {
-        this(rootDirectory, DEFAULT_DISK_USAGE_BYTES);
+        this(rootDirectory, DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES);
     }
 
     /**
@@ -114,7 +105,7 @@ public class DiskBasedCache implements Cache {
      * @param rootDirectorySupplier The supplier for the root directory of the cache.
      */
     public DiskBasedCache(FileSupplier rootDirectorySupplier) {
-        this(rootDirectorySupplier, DEFAULT_DISK_USAGE_BYTES);
+        this(rootDirectorySupplier, DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES);
     }
 
     /** Clears the cache. Deletes all cached files from disk. */
@@ -233,7 +224,8 @@ public class DiskBasedCache implements Cache {
         // Note that we don't include the cache header overhead in this calculation for simplicity,
         // so putting entries which are just below the threshold may still cause this churn.
         if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
-                && entry.data.length > mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
+                && entry.data.length
+                        > mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
             return;
         }
         File file = getFileForKey(key);
@@ -333,7 +325,7 @@ public class DiskBasedCache implements Cache {
             iterator.remove();
             prunedFiles++;
 
-            if (mTotalSize < mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
+            if (mTotalSize < mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
                 break;
             }
         }
@@ -369,10 +361,12 @@ public class DiskBasedCache implements Cache {
         }
     }
 
+    @VisibleForTesting
     InputStream createInputStream(File file) throws FileNotFoundException {
         return new FileInputStream(file);
     }
 
+    @VisibleForTesting
     OutputStream createOutputStream(File file) throws FileNotFoundException {
         return new FileOutputStream(file);
     }
@@ -395,6 +389,7 @@ public class DiskBasedCache implements Cache {
         return bytes;
     }
 
+    @VisibleForTesting
     static class CountingInputStream extends FilterInputStream {
         private final long length;
         private long bytesRead;

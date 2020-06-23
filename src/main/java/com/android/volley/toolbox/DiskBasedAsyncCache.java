@@ -92,7 +92,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
     }
 
     /** Returns a file object for the given cache key. */
-    public File getFileForKey(String key) {
+    File getFileForKey(String key) {
         return new File(mRootDirectorySupplier.get(), DiskBasedCacheUtility.getFilenameForKey(key));
     }
 }
