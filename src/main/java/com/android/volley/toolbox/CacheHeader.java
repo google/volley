@@ -94,7 +94,7 @@ class CacheHeader {
      * @param is The InputStream to read from.
      * @throws IOException if fails to read header
      */
-    static CacheHeader readHeader(DiskBasedCacheUtility.CountingInputStream is) throws IOException {
+    static CacheHeader readHeader(DiskBasedCache.CountingInputStream is) throws IOException {
         int magic = DiskBasedCacheUtility.readInt(is);
         if (magic != CACHE_MAGIC) {
             // don't bother deleting, it'll get pruned eventually

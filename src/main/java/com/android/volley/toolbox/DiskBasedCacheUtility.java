@@ -2,13 +2,9 @@ package com.android.volley.toolbox;
 
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.Header;
-import java.io.DataInputStream;
+import com.android.volley.toolbox.DiskBasedCache.CountingInputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,73 +39,6 @@ class DiskBasedCacheUtility {
         String localFilename = String.valueOf(key.substring(0, firstHalfLength).hashCode());
         localFilename += String.valueOf(key.substring(firstHalfLength).hashCode());
         return localFilename;
-    }
-
-    /**
-     * Reads length bytes from CountingInputStream into byte array.
-     *
-     * @param cis input stream
-     * @param length number of bytes to read
-     * @throws IOException if fails to read all bytes
-     */
-    @VisibleForTesting
-    static byte[] streamToBytes(CountingInputStream cis, long length) throws IOException {
-        long maxLength = cis.bytesRemaining();
-        // Length cannot be negative or greater than bytes remaining, and must not overflow int.
-        if (length < 0 || length > maxLength || (int) length != length) {
-            throw new IOException("streamToBytes length=" + length + ", maxLength=" + maxLength);
-        }
-        byte[] bytes = new byte[(int) length];
-        new DataInputStream(cis).readFully(bytes);
-        return bytes;
-    }
-
-    @VisibleForTesting
-    static InputStream createInputStream(File file) throws FileNotFoundException {
-        return new FileInputStream(file);
-    }
-
-    @VisibleForTesting
-    static OutputStream createOutputStream(File file) throws FileNotFoundException {
-        return new FileOutputStream(file);
-    }
-
-    @VisibleForTesting
-    static class CountingInputStream extends FilterInputStream {
-        private final long length;
-        private long bytesRead;
-
-        CountingInputStream(InputStream in, long length) {
-            super(in);
-            this.length = length;
-        }
-
-        @Override
-        public int read() throws IOException {
-            int result = super.read();
-            if (result != -1) {
-                bytesRead++;
-            }
-            return result;
-        }
-
-        @Override
-        public int read(byte[] buffer, int offset, int count) throws IOException {
-            int result = super.read(buffer, offset, count);
-            if (result != -1) {
-                bytesRead += result;
-            }
-            return result;
-        }
-
-        @VisibleForTesting
-        long bytesRead() {
-            return bytesRead;
-        }
-
-        long bytesRemaining() {
-            return length - bytesRead;
-        }
     }
 
     /*
@@ -181,7 +110,7 @@ class DiskBasedCacheUtility {
 
     static String readString(CountingInputStream cis) throws IOException {
         long n = readLong(cis);
-        byte[] b = streamToBytes(cis, n);
+        byte[] b = DiskBasedCache.streamToBytes(cis, n);
         return new String(b, "UTF-8");
     }
 
