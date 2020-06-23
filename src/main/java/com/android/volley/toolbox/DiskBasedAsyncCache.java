@@ -3,7 +3,6 @@ package com.android.volley.toolbox;
 import android.os.Build;
 import androidx.annotation.RequiresApi;
 import com.android.volley.AsyncCache;
-import com.android.volley.Cache;
 import com.android.volley.VolleyLog;
 import java.io.File;
 import java.io.IOException;
@@ -49,12 +48,11 @@ public class DiskBasedAsyncCache extends AsyncCache {
 
     /** Returns the cache entry with the specified key if it exists, null otherwise. */
     @Override
-    public void get(String key, OnGetCompleteCallback callback) {
-        final OnGetCompleteCallback cb = callback;
+    public void get(String key, final OnGetCompleteCallback callback) {
         final CacheHeader entry = mEntries.get(key);
         // if the entry does not exist, return null.
         if (entry == null) {
-            cb.onGetComplete(null);
+            callback.onGetComplete(null);
             return;
         }
         final File file = getFileForKey(key);
@@ -74,28 +72,23 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             if (size != result) {
                                 VolleyLog.e(
                                         "File changed while reading: %s", file.getAbsolutePath());
-                                cb.onGetComplete(null);
+                                callback.onGetComplete(null);
                                 return;
                             }
                             byte[] data = buffer.array();
-                            cb.onGetComplete(entry.toCacheEntry(data));
+                            callback.onGetComplete(entry.toCacheEntry(data));
                         }
 
                         @Override
                         public void failed(Throwable exc, Void v) {
                             VolleyLog.e(exc, "Failed to read file %s", file.getAbsolutePath());
-                            cb.onGetComplete(null);
+                            callback.onGetComplete(null);
                         }
                     });
         } catch (IOException e) {
-            VolleyLog.e("%s %s", file.getAbsolutePath(), e.toString());
-            cb.onGetComplete(null);
+            VolleyLog.e(e, "Failed to read file %s", file.getAbsolutePath());
+            callback.onGetComplete(null);
         }
-    }
-
-    @Override
-    public void put(String key, Cache.Entry entry, OnPutCompleteCallback callback) {
-        // TODO (sphill99): Implement
     }
 
     /** Returns a file object for the given cache key. */
