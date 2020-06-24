@@ -16,7 +16,8 @@ public abstract class AsyncCache {
     }
 
     /**
-     * Retrieves an entry from the cache and send it back through the callback function
+     * Retrieves an entry from the cache and sends it back through the {@link
+     * OnGetCompleteCallback#onGetComplete} function
      *
      * @param key Cache key
      * @param callback Callback that will be notified when the information has been retrieved
