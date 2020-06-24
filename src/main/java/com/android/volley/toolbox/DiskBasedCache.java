@@ -361,16 +361,6 @@ public class DiskBasedCache implements Cache {
         }
     }
 
-    @VisibleForTesting
-    InputStream createInputStream(File file) throws FileNotFoundException {
-        return new FileInputStream(file);
-    }
-
-    @VisibleForTesting
-    OutputStream createOutputStream(File file) throws FileNotFoundException {
-        return new FileOutputStream(file);
-    }
-
     /**
      * Reads length bytes from CountingInputStream into byte array.
      *
@@ -387,6 +377,16 @@ public class DiskBasedCache implements Cache {
         byte[] bytes = new byte[(int) length];
         new DataInputStream(cis).readFully(bytes);
         return bytes;
+    }
+
+    @VisibleForTesting
+    InputStream createInputStream(File file) throws FileNotFoundException {
+        return new FileInputStream(file);
+    }
+
+    @VisibleForTesting
+    OutputStream createOutputStream(File file) throws FileNotFoundException {
+        return new FileOutputStream(file);
     }
 
     @VisibleForTesting
