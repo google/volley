@@ -6,6 +6,8 @@ import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 
@@ -142,5 +144,30 @@ class CacheHeader {
             VolleyLog.d("%s", e.toString());
             return false;
         }
+    }
+
+    void writeHeader(ByteBuffer buffer) throws IOException {
+        buffer.putInt(CACHE_MAGIC);
+        DiskBasedCacheUtility.writeString(buffer, key);
+        DiskBasedCacheUtility.writeString(buffer, etag);
+        buffer.putLong(serverDate);
+        buffer.putLong(lastModified);
+        buffer.putLong(ttl);
+        buffer.putLong(softTtl);
+        DiskBasedCacheUtility.writeHeaderList(allResponseHeaders, buffer);
+    }
+
+    int getHeaderSize() throws IOException {
+        int x = 36;
+        try {
+            x += key.getBytes("UTF8").length;
+            if (etag != null) {
+                x += etag.getBytes("UTF8").length;
+            }
+        } catch (UnsupportedEncodingException e) {
+            VolleyLog.e(e.toString());
+        }
+        x += DiskBasedCacheUtility.headerListSize(allResponseHeaders);
+        return x;
     }
 }

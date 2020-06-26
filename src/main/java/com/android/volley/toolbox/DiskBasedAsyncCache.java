@@ -3,6 +3,7 @@ package com.android.volley.toolbox;
 import android.os.Build;
 import androidx.annotation.RequiresApi;
 import com.android.volley.AsyncCache;
+import com.android.volley.Cache;
 import com.android.volley.VolleyLog;
 import java.io.File;
 import java.io.IOException;
@@ -31,12 +32,15 @@ public class DiskBasedAsyncCache extends AsyncCache {
     /** Total amount of space currently used by the cache in bytes. */
     private long mTotalSize = 0;
 
+    /** The maximum size of the cache in bytes. */
+    private final int mMaxCacheSizeInBytes;
+
     /**
      * Constructs an instance of the DiskBasedAsyncCache at the specified directory.
      *
      * @param rootDirectory The root directory of the cache.
      */
-    public DiskBasedAsyncCache(final File rootDirectory) {
+    public DiskBasedAsyncCache(final File rootDirectory, int maxCacheSizeInBytes) {
         mRootDirectorySupplier =
                 new DiskBasedCacheUtility.FileSupplier() {
                     @Override
@@ -44,6 +48,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         return rootDirectory;
                     }
                 };
+        mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
 
     /** Returns the cache entry with the specified key if it exists, null otherwise. */
@@ -55,7 +60,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
             callback.onGetComplete(null);
             return;
         }
-        final File file = getFileForKey(key);
+        final File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         final int size = (int) file.length();
         Path path = Paths.get(file.getPath());
         try (AsynchronousFileChannel afc =
@@ -91,8 +96,72 @@ public class DiskBasedAsyncCache extends AsyncCache {
         }
     }
 
-    /** Returns a file object for the given cache key. */
-    File getFileForKey(String key) {
-        return new File(mRootDirectorySupplier.get(), DiskBasedCacheUtility.getFilenameForKey(key));
+    @Override
+    public void put(final String key, Cache.Entry entry, final OnPutCompleteCallback callback) {
+        // If adding this entry would trigger a prune, but pruning would cause the new entry to be
+        // deleted, then skip writing the entry in the first place, as this is just churn.
+        // Note that we don't include the cache header overhead in this calculation for simplicity,
+        // so putting entries which are just below the threshold may still cause this churn.
+        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
+                && entry.data.length
+                        > mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
+            return;
+        }
+        final File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
+        Path path = Paths.get(file.getPath());
+
+        try (AsynchronousFileChannel afc =
+                AsynchronousFileChannel.open(path, StandardOpenOption.WRITE)) {
+            final CacheHeader header = new CacheHeader(key, entry);
+            int headerSize = header.getHeaderSize();
+            int size = entry.data.length + headerSize;
+            ByteBuffer buffer = ByteBuffer.allocate(size);
+            header.writeHeader(buffer);
+            buffer.put(entry.data);
+            afc.write(
+                    buffer,
+                    0,
+                    null,
+                    new CompletionHandler<Integer, Void>() {
+                        @Override
+                        public void completed(Integer integer, Void aVoid) {
+                            header.size = file.length();
+                            DiskBasedCacheUtility.putEntry(key, header, mTotalSize, mEntries);
+                            DiskBasedCacheUtility.pruneIfNeeded(
+                                    mTotalSize,
+                                    mMaxCacheSizeInBytes,
+                                    mEntries,
+                                    mRootDirectorySupplier);
+                        }
+
+                        @Override
+                        public void failed(Throwable throwable, Void aVoid) {
+                            VolleyLog.e(
+                                    throwable, "Failed to read file %s", file.getAbsolutePath());
+                            callback.onPutComplete();
+                        }
+                    });
+        } catch (IOException e) {
+            boolean deleted = file.delete();
+            if (!deleted) {
+                VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
+            }
+            initializeIfRootDirectoryDeleted();
+            callback.onPutComplete();
+        }
+    }
+
+    public void initialize() {
+        // TODO (sphill99): #181
+    }
+
+    /** Re-initialize the cache if the directory was deleted. */
+    private void initializeIfRootDirectoryDeleted() {
+        if (!mRootDirectorySupplier.get().exists()) {
+            VolleyLog.d("Re-initializing cache after external clearing.");
+            mEntries.clear();
+            mTotalSize = 0;
+            initialize();
+        }
     }
 }

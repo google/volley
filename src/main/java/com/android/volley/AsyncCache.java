@@ -24,5 +24,11 @@ public abstract class AsyncCache {
      */
     public abstract void get(String key, OnGetCompleteCallback callback);
 
+    public interface OnPutCompleteCallback {
+        void onPutComplete();
+    }
+
+    public abstract void put(String key, Cache.Entry entry, OnPutCompleteCallback callback);
+
     // TODO(#181): Implement the rest.
 }

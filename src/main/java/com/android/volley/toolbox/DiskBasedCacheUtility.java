@@ -1,15 +1,20 @@
 package com.android.volley.toolbox;
 
+import android.os.SystemClock;
 import com.android.volley.Header;
+import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.DiskBasedCache.CountingInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 class DiskBasedCacheUtility {
 
@@ -35,6 +40,73 @@ class DiskBasedCacheUtility {
         String localFilename = String.valueOf(key.substring(0, firstHalfLength).hashCode());
         localFilename += String.valueOf(key.substring(firstHalfLength).hashCode());
         return localFilename;
+    }
+
+    /** Returns a file object for the given cache key. */
+    static File getFileForKey(String key, FileSupplier rootDirectorySupplier) {
+        return new File(rootDirectorySupplier.get(), getFilenameForKey(key));
+    }
+
+    /** Prunes the cache to fit the maximum size. */
+    static long pruneIfNeeded(
+            long totalSize,
+            int maxCacheSizeInBytes,
+            Map<String, CacheHeader> entries,
+            FileSupplier rootDirectorySupplier) {
+        if (totalSize < maxCacheSizeInBytes) {
+            return totalSize;
+        }
+        if (VolleyLog.DEBUG) {
+            VolleyLog.v("Pruning old cache entries.");
+        }
+
+        long before = totalSize;
+        int prunedFiles = 0;
+        long startTime = SystemClock.elapsedRealtime();
+
+        Iterator<Map.Entry<String, CacheHeader>> iterator = entries.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, CacheHeader> entry = iterator.next();
+            CacheHeader e = entry.getValue();
+            boolean deleted = getFileForKey(e.key, rootDirectorySupplier).delete();
+            if (deleted) {
+                totalSize -= e.size;
+            } else {
+                VolleyLog.d(
+                        "Could not delete cache entry for key=%s, filename=%s",
+                        e.key, DiskBasedCacheUtility.getFilenameForKey(e.key));
+            }
+            iterator.remove();
+            prunedFiles++;
+
+            if (totalSize < maxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
+                break;
+            }
+        }
+
+        if (VolleyLog.DEBUG) {
+            VolleyLog.v(
+                    "pruned %d files, %d bytes, %d ms",
+                    prunedFiles, (totalSize - before), SystemClock.elapsedRealtime() - startTime);
+        }
+        return totalSize;
+    }
+
+    /**
+     * Puts the entry with the specified key into the cache.
+     *
+     * @param key The key to identify the entry by.
+     * @param entry The entry to cache.
+     */
+    static void putEntry(
+            String key, CacheHeader entry, long totalSize, Map<String, CacheHeader> entries) {
+        if (!entries.containsKey(key)) {
+            totalSize += entry.size;
+        } else {
+            CacheHeader oldEntry = entries.get(key);
+            totalSize += (entry.size - oldEntry.size);
+        }
+        entries.put(key, entry);
     }
 
     /*
@@ -104,6 +176,16 @@ class DiskBasedCacheUtility {
         os.write(b, 0, b.length);
     }
 
+    static int writeString(ByteBuffer buffer, String s) throws IOException {
+        if (s == null) {
+            return 0;
+        }
+        byte[] b = s.getBytes("UTF-8");
+        buffer.putLong(b.length);
+        buffer.put(b);
+        return b.length + 8;
+    }
+
     static String readString(CountingInputStream cis) throws IOException {
         long n = readLong(cis);
         byte[] b = DiskBasedCache.streamToBytes(cis, n);
@@ -122,6 +204,21 @@ class DiskBasedCacheUtility {
         }
     }
 
+    static int writeHeaderList(List<Header> headers, ByteBuffer buffer) throws IOException {
+        if (headers != null) {
+            int bytes = 4;
+            buffer.putInt(headers.size());
+            for (Header header : headers) {
+                bytes += writeString(buffer, header.getName());
+                bytes += writeString(buffer, header.getValue());
+            }
+            return bytes;
+        } else {
+            buffer.putInt(0);
+            return 4;
+        }
+    }
+
     static List<Header> readHeaderList(CountingInputStream cis) throws IOException {
         int size = readInt(cis);
         if (size < 0) {
@@ -135,5 +232,19 @@ class DiskBasedCacheUtility {
             result.add(new Header(name, value));
         }
         return result;
+    }
+
+    static int headerListSize(List<Header> headers) throws IOException {
+        if (headers == null) {
+            return 4;
+        }
+        int bytes = 4;
+
+        for (Header header : headers) {
+            bytes += header.getName().getBytes("UTF-8").length;
+            bytes += header.getValue().getBytes("UTF-8").length;
+        }
+
+        return bytes;
     }
 }
