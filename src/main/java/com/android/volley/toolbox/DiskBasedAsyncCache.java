@@ -96,6 +96,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
         }
     }
 
+    /** Puts the cache entry with a specified key into the cache. */
     @Override
     public void put(final String key, Cache.Entry entry, final OnPutCompleteCallback callback) {
         // If adding this entry would trigger a prune, but pruning would cause the new entry to be
@@ -126,12 +127,15 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         @Override
                         public void completed(Integer integer, Void aVoid) {
                             header.size = file.length();
-                            DiskBasedCacheUtility.putEntry(key, header, mTotalSize, mEntries);
-                            DiskBasedCacheUtility.pruneIfNeeded(
-                                    mTotalSize,
-                                    mMaxCacheSizeInBytes,
-                                    mEntries,
-                                    mRootDirectorySupplier);
+                            mTotalSize =
+                                    DiskBasedCacheUtility.putEntry(
+                                            key, header, mTotalSize, mEntries);
+                            mTotalSize =
+                                    DiskBasedCacheUtility.pruneIfNeeded(
+                                            mTotalSize,
+                                            mMaxCacheSizeInBytes,
+                                            mEntries,
+                                            mRootDirectorySupplier);
                         }
 
                         @Override

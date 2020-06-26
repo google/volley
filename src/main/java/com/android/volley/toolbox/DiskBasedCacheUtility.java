@@ -43,11 +43,19 @@ class DiskBasedCacheUtility {
     }
 
     /** Returns a file object for the given cache key. */
-    static File getFileForKey(String key, FileSupplier rootDirectorySupplier) {
+    public static File getFileForKey(String key, FileSupplier rootDirectorySupplier) {
         return new File(rootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
-    /** Prunes the cache to fit the maximum size. */
+    /** Prunes the .
+     *
+     * @param totalSize The total size of the cache.
+     * @param maxCacheSizeInBytes Maximum size of the cache.
+     * @param entries Map of the entries in the cache.
+     * @param rootDirectorySupplier The supplier for the root directory to use for the cache.
+     * @return A long to update the totalSize.
+     *
+     */
     static long pruneIfNeeded(
             long totalSize,
             int maxCacheSizeInBytes,
@@ -97,8 +105,11 @@ class DiskBasedCacheUtility {
      *
      * @param key The key to identify the entry by.
      * @param entry The entry to cache.
+     * @param totalSize The total size of the cache.
+     * @param entries Map of the entries in the cache.
+     * @return A long to update the total size.
      */
-    static void putEntry(
+    static long putEntry(
             String key, CacheHeader entry, long totalSize, Map<String, CacheHeader> entries) {
         if (!entries.containsKey(key)) {
             totalSize += entry.size;
@@ -107,6 +118,7 @@ class DiskBasedCacheUtility {
             totalSize += (entry.size - oldEntry.size);
         }
         entries.put(key, entry);
+        return totalSize;
     }
 
     /*
@@ -204,18 +216,15 @@ class DiskBasedCacheUtility {
         }
     }
 
-    static int writeHeaderList(List<Header> headers, ByteBuffer buffer) throws IOException {
+    static void writeHeaderList(List<Header> headers, ByteBuffer buffer) throws IOException {
         if (headers != null) {
-            int bytes = 4;
             buffer.putInt(headers.size());
             for (Header header : headers) {
-                bytes += writeString(buffer, header.getName());
-                bytes += writeString(buffer, header.getValue());
+                writeString(buffer, header.getName());
+                writeString(buffer, header.getValue());
             }
-            return bytes;
         } else {
             buffer.putInt(0);
-            return 4;
         }
     }
 

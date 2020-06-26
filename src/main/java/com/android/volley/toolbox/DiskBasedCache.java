@@ -16,7 +16,6 @@
 
 package com.android.volley.toolbox;
 
-import android.os.SystemClock;
 import android.text.TextUtils;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.Cache;
@@ -32,7 +31,6 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -51,7 +49,7 @@ public class DiskBasedCache implements Cache {
     private long mTotalSize = 0;
 
     /** The supplier for the root directory to use for the cache. */
-    private final FileSupplier mRootDirectorySupplier;
+    private final DiskBasedCacheUtility.FileSupplier mRootDirectorySupplier;
 
     /** The maximum size of the cache in bytes. */
     private final int mMaxCacheSizeInBytes;
@@ -66,7 +64,7 @@ public class DiskBasedCache implements Cache {
      */
     public DiskBasedCache(final File rootDirectory, int maxCacheSizeInBytes) {
         mRootDirectorySupplier =
-                new FileSupplier() {
+                new DiskBasedCacheUtility.FileSupplier() {
                     @Override
                     public File get() {
                         return rootDirectory;
@@ -83,7 +81,8 @@ public class DiskBasedCache implements Cache {
      *     briefly exceed this size on disk when writing a new entry that pushes it over the limit
      *     until the ensuing pruning completes.
      */
-    public DiskBasedCache(FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
+    public DiskBasedCache(
+            DiskBasedCacheUtility.FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
         mRootDirectorySupplier = rootDirectorySupplier;
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
@@ -104,7 +103,7 @@ public class DiskBasedCache implements Cache {
      *
      * @param rootDirectorySupplier The supplier for the root directory of the cache.
      */
-    public DiskBasedCache(FileSupplier rootDirectorySupplier) {
+    public DiskBasedCache(DiskBasedCacheUtility.FileSupplier rootDirectorySupplier) {
         this(rootDirectorySupplier, DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES);
     }
 
@@ -130,7 +129,7 @@ public class DiskBasedCache implements Cache {
         if (entry == null) {
             return null;
         }
-        File file = getFileForKey(key);
+        File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         try {
             CountingInputStream cis =
                     new CountingInputStream(
@@ -185,7 +184,7 @@ public class DiskBasedCache implements Cache {
                 try {
                     CacheHeader entry = CacheHeader.readHeader(cis);
                     entry.size = entrySize;
-                    putEntry(entry.key, entry);
+                    DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
                 } finally {
                     // Any IOException thrown here is handled by the below catch block by design.
                     //noinspection ThrowFromFinallyBlock
@@ -228,7 +227,7 @@ public class DiskBasedCache implements Cache {
                         > mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
             return;
         }
-        File file = getFileForKey(key);
+        File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         try {
             BufferedOutputStream fos = new BufferedOutputStream(createOutputStream(file));
             CacheHeader e = new CacheHeader(key, entry);
@@ -241,8 +240,10 @@ public class DiskBasedCache implements Cache {
             fos.write(entry.data);
             fos.close();
             e.size = file.length();
-            putEntry(key, e);
-            pruneIfNeeded();
+            mTotalSize = DiskBasedCacheUtility.putEntry(key, e, mTotalSize, mEntries);
+            mTotalSize =
+                    DiskBasedCacheUtility.pruneIfNeeded(
+                            mTotalSize, mMaxCacheSizeInBytes, mEntries, mRootDirectorySupplier);
         } catch (IOException e) {
             boolean deleted = file.delete();
             if (!deleted) {
@@ -255,31 +256,18 @@ public class DiskBasedCache implements Cache {
     /** Removes the specified key from the cache if it exists. */
     @Override
     public synchronized void remove(String key) {
-        boolean deleted = getFileForKey(key).delete();
+        boolean deleted = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier).delete();
         removeEntry(key);
         if (!deleted) {
             VolleyLog.d(
                     "Could not delete cache entry for key=%s, filename=%s",
-                    key, getFilenameForKey(key));
+                    key, DiskBasedCacheUtility.getFilenameForKey(key));
         }
-    }
-
-    /**
-     * Creates a pseudo-unique filename for the specified cache key.
-     *
-     * @param key The key to generate a file name for.
-     * @return A pseudo-unique filename.
-     */
-    private String getFilenameForKey(String key) {
-        int firstHalfLength = key.length() / 2;
-        String localFilename = String.valueOf(key.substring(0, firstHalfLength).hashCode());
-        localFilename += String.valueOf(key.substring(firstHalfLength).hashCode());
-        return localFilename;
     }
 
     /** Returns a file object for the given cache key. */
     public File getFileForKey(String key) {
-        return new File(mRootDirectorySupplier.get(), getFilenameForKey(key));
+        return new File(mRootDirectorySupplier.get(), DiskBasedCacheUtility.getFilenameForKey(key));
     }
 
     /** Re-initialize the cache if the directory was deleted. */
@@ -290,67 +278,6 @@ public class DiskBasedCache implements Cache {
             mTotalSize = 0;
             initialize();
         }
-    }
-
-    /** Represents a supplier for {@link File}s. */
-    public interface FileSupplier {
-        File get();
-    }
-
-    /** Prunes the cache to fit the maximum size. */
-    private void pruneIfNeeded() {
-        if (mTotalSize < mMaxCacheSizeInBytes) {
-            return;
-        }
-        if (VolleyLog.DEBUG) {
-            VolleyLog.v("Pruning old cache entries.");
-        }
-
-        long before = mTotalSize;
-        int prunedFiles = 0;
-        long startTime = SystemClock.elapsedRealtime();
-
-        Iterator<Map.Entry<String, CacheHeader>> iterator = mEntries.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, CacheHeader> entry = iterator.next();
-            CacheHeader e = entry.getValue();
-            boolean deleted = getFileForKey(e.key).delete();
-            if (deleted) {
-                mTotalSize -= e.size;
-            } else {
-                VolleyLog.d(
-                        "Could not delete cache entry for key=%s, filename=%s",
-                        e.key, getFilenameForKey(e.key));
-            }
-            iterator.remove();
-            prunedFiles++;
-
-            if (mTotalSize < mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
-                break;
-            }
-        }
-
-        if (VolleyLog.DEBUG) {
-            VolleyLog.v(
-                    "pruned %d files, %d bytes, %d ms",
-                    prunedFiles, (mTotalSize - before), SystemClock.elapsedRealtime() - startTime);
-        }
-    }
-
-    /**
-     * Puts the entry with the specified key into the cache.
-     *
-     * @param key The key to identify the entry by.
-     * @param entry The entry to cache.
-     */
-    private void putEntry(String key, CacheHeader entry) {
-        if (!mEntries.containsKey(key)) {
-            mTotalSize += entry.size;
-        } else {
-            CacheHeader oldEntry = mEntries.get(key);
-            mTotalSize += (entry.size - oldEntry.size);
-        }
-        mEntries.put(key, entry);
     }
 
     /** Removes the entry identified by 'key' from the cache. */

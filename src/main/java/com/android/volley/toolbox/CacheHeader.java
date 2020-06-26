@@ -146,6 +146,7 @@ class CacheHeader {
         }
     }
 
+    /** Writes the contents of this CacheHeader to the specified ByteBuffer. */
     void writeHeader(ByteBuffer buffer) throws IOException {
         buffer.putInt(CACHE_MAGIC);
         DiskBasedCacheUtility.writeString(buffer, key);
@@ -157,8 +158,9 @@ class CacheHeader {
         DiskBasedCacheUtility.writeHeaderList(allResponseHeaders, buffer);
     }
 
+    /** Gets the size of the header in bytes */
     int getHeaderSize() throws IOException {
-        int x = 36;
+        int x = 44; //4 longs, 3 ints
         try {
             x += key.getBytes("UTF8").length;
             if (etag != null) {
