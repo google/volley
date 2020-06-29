@@ -120,9 +120,9 @@ public class DiskBasedAsyncCache extends AsyncCache {
             header.writeHeader(buffer);
             buffer.put(entry.data);
             afc.write(
-                    buffer,
-                    0,
-                    null,
+                    /* source= */ buffer,
+                    /* position= */0,
+                    /* attachment= */null,
                     new CompletionHandler<Integer, Void>() {
                         @Override
                         public void completed(Integer integer, Void aVoid) {
@@ -136,6 +136,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                             mMaxCacheSizeInBytes,
                                             mEntries,
                                             mRootDirectorySupplier);
+                            callback.onPutComplete();
                         }
 
                         @Override

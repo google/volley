@@ -188,14 +188,15 @@ class DiskBasedCacheUtility {
         os.write(b, 0, b.length);
     }
 
-    static int writeString(ByteBuffer buffer, String s) throws IOException {
+    static void writeString(ByteBuffer buffer, String s) throws IOException {
+        // if the string is null, put the length as 0.
         if (s == null) {
-            return 0;
+            buffer.putLong(0);
+            return;
         }
         byte[] b = s.getBytes("UTF-8");
         buffer.putLong(b.length);
         buffer.put(b);
-        return b.length + 8;
     }
 
     static String readString(CountingInputStream cis) throws IOException {
