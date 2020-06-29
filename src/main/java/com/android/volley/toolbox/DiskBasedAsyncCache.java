@@ -121,8 +121,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
             buffer.put(entry.data);
             afc.write(
                     /* source= */ buffer,
-                    /* position= */0,
-                    /* attachment= */null,
+                    /* position= */ 0,
+                    /* attachment= */ null,
                     new CompletionHandler<Integer, Void>() {
                         @Override
                         public void completed(Integer integer, Void aVoid) {

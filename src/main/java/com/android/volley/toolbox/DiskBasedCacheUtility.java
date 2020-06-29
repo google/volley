@@ -47,14 +47,14 @@ class DiskBasedCacheUtility {
         return new File(rootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
-    /** Prunes the .
+    /**
+     * Prunes the .
      *
      * @param totalSize The total size of the cache.
      * @param maxCacheSizeInBytes Maximum size of the cache.
      * @param entries Map of the entries in the cache.
      * @param rootDirectorySupplier The supplier for the root directory to use for the cache.
      * @return A long to update the totalSize.
-     *
      */
     static long pruneIfNeeded(
             long totalSize,

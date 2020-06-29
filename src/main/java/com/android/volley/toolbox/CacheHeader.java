@@ -160,7 +160,7 @@ class CacheHeader {
 
     /** Gets the size of the header in bytes */
     int getHeaderSize() throws IOException {
-        int x = 44; //4 longs, 3 ints
+        int x = 44; // 4 longs, 3 ints
         try {
             x += key.getBytes("UTF8").length;
             if (etag != null) {
