@@ -16,6 +16,9 @@ class CacheHeader {
     /** Magic number for current version of cache file format. */
     private static final int CACHE_MAGIC = 0x20150306;
 
+    /** Bits required to write 4 longs and 3 ints */
+    private static final int HEADER_SIZE = 44;
+
     /**
      * The size of the data identified by this CacheHeader on disk (both header and data).
      *
@@ -160,16 +163,16 @@ class CacheHeader {
 
     /** Gets the size of the header in bytes */
     int getHeaderSize() throws IOException {
-        int x = 44; // 4 longs, 3 ints
+        int size = 0;
         try {
-            x += key.getBytes("UTF8").length;
+            size += key.getBytes("UTF8").length;
             if (etag != null) {
-                x += etag.getBytes("UTF8").length;
+                size += etag.getBytes("UTF8").length;
             }
         } catch (UnsupportedEncodingException e) {
-            VolleyLog.e(e.toString());
+            VolleyLog.e(e, "UTF-8 is unsupported");
         }
-        x += DiskBasedCacheUtility.headerListSize(allResponseHeaders);
-        return x;
+        size += DiskBasedCacheUtility.headerListSize(allResponseHeaders);
+        return size + HEADER_SIZE;
     }
 }

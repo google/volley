@@ -222,9 +222,9 @@ public class DiskBasedCache implements Cache {
         // deleted, then skip writing the entry in the first place, as this is just churn.
         // Note that we don't include the cache header overhead in this calculation for simplicity,
         // so putting entries which are just below the threshold may still cause this churn.
-        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
-                && entry.data.length
-                        > mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
+        if (DiskBasedCacheUtility.checkPrune(mTotalSize, entry.data.length, mMaxCacheSizeInBytes)
+                && DiskBasedCacheUtility.checkWouldDelete(
+                        entry.data.length, mMaxCacheSizeInBytes)) {
             return;
         }
         File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);

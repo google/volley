@@ -103,11 +103,12 @@ public class DiskBasedAsyncCache extends AsyncCache {
         // deleted, then skip writing the entry in the first place, as this is just churn.
         // Note that we don't include the cache header overhead in this calculation for simplicity,
         // so putting entries which are just below the threshold may still cause this churn.
-        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
-                && entry.data.length
-                        > mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
+        if (DiskBasedCacheUtility.checkPrune(mTotalSize, entry.data.length, mMaxCacheSizeInBytes)
+                && DiskBasedCacheUtility.checkWouldDelete(
+                        entry.data.length, mMaxCacheSizeInBytes)) {
             return;
         }
+
         final File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         Path path = Paths.get(file.getPath());
 
@@ -125,7 +126,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                     /* attachment= */ null,
                     new CompletionHandler<Integer, Void>() {
                         @Override
-                        public void completed(Integer integer, Void aVoid) {
+                        public void completed(Integer resultLen, Void ignore) {
                             header.size = file.length();
                             mTotalSize =
                                     DiskBasedCacheUtility.putEntry(
@@ -162,11 +163,12 @@ public class DiskBasedAsyncCache extends AsyncCache {
 
     /** Re-initialize the cache if the directory was deleted. */
     private void initializeIfRootDirectoryDeleted() {
-        if (!mRootDirectorySupplier.get().exists()) {
-            VolleyLog.d("Re-initializing cache after external clearing.");
-            mEntries.clear();
-            mTotalSize = 0;
-            initialize();
+        if (mRootDirectorySupplier.get().exists()) {
+            return;
         }
+        VolleyLog.d("Re-initializing cache after external clearing.");
+        mEntries.clear();
+        mTotalSize = 0;
+        initialize();
     }
 }

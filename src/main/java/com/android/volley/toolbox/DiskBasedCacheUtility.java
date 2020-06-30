@@ -1,6 +1,7 @@
 package com.android.volley.toolbox;
 
 import android.os.SystemClock;
+import androidx.annotation.Nullable;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.DiskBasedCache.CountingInputStream;
@@ -47,14 +48,23 @@ class DiskBasedCacheUtility {
         return new File(rootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
+    static boolean checkPrune(long totalSize, int dataLength, int maxCacheSize) {
+        return (totalSize + dataLength > maxCacheSize);
+    }
+
+    static boolean checkWouldDelete(int dataLength, int maxCacheSize) {
+        return dataLength > maxCacheSize * HYSTERESIS_FACTOR;
+    }
+
     /**
-     * Prunes the .
+     * Prunes the cache if needed. This method modifies the entries map by removing the pruned
+     * entries.
      *
      * @param totalSize The total size of the cache.
      * @param maxCacheSizeInBytes Maximum size of the cache.
      * @param entries Map of the entries in the cache.
      * @param rootDirectorySupplier The supplier for the root directory to use for the cache.
-     * @return A long to update the totalSize.
+     * @return The updated totalSize.
      */
     static long pruneIfNeeded(
             long totalSize,
@@ -82,12 +92,12 @@ class DiskBasedCacheUtility {
             } else {
                 VolleyLog.d(
                         "Could not delete cache entry for key=%s, filename=%s",
-                        e.key, DiskBasedCacheUtility.getFilenameForKey(e.key));
+                        e.key, getFilenameForKey(e.key));
             }
             iterator.remove();
             prunedFiles++;
 
-            if (totalSize < maxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
+            if (totalSize < maxCacheSizeInBytes * HYSTERESIS_FACTOR) {
                 break;
             }
         }
@@ -101,13 +111,14 @@ class DiskBasedCacheUtility {
     }
 
     /**
-     * Puts the entry with the specified key into the cache.
+     * Puts the entry with the specified key into the cache. This method updates the entries map
+     * with the key, entry pair.
      *
      * @param key The key to identify the entry by.
      * @param entry The entry to cache.
      * @param totalSize The total size of the cache.
      * @param entries Map of the entries in the cache.
-     * @return A long to update the total size.
+     * @return The updated totalSize.
      */
     static long putEntry(
             String key, CacheHeader entry, long totalSize, Map<String, CacheHeader> entries) {
@@ -188,7 +199,7 @@ class DiskBasedCacheUtility {
         os.write(b, 0, b.length);
     }
 
-    static void writeString(ByteBuffer buffer, String s) throws IOException {
+    static void writeString(ByteBuffer buffer, @Nullable String s) throws IOException {
         // if the string is null, put the length as 0.
         if (s == null) {
             buffer.putLong(0);
@@ -205,7 +216,8 @@ class DiskBasedCacheUtility {
         return new String(b, "UTF-8");
     }
 
-    static void writeHeaderList(List<Header> headers, OutputStream os) throws IOException {
+    static void writeHeaderList(@Nullable List<Header> headers, OutputStream os)
+            throws IOException {
         if (headers != null) {
             writeInt(os, headers.size());
             for (Header header : headers) {
@@ -217,7 +229,8 @@ class DiskBasedCacheUtility {
         }
     }
 
-    static void writeHeaderList(List<Header> headers, ByteBuffer buffer) throws IOException {
+    static void writeHeaderList(@Nullable List<Header> headers, ByteBuffer buffer)
+            throws IOException {
         if (headers != null) {
             buffer.putInt(headers.size());
             for (Header header : headers) {
@@ -244,7 +257,7 @@ class DiskBasedCacheUtility {
         return result;
     }
 
-    static int headerListSize(List<Header> headers) throws IOException {
+    static int headerListSize(@Nullable List<Header> headers) throws IOException {
         if (headers == null) {
             return 4;
         }
