@@ -103,8 +103,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
         // deleted, then skip writing the entry in the first place, as this is just churn.
         // Note that we don't include the cache header overhead in this calculation for simplicity,
         // so putting entries which are just below the threshold may still cause this churn.
-        if (DiskBasedCacheUtility.checkPrune(mTotalSize, entry.data.length, mMaxCacheSizeInBytes)
-                && DiskBasedCacheUtility.checkWouldDelete(
+        if (DiskBasedCacheUtility.wouldExceedCacheSize(mTotalSize + entry.data.length, mMaxCacheSizeInBytes)
+                && DiskBasedCacheUtility.isDataTooLarge(
                         entry.data.length, mMaxCacheSizeInBytes)) {
             return;
         }

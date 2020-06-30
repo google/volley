@@ -48,12 +48,12 @@ class DiskBasedCacheUtility {
         return new File(rootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
-    static boolean checkPrune(long totalSize, int dataLength, int maxCacheSize) {
-        return (totalSize + dataLength > maxCacheSize);
+    static boolean wouldExceedCacheSize(long newTotalSize, int maxCacheSize) {
+        return (newTotalSize >= maxCacheSize);
     }
 
-    static boolean checkWouldDelete(int dataLength, int maxCacheSize) {
-        return dataLength > maxCacheSize * HYSTERESIS_FACTOR;
+    static boolean isDataTooLarge(int dataLength, int maxCacheSize) {
+        return dataLength >= maxCacheSize * HYSTERESIS_FACTOR;
     }
 
     /**
@@ -71,7 +71,7 @@ class DiskBasedCacheUtility {
             int maxCacheSizeInBytes,
             Map<String, CacheHeader> entries,
             FileSupplier rootDirectorySupplier) {
-        if (totalSize < maxCacheSizeInBytes) {
+        if (!wouldExceedCacheSize(totalSize, maxCacheSizeInBytes)) {
             return totalSize;
         }
         if (VolleyLog.DEBUG) {
@@ -97,7 +97,7 @@ class DiskBasedCacheUtility {
             iterator.remove();
             prunedFiles++;
 
-            if (totalSize < maxCacheSizeInBytes * HYSTERESIS_FACTOR) {
+            if (!isDataTooLarge((int) totalSize, maxCacheSizeInBytes)) {
                 break;
             }
         }
