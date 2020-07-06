@@ -192,10 +192,10 @@ class DiskBasedCacheUtility {
             return buffer.getInt();
         } catch (ExecutionException e) {
             VolleyLog.e("failed to read int", e);
-            return -1;
+            throw new IOException("failed to read int", e);
         } catch (InterruptedException e) {
             VolleyLog.e("failed to read int", e);
-            return -1;
+            throw new IOException("failed to read int", e);
         }
     }
 
@@ -232,10 +232,10 @@ class DiskBasedCacheUtility {
             return buffer.getLong();
         } catch (ExecutionException e) {
             VolleyLog.e("failed to read long", e);
-            return -1;
+            throw new IOException("failed to read long", e);
         } catch (InterruptedException e) {
             VolleyLog.e("failed to read long", e);
-            return -1;
+            throw new IOException("failed to read long", e);
         }
     }
 
@@ -262,6 +262,12 @@ class DiskBasedCacheUtility {
         return new String(b, "UTF-8");
     }
 
+    /**
+     * @param channel input channel
+     * @param offset location in file to read string from
+     * @return the next string in the file
+     * @throws IOException if fails to read all bytes
+     */
     @RequiresApi(api = Build.VERSION_CODES.O)
     static String readString(AsynchronousFileChannel channel, int offset) throws IOException {
         int length = readInt(channel, offset);
@@ -270,15 +276,16 @@ class DiskBasedCacheUtility {
         try {
             int read = operation.get();
             if (read != length) {
-                return null;
+                // did read entire length of string
+                throw new IOException("length=" + length + ", bytes read=" + read);
             }
             return new String(buffer.array(), "UTF-8");
         } catch (ExecutionException e) {
             VolleyLog.e("failed to read string", e);
-            return null;
+            throw new IOException("failed to read string", e);
         } catch (InterruptedException e) {
             VolleyLog.e("failed to read string", e);
-            return null;
+            throw new IOException("failed to read string", e);
         }
     }
 
@@ -349,8 +356,10 @@ class DiskBasedCacheUtility {
         int bytes = 4;
 
         for (Header header : headers) {
+            // adds the size of each string, as well as 8 bytes for 2 ints denoting length
             bytes += header.getName().getBytes("UTF-8").length;
             bytes += header.getValue().getBytes("UTF-8").length;
+            bytes += 8;
         }
 
         return bytes;

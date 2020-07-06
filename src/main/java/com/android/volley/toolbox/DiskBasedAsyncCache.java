@@ -14,10 +14,8 @@ import java.nio.channels.CompletionHandler;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * AsyncCache implementation that uses Java NIO's AsynchronousFileChannel to perform asynchronous
@@ -179,22 +177,6 @@ public class DiskBasedAsyncCache extends AsyncCache {
             callback.onComplete();
             return;
         }
-        Arrays.asList(files).parallelStream().forEach(new Consumer<File>() {
-              @Override
-              public void accept(File file) {
-                  try (AsynchronousFileChannel afc =
-                               AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ)) {
-                      long entrySize = file.length();
-                      CacheHeader entry = CacheHeader.readHeader(afc);
-                      entry.size = entrySize;
-                      DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
-                  } catch (IOException e) {
-                      //noinspection ResultOfMethodCallIgnored
-                      file.delete();
-                  }
-              }
-          }
-        );
         for (File file : files) {
             try (AsynchronousFileChannel afc =
                     AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ)) {

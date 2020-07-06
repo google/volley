@@ -198,7 +198,7 @@ class CacheHeader {
             size += key.getBytes("UTF8").length;
             if (etag != null) {
                 size += etag.getBytes("UTF8").length;
-            }
+            
         } catch (UnsupportedEncodingException e) {
             VolleyLog.e(e, "UTF-8 is unsupported");
         }
