@@ -1,6 +1,8 @@
 package com.android.volley.toolbox;
 
+import android.os.Build;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import com.android.volley.Cache;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
@@ -8,6 +10,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
 import java.util.Collections;
 import java.util.List;
 
@@ -112,6 +115,33 @@ class CacheHeader {
         long ttl = DiskBasedCacheUtility.readLong(is);
         long softTtl = DiskBasedCacheUtility.readLong(is);
         List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(is);
+        return new CacheHeader(
+                key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
+    }
+
+    /** Reads the contents of this CacheHeader from the specified file channel. */
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static CacheHeader readHeader(AsynchronousFileChannel afc) throws IOException {
+        int offset = 0;
+        int magic = DiskBasedCacheUtility.readInt(afc, offset);
+        if (magic != CACHE_MAGIC) {
+            // don't bother deleting, it'll get pruned eventually
+            throw new IOException();
+        }
+        offset += 4;
+        String key = DiskBasedCacheUtility.readString(afc, offset);
+        offset += 4 + key.length() * 2;
+        String etag = DiskBasedCacheUtility.readString(afc, offset);
+        offset += etag.length() * 2 + 4;
+        long serverDate = DiskBasedCacheUtility.readLong(afc, offset);
+        offset += 8;
+        long lastModified = DiskBasedCacheUtility.readLong(afc, offset);
+        offset += 8;
+        long ttl = DiskBasedCacheUtility.readLong(afc, offset);
+        offset += 8;
+        long softTtl = DiskBasedCacheUtility.readLong(afc, offset);
+        offset += 8;
+        List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(afc, offset);
         return new CacheHeader(
                 key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
     }

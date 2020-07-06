@@ -1,7 +1,9 @@
 package com.android.volley.toolbox;
 
+import android.os.Build;
 import android.os.SystemClock;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.DiskBasedCache.CountingInputStream;
@@ -11,11 +13,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 class DiskBasedCacheUtility {
 
@@ -132,6 +137,15 @@ class DiskBasedCacheUtility {
         return totalSize;
     }
 
+    /** Removes the entry identified by 'key' from the cache. This modifies the entries map */
+    static long removeEntry(String key, long totalSize, Map<String, CacheHeader> entries) {
+        CacheHeader removed = entries.remove(key);
+        if (removed != null) {
+            totalSize -= removed.size;
+        }
+        return totalSize;
+    }
+
     /*
      * Homebrewed simple serialization system used for reading and writing cache
      * headers on disk. Once upon a time, this used the standard Java
@@ -169,6 +183,22 @@ class DiskBasedCacheUtility {
         return n;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static int readInt(AsynchronousFileChannel channel, int offset) throws IOException {
+        final ByteBuffer buffer = ByteBuffer.allocate(4);
+        Future<Integer> operation = channel.read(buffer, offset);
+        try {
+            int read = operation.get();
+            return buffer.getInt();
+        } catch (ExecutionException e) {
+            VolleyLog.e("failed to read int", e);
+            return -1;
+        } catch (InterruptedException e) {
+            VolleyLog.e("failed to read int", e);
+            return -1;
+        }
+    }
+
     static void writeLong(OutputStream os, long n) throws IOException {
         os.write((byte) n);
         os.write((byte) (n >>> 8));
@@ -193,6 +223,22 @@ class DiskBasedCacheUtility {
         return n;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static long readLong(AsynchronousFileChannel channel, int offset) throws IOException {
+        final ByteBuffer buffer = ByteBuffer.allocate(8);
+        Future<Integer> operation = channel.read(buffer, offset);
+        try {
+            int read = operation.get();
+            return buffer.getLong();
+        } catch (ExecutionException e) {
+            VolleyLog.e("failed to read long", e);
+            return -1;
+        } catch (InterruptedException e) {
+            VolleyLog.e("failed to read long", e);
+            return -1;
+        }
+    }
+
     static void writeString(OutputStream os, String s) throws IOException {
         byte[] b = s.getBytes("UTF-8");
         writeLong(os, b.length);
@@ -214,6 +260,26 @@ class DiskBasedCacheUtility {
         long n = readLong(cis);
         byte[] b = DiskBasedCache.streamToBytes(cis, n);
         return new String(b, "UTF-8");
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static String readString(AsynchronousFileChannel channel, int offset) throws IOException {
+        int length = readInt(channel, offset);
+        final ByteBuffer buffer = ByteBuffer.allocate(length);
+        Future<Integer> operation = channel.read(buffer, offset);
+        try {
+            int read = operation.get();
+            if (read != length) {
+                return null;
+            }
+            return new String(buffer.array(), "UTF-8");
+        } catch (ExecutionException e) {
+            VolleyLog.e("failed to read string", e);
+            return null;
+        } catch (InterruptedException e) {
+            VolleyLog.e("failed to read string", e);
+            return null;
+        }
     }
 
     static void writeHeaderList(@Nullable List<Header> headers, OutputStream os)
@@ -252,6 +318,25 @@ class DiskBasedCacheUtility {
         for (int i = 0; i < size; i++) {
             String name = readString(cis).intern();
             String value = readString(cis).intern();
+            result.add(new Header(name, value));
+        }
+        return result;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    static List<Header> readHeaderList(AsynchronousFileChannel channel, int offset)
+            throws IOException {
+        int size = readInt(channel, offset);
+        if (size < 0) {
+            throw new IOException("readHeaderList size=" + size);
+        }
+        offset += 4;
+        List<Header> result =
+                (size == 0) ? Collections.<Header>emptyList() : new ArrayList<Header>();
+        for (int i = 0; i < size; i++) {
+            String name = readString(channel, offset).intern();
+            offset += name.length() * 2;
+            String value = readString(channel, offset).intern();
             result.add(new Header(name, value));
         }
         return result;
