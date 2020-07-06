@@ -49,11 +49,11 @@ class DiskBasedCacheUtility {
     }
 
     static boolean wouldExceedCacheSize(long newTotalSize, int maxCacheSize) {
-        return (newTotalSize > maxCacheSize);
+        return (newTotalSize >= maxCacheSize);
     }
 
     static boolean isDataTooLarge(int dataLength, int maxCacheSize) {
-        return dataLength > maxCacheSize * HYSTERESIS_FACTOR;
+        return dataLength >= maxCacheSize * HYSTERESIS_FACTOR;
     }
 
     /**
@@ -71,7 +71,7 @@ class DiskBasedCacheUtility {
             int maxCacheSizeInBytes,
             Map<String, CacheHeader> entries,
             FileSupplier rootDirectorySupplier) {
-        if (!wouldExceedCacheSize(totalSize + 1, maxCacheSizeInBytes)) {
+        if (!wouldExceedCacheSize(totalSize, maxCacheSizeInBytes)) {
             return totalSize;
         }
         if (VolleyLog.DEBUG) {
