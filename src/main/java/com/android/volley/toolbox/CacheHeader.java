@@ -161,7 +161,7 @@ class CacheHeader {
         DiskBasedCacheUtility.writeHeaderList(allResponseHeaders, buffer);
     }
 
-    /** Gets the size of the header in bytes */
+    /** Gets the size of the header in bytes. */
     int getHeaderSize() throws IOException {
         int size = 0;
         try {

@@ -25,7 +25,7 @@ public abstract class AsyncCache {
     public abstract void get(String key, OnGetCompleteCallback callback);
 
     public interface OnPutCompleteCallback {
-        /** Invoked when the put to the cache is complete */
+        /** Invoked when the put to the cache is complete. */
         void onPutComplete();
     }
 
