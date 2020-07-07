@@ -112,8 +112,10 @@ public class DiskBasedAsyncCache extends AsyncCache {
         final File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         Path path = Paths.get(file.getPath());
 
-        try (AsynchronousFileChannel afc =
-                AsynchronousFileChannel.open(path, StandardOpenOption.WRITE)) {
+        try {
+            final AsynchronousFileChannel afc =
+                    AsynchronousFileChannel.open(
+                            path, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
             final CacheHeader header = new CacheHeader(key, entry);
             int headerSize = header.getHeaderSize();
             int size = entry.data.length + headerSize;
@@ -138,6 +140,16 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                             mEntries,
                                             mRootDirectorySupplier);
                             callback.onPutComplete();
+                            try {
+                                afc.close();
+                            } catch (IOException e) {
+                                VolleyLog.e(e, "Failed to close channel");
+                            }
+                            try {
+                                afc.close();
+                            } catch (IOException e) {
+                                VolleyLog.e(e, "Failed to close channel");
+                            }
                         }
 
                         @Override
@@ -145,6 +157,11 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             VolleyLog.e(
                                     throwable, "Failed to read file %s", file.getAbsolutePath());
                             callback.onPutComplete();
+                            try {
+                                afc.close();
+                            } catch (IOException e) {
+                                VolleyLog.e(e, "Failed to close channel");
+                            }
                         }
                     });
         } catch (IOException e) {

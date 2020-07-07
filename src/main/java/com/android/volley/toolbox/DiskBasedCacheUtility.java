@@ -132,6 +132,15 @@ class DiskBasedCacheUtility {
         return totalSize;
     }
 
+    /** Removes the entry identified by 'key' from the cache. */
+    static long removeEntry(String key, long totalSize, Map<String, CacheHeader> entries) {
+        CacheHeader removed = entries.remove(key);
+        if (removed != null) {
+            totalSize -= removed.size;
+        }
+        return totalSize;
+    }
+
     /*
      * Homebrewed simple serialization system used for reading and writing cache
      * headers on disk. Once upon a time, this used the standard Java
