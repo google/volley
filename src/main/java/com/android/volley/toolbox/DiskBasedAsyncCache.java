@@ -63,8 +63,9 @@ public class DiskBasedAsyncCache extends AsyncCache {
         final File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         final int size = (int) file.length();
         Path path = Paths.get(file.getPath());
-        try (AsynchronousFileChannel afc =
-                AsynchronousFileChannel.open(path, StandardOpenOption.READ)) {
+        try {
+            final AsynchronousFileChannel afc =
+                    AsynchronousFileChannel.open(path, StandardOpenOption.READ);
             final ByteBuffer buffer = ByteBuffer.allocate(size);
             afc.read(
                     /* destination= */ buffer,
@@ -81,12 +82,22 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                 return;
                             }
                             byte[] data = buffer.array();
+                            try {
+                                afc.close();
+                            } catch (IOException e) {
+                                VolleyLog.e(e, "Failed to close channel");
+                            }
                             callback.onGetComplete(entry.toCacheEntry(data));
                         }
 
                         @Override
                         public void failed(Throwable exc, Void v) {
                             VolleyLog.e(exc, "Failed to read file %s", file.getAbsolutePath());
+                            try {
+                                afc.close();
+                            } catch (IOException e) {
+                                VolleyLog.e(e, "Failed to close channel");
+                            }
                             callback.onGetComplete(null);
                         }
                     });
@@ -122,6 +133,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
             ByteBuffer buffer = ByteBuffer.allocate(size);
             header.writeHeader(buffer);
             buffer.put(entry.data);
+            buffer.flip();
             afc.write(
                     /* source= */ buffer,
                     /* position= */ 0,
@@ -129,7 +141,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                     new CompletionHandler<Integer, Void>() {
                         @Override
                         public void completed(Integer resultLen, Void ignore) {
-                            header.size = file.length();
+                            header.size = resultLen;
                             mTotalSize =
                                     DiskBasedCacheUtility.putEntry(
                                             key, header, mTotalSize, mEntries);
@@ -139,17 +151,12 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                             mMaxCacheSizeInBytes,
                                             mEntries,
                                             mRootDirectorySupplier);
+                            try {
+                                afc.close();
+                            } catch (IOException e) {
+                                VolleyLog.e(e, "Failed to close channel");
+                            }
                             callback.onPutComplete();
-                            try {
-                                afc.close();
-                            } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel");
-                            }
-                            try {
-                                afc.close();
-                            } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel");
-                            }
                         }
 
                         @Override
