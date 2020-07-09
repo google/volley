@@ -48,11 +48,11 @@ class DiskBasedCacheUtility {
         return new File(rootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
-    static boolean wouldExceedCacheSize(long newTotalSize, int maxCacheSize) {
+    static boolean wouldExceedCacheSize(long newTotalSize, long maxCacheSize) {
         return (newTotalSize >= maxCacheSize);
     }
 
-    static boolean isDataTooLarge(int dataLength, int maxCacheSize) {
+    static boolean isDataTooLarge(long dataLength, long maxCacheSize) {
         return dataLength >= maxCacheSize * HYSTERESIS_FACTOR;
     }
 
@@ -97,7 +97,7 @@ class DiskBasedCacheUtility {
             iterator.remove();
             prunedFiles++;
 
-            if (!isDataTooLarge((int) totalSize, maxCacheSizeInBytes)) {
+            if (!isDataTooLarge(totalSize, maxCacheSizeInBytes)) {
                 break;
             }
         }
