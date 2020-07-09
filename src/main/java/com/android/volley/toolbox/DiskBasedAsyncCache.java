@@ -61,15 +61,16 @@ public class DiskBasedAsyncCache extends AsyncCache {
             return;
         }
         final File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
-        final int size = (int) file.length();
         Path path = Paths.get(file.getPath());
         try {
             final AsynchronousFileChannel afc =
                     AsynchronousFileChannel.open(path, StandardOpenOption.READ);
+            int headerSize = entry.getHeaderSize();
+            final int size = (int) file.length() - headerSize;
             final ByteBuffer buffer = ByteBuffer.allocate(size);
             afc.read(
                     /* destination= */ buffer,
-                    /* position= */ 0,
+                    /* position= */ headerSize,
                     /* attachment= */ null,
                     new CompletionHandler<Integer, Void>() {
                         @Override
