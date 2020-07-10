@@ -49,11 +49,27 @@ class DiskBasedCacheUtility {
     }
 
     static boolean wouldExceedCacheSize(long newTotalSize, long maxCacheSize) {
-        return (newTotalSize >= maxCacheSize);
+        return (newTotalSize > maxCacheSize);
     }
 
-    static boolean isDataTooLarge(long dataLength, long maxCacheSize) {
-        return dataLength >= maxCacheSize * HYSTERESIS_FACTOR;
+    static boolean doesDataExceedHighWaterMark(long dataLength, long maxCacheSize) {
+        return dataLength > maxCacheSize * HYSTERESIS_FACTOR;
+    }
+
+    /**
+     * If adding this entry would trigger a prune, but pruning would cause the new entry to be
+     * deleted, then skip writing the entry in the first place, as this is just churn. Note that we
+     * don't include the cache header overhead in this calculation for simplicity, so putting
+     * entries which are just below the threshold may still cause this churn.
+     *
+     * @param totalSize totalSize of the cache
+     * @param entryLength length of entry being put into cache
+     * @param maxCacheSize max size of the cache
+     * @return true if adding the entry would trigger a prune.
+     */
+    static boolean wouldBePruned(long totalSize, int entryLength, int maxCacheSize) {
+        return wouldExceedCacheSize(totalSize + entryLength, maxCacheSize)
+                && doesDataExceedHighWaterMark(entryLength, maxCacheSize);
     }
 
     /**
@@ -97,7 +113,7 @@ class DiskBasedCacheUtility {
             iterator.remove();
             prunedFiles++;
 
-            if (!isDataTooLarge(totalSize, maxCacheSizeInBytes)) {
+            if (!doesDataExceedHighWaterMark(totalSize, maxCacheSizeInBytes)) {
                 break;
             }
         }

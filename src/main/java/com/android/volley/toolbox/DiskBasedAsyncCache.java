@@ -62,9 +62,13 @@ public class DiskBasedAsyncCache extends AsyncCache {
         }
         final File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         Path path = Paths.get(file.getPath());
+
+        // channel we can close after IOException
+        AsynchronousFileChannel channel = null;
         try {
             final AsynchronousFileChannel afc =
                     AsynchronousFileChannel.open(path, StandardOpenOption.READ);
+            channel = afc;
             int headerSize = entry.getHeaderSize();
             final int size = (int) file.length() - headerSize;
             final ByteBuffer buffer = ByteBuffer.allocate(size);
@@ -86,24 +90,31 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             try {
                                 afc.close();
                             } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel");
+                                VolleyLog.e(e, "Failed to close channel after successful read");
                             }
                             callback.onGetComplete(entry.toCacheEntry(data));
                         }
 
                         @Override
-                        public void failed(Throwable exc, Void v) {
+                        public void failed(Throwable exc, Void ignore) {
                             VolleyLog.e(exc, "Failed to read file %s", file.getAbsolutePath());
                             try {
                                 afc.close();
                             } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel");
+                                VolleyLog.e(e, "Failed to close channel after failed read");
                             }
                             callback.onGetComplete(null);
                         }
                     });
         } catch (IOException e) {
             VolleyLog.e(e, "Failed to read file %s", file.getAbsolutePath());
+            if (channel != null) {
+                try {
+                    channel.close();
+                } catch (IOException e1) {
+                    VolleyLog.e(e1, "Failed to close channel after IOException");
+                }
+            }
             callback.onGetComplete(null);
         }
     }
@@ -111,23 +122,21 @@ public class DiskBasedAsyncCache extends AsyncCache {
     /** Puts the cache entry with a specified key into the cache. */
     @Override
     public void put(final String key, Cache.Entry entry, final OnPutCompleteCallback callback) {
-        // If adding this entry would trigger a prune, but pruning would cause the new entry to be
-        // deleted, then skip writing the entry in the first place, as this is just churn.
-        // Note that we don't include the cache header overhead in this calculation for simplicity,
-        // so putting entries which are just below the threshold may still cause this churn.
-        if (DiskBasedCacheUtility.wouldExceedCacheSize(
-                        mTotalSize + entry.data.length, mMaxCacheSizeInBytes)
-                && DiskBasedCacheUtility.isDataTooLarge(entry.data.length, mMaxCacheSizeInBytes)) {
+        if (DiskBasedCacheUtility.wouldBePruned(
+                mTotalSize, entry.data.length, mMaxCacheSizeInBytes)) {
             return;
         }
 
         final File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         Path path = Paths.get(file.getPath());
 
+        // channel we can close after IOException
+        AsynchronousFileChannel channel = null;
         try {
             final AsynchronousFileChannel afc =
                     AsynchronousFileChannel.open(
                             path, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+            channel = afc;
             final CacheHeader header = new CacheHeader(key, entry);
             int headerSize = header.getHeaderSize();
             int size = entry.data.length + headerSize;
@@ -155,20 +164,20 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             try {
                                 afc.close();
                             } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel");
+                                VolleyLog.e(e, "Failed to close channel after successful write");
                             }
                             callback.onPutComplete();
                         }
 
                         @Override
-                        public void failed(Throwable throwable, Void aVoid) {
+                        public void failed(Throwable throwable, Void ignore) {
                             VolleyLog.e(
                                     throwable, "Failed to read file %s", file.getAbsolutePath());
                             callback.onPutComplete();
                             try {
                                 afc.close();
                             } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel");
+                                VolleyLog.e(e, "Failed to close channel after failed write");
                             }
                         }
                     });
@@ -176,6 +185,13 @@ public class DiskBasedAsyncCache extends AsyncCache {
             boolean deleted = file.delete();
             if (!deleted) {
                 VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
+            }
+            if (channel != null) {
+                try {
+                    channel.close();
+                } catch (IOException e1) {
+                    VolleyLog.e(e1, "Failed to close channel after IOException");
+                }
             }
             initializeIfRootDirectoryDeleted();
             callback.onPutComplete();

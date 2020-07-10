@@ -161,7 +161,7 @@ public class DiskBasedCacheTest {
 
     @Test
     public void testTooLargeEntry() {
-        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("oversize"));
+        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("oversize") + 1);
         cache.put("oversize", entry);
 
         assertThat(cache.get("oversize"), is(nullValue()));
