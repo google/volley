@@ -1,13 +1,15 @@
 package com.android.volley.toolbox;
 
+import android.os.Build;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import com.android.volley.Cache;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
@@ -150,6 +152,7 @@ class CacheHeader {
     }
 
     /** Writes the contents of this CacheHeader to the specified ByteBuffer. */
+    @RequiresApi(Build.VERSION_CODES.O)
     void writeHeader(ByteBuffer buffer) throws IOException {
         buffer.putInt(CACHE_MAGIC);
         DiskBasedCacheUtility.writeString(buffer, key);
@@ -162,15 +165,12 @@ class CacheHeader {
     }
 
     /** Gets the size of the header in bytes. */
+    @RequiresApi(Build.VERSION_CODES.O)
     int getHeaderSize() throws IOException {
         int size = 0;
-        try {
-            size += key.getBytes("UTF8").length;
-            if (etag != null) {
-                size += etag.getBytes("UTF8").length;
-            }
-        } catch (UnsupportedEncodingException e) {
-            VolleyLog.e(e, "UTF-8 is unsupported");
+        size += key.getBytes(StandardCharsets.UTF_8).length;
+        if (etag != null) {
+            size += etag.getBytes(StandardCharsets.UTF_8).length;
         }
         size += DiskBasedCacheUtility.headerListSize(allResponseHeaders);
         return size + HEADER_SIZE;

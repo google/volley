@@ -1,7 +1,9 @@
 package com.android.volley.toolbox;
 
+import android.os.Build;
 import android.os.SystemClock;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.DiskBasedCache.CountingInputStream;
@@ -11,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -224,13 +227,14 @@ class DiskBasedCacheUtility {
         os.write(b, 0, b.length);
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     static void writeString(ByteBuffer buffer, @Nullable String s) throws IOException {
         // if the string is null, put the length as 0.
         if (s == null) {
             buffer.putLong(0);
             return;
         }
-        byte[] b = s.getBytes("UTF-8");
+        byte[] b = s.getBytes(StandardCharsets.UTF_8);
         buffer.putLong(b.length);
         buffer.put(b);
     }
@@ -254,6 +258,7 @@ class DiskBasedCacheUtility {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     static void writeHeaderList(@Nullable List<Header> headers, ByteBuffer buffer)
             throws IOException {
         if (headers != null) {
@@ -282,6 +287,7 @@ class DiskBasedCacheUtility {
         return result;
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     static int headerListSize(@Nullable List<Header> headers) throws IOException {
         if (headers == null) {
             return 4;
@@ -289,8 +295,8 @@ class DiskBasedCacheUtility {
         int bytes = 4;
 
         for (Header header : headers) {
-            bytes += header.getName().getBytes("UTF-8").length;
-            bytes += header.getValue().getBytes("UTF-8").length;
+            bytes += header.getName().getBytes(StandardCharsets.UTF_8).length;
+            bytes += header.getValue().getBytes(StandardCharsets.UTF_8).length;
         }
 
         return bytes;

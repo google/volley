@@ -141,7 +141,7 @@ public class DiskBasedCache implements Cache {
                     VolleyLog.d(
                             "%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
                     // Remove key whose contents on disk have been replaced.
-                    DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
+                    mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
                     return null;
                 }
                 byte[] data = streamToBytes(cis, cis.bytesRemaining());
@@ -184,7 +184,8 @@ public class DiskBasedCache implements Cache {
                 try {
                     CacheHeader entry = CacheHeader.readHeader(cis);
                     entry.size = entrySize;
-                    DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
+                    mTotalSize =
+                            DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
                 } finally {
                     // Any IOException thrown here is handled by the below catch block by design.
                     //noinspection ThrowFromFinallyBlock
@@ -253,7 +254,7 @@ public class DiskBasedCache implements Cache {
     @Override
     public synchronized void remove(String key) {
         boolean deleted = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier).delete();
-        DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
+        mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
         if (!deleted) {
             VolleyLog.d(
                     "Could not delete cache entry for key=%s, filename=%s",
