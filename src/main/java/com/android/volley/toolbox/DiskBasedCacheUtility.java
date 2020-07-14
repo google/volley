@@ -49,7 +49,7 @@ class DiskBasedCacheUtility {
     }
 
     static boolean wouldExceedCacheSize(long newTotalSize, long maxCacheSize) {
-        return (newTotalSize > maxCacheSize);
+        return newTotalSize > maxCacheSize;
     }
 
     static boolean doesDataExceedHighWaterMark(long dataLength, long maxCacheSize) {

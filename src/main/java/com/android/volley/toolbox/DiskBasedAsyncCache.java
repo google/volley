@@ -79,6 +79,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                     new CompletionHandler<Integer, Void>() {
                         @Override
                         public void completed(Integer result, Void v) {
+                            closeChannel(afc, "completed read");
                             // if the file size changes, return null
                             if (size != result) {
                                 VolleyLog.e(
@@ -87,34 +88,19 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                 return;
                             }
                             byte[] data = buffer.array();
-                            try {
-                                afc.close();
-                            } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel after successful read");
-                            }
                             callback.onGetComplete(entry.toCacheEntry(data));
                         }
 
                         @Override
                         public void failed(Throwable exc, Void ignore) {
                             VolleyLog.e(exc, "Failed to read file %s", file.getAbsolutePath());
-                            try {
-                                afc.close();
-                            } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel after failed read");
-                            }
+                            closeChannel(afc, "failed read");
                             callback.onGetComplete(null);
                         }
                     });
         } catch (IOException e) {
             VolleyLog.e(e, "Failed to read file %s", file.getAbsolutePath());
-            if (channel != null) {
-                try {
-                    channel.close();
-                } catch (IOException e1) {
-                    VolleyLog.e(e1, "Failed to close channel after IOException");
-                }
-            }
+            closeChannel(channel, "IOException");
             callback.onGetComplete(null);
         }
     }
@@ -139,7 +125,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
             channel = afc;
             final CacheHeader header = new CacheHeader(key, entry);
             int headerSize = header.getHeaderSize();
-            int size = entry.data.length + headerSize;
+            final int size = entry.data.length + headerSize;
             ByteBuffer buffer = ByteBuffer.allocate(size);
             header.writeHeader(buffer);
             buffer.put(entry.data);
@@ -151,21 +137,26 @@ public class DiskBasedAsyncCache extends AsyncCache {
                     new CompletionHandler<Integer, Void>() {
                         @Override
                         public void completed(Integer resultLen, Void ignore) {
-                            header.size = resultLen;
-                            mTotalSize =
-                                    DiskBasedCacheUtility.putEntry(
-                                            key, header, mTotalSize, mEntries);
-                            mTotalSize =
-                                    DiskBasedCacheUtility.pruneIfNeeded(
-                                            mTotalSize,
-                                            mMaxCacheSizeInBytes,
-                                            mEntries,
-                                            mRootDirectorySupplier);
-                            try {
-                                afc.close();
-                            } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel after successful write");
+                            if (closeChannel(afc, "completed read")) {
+                                if (resultLen != size) {
+                                    VolleyLog.e(
+                                            "File changed while reading: %s",
+                                            file.getAbsolutePath());
+                                    callback.onPutComplete();
+                                    return;
+                                }
+                                header.size = resultLen;
+                                mTotalSize =
+                                        DiskBasedCacheUtility.putEntry(
+                                                key, header, mTotalSize, mEntries);
+                                mTotalSize =
+                                        DiskBasedCacheUtility.pruneIfNeeded(
+                                                mTotalSize,
+                                                mMaxCacheSizeInBytes,
+                                                mEntries,
+                                                mRootDirectorySupplier);
                             }
+
                             callback.onPutComplete();
                         }
 
@@ -174,26 +165,17 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             VolleyLog.e(
                                     throwable, "Failed to read file %s", file.getAbsolutePath());
                             callback.onPutComplete();
-                            try {
-                                afc.close();
-                            } catch (IOException e) {
-                                VolleyLog.e(e, "Failed to close channel after failed write");
-                            }
+                            closeChannel(afc, "failed read");
                         }
                     });
         } catch (IOException e) {
-            boolean deleted = file.delete();
-            if (!deleted) {
-                VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
-            }
-            if (channel != null) {
-                try {
-                    channel.close();
-                } catch (IOException e1) {
-                    VolleyLog.e(e1, "Failed to close channel after IOException");
+            if (closeChannel(channel, "IOException")) {
+                boolean deleted = file.delete();
+                if (!deleted) {
+                    VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
                 }
+                initializeIfRootDirectoryDeleted();
             }
-            initializeIfRootDirectoryDeleted();
             callback.onPutComplete();
         }
     }
@@ -211,5 +193,18 @@ public class DiskBasedAsyncCache extends AsyncCache {
         mEntries.clear();
         mTotalSize = 0;
         initialize();
+    }
+
+    private boolean closeChannel(AsynchronousFileChannel afc, String endOfMessage) {
+        if (afc == null) {
+            return false;
+        }
+        try {
+            afc.close();
+            return true;
+        } catch (IOException e) {
+            VolleyLog.e(e, "failed to close file after " + endOfMessage);
+            return false;
+        }
     }
 }
