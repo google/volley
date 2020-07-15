@@ -26,7 +26,7 @@ class DiskBasedCacheUtility {
     static final float HYSTERESIS_FACTOR = 0.9f;
 
     /** Represents a supplier for {@link File}s. */
-    public interface FileSupplierParent {
+    public interface FileSupplier {
         File get();
     }
 
@@ -44,7 +44,7 @@ class DiskBasedCacheUtility {
     }
 
     /** Returns a file object for the given cache key. */
-    public static File getFileForKey(String key, FileSupplierParent rootDirectorySupplier) {
+    public static File getFileForKey(String key, FileSupplier rootDirectorySupplier) {
         return new File(rootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
@@ -86,7 +86,7 @@ class DiskBasedCacheUtility {
             long totalSize,
             int maxCacheSizeInBytes,
             Map<String, CacheHeader> entries,
-            FileSupplierParent rootDirectorySupplier) {
+            FileSupplier rootDirectorySupplier) {
         if (!wouldExceedCacheSize(totalSize, maxCacheSizeInBytes)) {
             return totalSize;
         }

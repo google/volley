@@ -28,7 +28,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
     private final Map<String, CacheHeader> mEntries = new LinkedHashMap<>(16, .75f, true);
 
     /** The supplier for the root directory to use for the cache. */
-    private final DiskBasedCacheUtility.FileSupplierParent mRootDirectorySupplier;
+    private final DiskBasedCacheUtility.FileSupplier mRootDirectorySupplier;
 
     /** Total amount of space currently used by the cache in bytes. */
     private long mTotalSize = 0;
@@ -43,7 +43,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
      */
     public DiskBasedAsyncCache(final File rootDirectory, int maxCacheSizeInBytes) {
         mRootDirectorySupplier =
-                new DiskBasedCacheUtility.FileSupplierParent() {
+                new DiskBasedCacheUtility.FileSupplier() {
                     @Override
                     public File get() {
                         return rootDirectory;

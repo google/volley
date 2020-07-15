@@ -262,12 +262,16 @@ public class DiskBasedCache implements Cache {
     }
 
     /** Represents a supplier for {@link File}s. */
-    public interface FileSupplier extends DiskBasedCacheUtility.FileSupplierParent {
+    public interface FileSupplier extends DiskBasedCacheUtility.FileSupplier {
         @Override
         File get();
     }
 
-    /** Returns a file object for the given cache key. */
+    /**
+     * Returns a file object for the given cache key.
+     *
+     * <p>TODO: Replace with shared FileSupplier in DiskBasedCacheUtility in the future
+     */
     public File getFileForKey(String key) {
         return new File(mRootDirectorySupplier.get(), DiskBasedCacheUtility.getFilenameForKey(key));
     }
