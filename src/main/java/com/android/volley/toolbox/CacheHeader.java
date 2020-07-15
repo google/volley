@@ -15,8 +15,8 @@ class CacheHeader {
     /** Magic number for current version of cache file format. */
     private static final int CACHE_MAGIC = 0x20150306;
 
-    /** Bits required to write 4 longs and 3 ints */
-    private static final int HEADER_SIZE = 44;
+    /** Bits required to write 6 longs and 1 int. */
+    private static final int HEADER_SIZE = 52;
 
     /**
      * The size of the data identified by this CacheHeader on disk (both header and data).

@@ -29,6 +29,14 @@ public abstract class AsyncCache {
         void onPutComplete();
     }
 
+    /**
+     * Writes a {@link Cache.Entry} to the cache, and calls {@link
+     * OnPutCompleteCallback#onPutComplete} after the operation is finished.
+     *
+     * @param key Cache key
+     * @param entry The entry to be written to the cache
+     * @param callback Callback that will be notified when the information has been written
+     */
     public abstract void put(String key, Cache.Entry entry, OnPutCompleteCallback callback);
 
     // TODO(#181): Implement the rest.

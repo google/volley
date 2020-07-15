@@ -1,6 +1,7 @@
 package com.android.volley.toolbox;
 
 import android.os.Build;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import com.android.volley.AsyncCache;
 import com.android.volley.Cache;
@@ -137,11 +138,12 @@ public class DiskBasedAsyncCache extends AsyncCache {
                     new CompletionHandler<Integer, Void>() {
                         @Override
                         public void completed(Integer resultLen, Void ignore) {
-                            if (closeChannel(afc, "completed read")) {
+                            if (closeChannel(afc, "completed write")) {
                                 if (resultLen != size) {
                                     VolleyLog.e(
-                                            "File changed while reading: %s",
+                                            "File changed while writing: %s",
                                             file.getAbsolutePath());
+                                    deleteFile(file);
                                     callback.onPutComplete();
                                     return;
                                 }
@@ -155,6 +157,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                                 mMaxCacheSizeInBytes,
                                                 mEntries,
                                                 mRootDirectorySupplier);
+                            } else {
+                                deleteFile(file);
                             }
 
                             callback.onPutComplete();
@@ -164,17 +168,14 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         public void failed(Throwable throwable, Void ignore) {
                             VolleyLog.e(
                                     throwable, "Failed to read file %s", file.getAbsolutePath());
+                            deleteFile(file);
                             callback.onPutComplete();
                             closeChannel(afc, "failed read");
                         }
                     });
         } catch (IOException e) {
             if (closeChannel(channel, "IOException")) {
-                boolean deleted = file.delete();
-                if (!deleted) {
-                    VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
-                }
-                initializeIfRootDirectoryDeleted();
+                deleteFile(file);
             }
             callback.onPutComplete();
         }
@@ -195,7 +196,15 @@ public class DiskBasedAsyncCache extends AsyncCache {
         initialize();
     }
 
-    private boolean closeChannel(AsynchronousFileChannel afc, String endOfMessage) {
+    /**
+     * Closes the asynchronous file channel.
+     *
+     * @param afc Channel that is being closed.
+     * @param endOfMessage End of error message that logs where the close is happening.
+     * @return Returns true if the channel is successfully closed, false if channel is null, or
+     *     close results in an IOException.
+     */
+    private boolean closeChannel(@Nullable AsynchronousFileChannel afc, String endOfMessage) {
         if (afc == null) {
             return false;
         }
@@ -206,5 +215,14 @@ public class DiskBasedAsyncCache extends AsyncCache {
             VolleyLog.e(e, "failed to close file after " + endOfMessage);
             return false;
         }
+    }
+
+    /** Deletes the specified file, and reinitializes the root if it was deleted. */
+    private void deleteFile(File file) {
+        boolean deleted = file.delete();
+        if (!deleted) {
+            VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
+        }
+        initializeIfRootDirectoryDeleted();
     }
 }
