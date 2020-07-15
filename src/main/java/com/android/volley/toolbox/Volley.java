@@ -89,8 +89,8 @@ public class Volley {
         final Context appContext = context.getApplicationContext();
         // Use a lazy supplier for the cache directory so that newRequestQueue() can be called on
         // main thread without causing strict mode violation.
-        DiskBasedCacheUtility.FileSupplier cacheSupplier =
-                new DiskBasedCacheUtility.FileSupplier() {
+        DiskBasedCache.FileSupplier cacheSupplier =
+                new DiskBasedCache.FileSupplier() {
                     private File cacheDir = null;
 
                     @Override

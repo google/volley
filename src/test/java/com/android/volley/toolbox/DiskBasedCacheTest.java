@@ -478,11 +478,9 @@ public class DiskBasedCacheTest {
         // Catch-all test to find API-breaking changes.
         assertNotNull(DiskBasedCache.class.getConstructor(File.class, int.class));
         assertNotNull(
-                DiskBasedCache.class.getConstructor(
-                        DiskBasedCacheUtility.FileSupplier.class, int.class));
+                DiskBasedCache.class.getConstructor(DiskBasedCache.FileSupplier.class, int.class));
         assertNotNull(DiskBasedCache.class.getConstructor(File.class));
-        assertNotNull(
-                DiskBasedCache.class.getConstructor(DiskBasedCacheUtility.FileSupplier.class));
+        assertNotNull(DiskBasedCache.class.getConstructor(DiskBasedCache.FileSupplier.class));
         assertNotNull(DiskBasedCache.class.getMethod("getFileForKey", String.class));
     }
 

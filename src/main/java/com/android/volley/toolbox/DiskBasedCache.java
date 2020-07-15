@@ -49,7 +49,7 @@ public class DiskBasedCache implements Cache {
     private long mTotalSize = 0;
 
     /** The supplier for the root directory to use for the cache. */
-    private final DiskBasedCacheUtility.FileSupplier mRootDirectorySupplier;
+    private final FileSupplier mRootDirectorySupplier;
 
     /** The maximum size of the cache in bytes. */
     private final int mMaxCacheSizeInBytes;
@@ -64,7 +64,7 @@ public class DiskBasedCache implements Cache {
      */
     public DiskBasedCache(final File rootDirectory, int maxCacheSizeInBytes) {
         mRootDirectorySupplier =
-                new DiskBasedCacheUtility.FileSupplier() {
+                new FileSupplier() {
                     @Override
                     public File get() {
                         return rootDirectory;
@@ -81,8 +81,7 @@ public class DiskBasedCache implements Cache {
      *     briefly exceed this size on disk when writing a new entry that pushes it over the limit
      *     until the ensuing pruning completes.
      */
-    public DiskBasedCache(
-            DiskBasedCacheUtility.FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
+    public DiskBasedCache(FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
         mRootDirectorySupplier = rootDirectorySupplier;
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
@@ -103,7 +102,7 @@ public class DiskBasedCache implements Cache {
      *
      * @param rootDirectorySupplier The supplier for the root directory of the cache.
      */
-    public DiskBasedCache(DiskBasedCacheUtility.FileSupplier rootDirectorySupplier) {
+    public DiskBasedCache(FileSupplier rootDirectorySupplier) {
         this(rootDirectorySupplier, DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES);
     }
 
@@ -260,6 +259,12 @@ public class DiskBasedCache implements Cache {
                     "Could not delete cache entry for key=%s, filename=%s",
                     key, DiskBasedCacheUtility.getFilenameForKey(key));
         }
+    }
+
+    /** Represents a supplier for {@link File}s. */
+    public interface FileSupplier extends DiskBasedCacheUtility.FileSupplierParent {
+        @Override
+        File get();
     }
 
     /** Returns a file object for the given cache key. */
