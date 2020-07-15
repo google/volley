@@ -212,7 +212,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
             afc.close();
             return true;
         } catch (IOException e) {
-            VolleyLog.e(e, "failed to close file after " + endOfMessage);
+            VolleyLog.e(e, "failed to close file after %s", endOfMessage);
             return false;
         }
     }
