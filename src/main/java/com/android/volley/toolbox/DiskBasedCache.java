@@ -16,7 +16,6 @@
 
 package com.android.volley.toolbox;
 
-import android.os.SystemClock;
 import android.text.TextUtils;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.Cache;
@@ -32,7 +31,6 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -130,7 +128,7 @@ public class DiskBasedCache implements Cache {
         if (entry == null) {
             return null;
         }
-        File file = getFileForKey(key);
+        File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         try {
             CountingInputStream cis =
                     new CountingInputStream(
@@ -142,7 +140,7 @@ public class DiskBasedCache implements Cache {
                     VolleyLog.d(
                             "%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
                     // Remove key whose contents on disk have been replaced.
-                    removeEntry(key);
+                    mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
                     return null;
                 }
                 byte[] data = streamToBytes(cis, cis.bytesRemaining());
@@ -185,7 +183,8 @@ public class DiskBasedCache implements Cache {
                 try {
                     CacheHeader entry = CacheHeader.readHeader(cis);
                     entry.size = entrySize;
-                    putEntry(entry.key, entry);
+                    mTotalSize =
+                            DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
                 } finally {
                     // Any IOException thrown here is handled by the below catch block by design.
                     //noinspection ThrowFromFinallyBlock
@@ -219,16 +218,12 @@ public class DiskBasedCache implements Cache {
     /** Puts the entry with the specified key into the cache. */
     @Override
     public synchronized void put(String key, Entry entry) {
-        // If adding this entry would trigger a prune, but pruning would cause the new entry to be
-        // deleted, then skip writing the entry in the first place, as this is just churn.
-        // Note that we don't include the cache header overhead in this calculation for simplicity,
-        // so putting entries which are just below the threshold may still cause this churn.
-        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
-                && entry.data.length
-                        > mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
+        if (DiskBasedCacheUtility.wouldBePruned(
+                mTotalSize, entry.data.length, mMaxCacheSizeInBytes)) {
             return;
         }
-        File file = getFileForKey(key);
+
+        File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
         try {
             BufferedOutputStream fos = new BufferedOutputStream(createOutputStream(file));
             CacheHeader e = new CacheHeader(key, entry);
@@ -241,8 +236,10 @@ public class DiskBasedCache implements Cache {
             fos.write(entry.data);
             fos.close();
             e.size = file.length();
-            putEntry(key, e);
-            pruneIfNeeded();
+            mTotalSize = DiskBasedCacheUtility.putEntry(key, e, mTotalSize, mEntries);
+            mTotalSize =
+                    DiskBasedCacheUtility.pruneIfNeeded(
+                            mTotalSize, mMaxCacheSizeInBytes, mEntries, mRootDirectorySupplier);
         } catch (IOException e) {
             boolean deleted = file.delete();
             if (!deleted) {
@@ -255,31 +252,21 @@ public class DiskBasedCache implements Cache {
     /** Removes the specified key from the cache if it exists. */
     @Override
     public synchronized void remove(String key) {
-        boolean deleted = getFileForKey(key).delete();
-        removeEntry(key);
+        boolean deleted = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier).delete();
+        mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
         if (!deleted) {
             VolleyLog.d(
                     "Could not delete cache entry for key=%s, filename=%s",
-                    key, getFilenameForKey(key));
+                    key, DiskBasedCacheUtility.getFilenameForKey(key));
         }
     }
 
-    /**
-     * Creates a pseudo-unique filename for the specified cache key.
-     *
-     * @param key The key to generate a file name for.
-     * @return A pseudo-unique filename.
-     */
-    private String getFilenameForKey(String key) {
-        int firstHalfLength = key.length() / 2;
-        String localFilename = String.valueOf(key.substring(0, firstHalfLength).hashCode());
-        localFilename += String.valueOf(key.substring(firstHalfLength).hashCode());
-        return localFilename;
-    }
+    /** Represents a supplier for {@link File}s. */
+    public interface FileSupplier extends com.android.volley.toolbox.FileSupplier {}
 
     /** Returns a file object for the given cache key. */
     public File getFileForKey(String key) {
-        return new File(mRootDirectorySupplier.get(), getFilenameForKey(key));
+        return new File(mRootDirectorySupplier.get(), DiskBasedCacheUtility.getFilenameForKey(key));
     }
 
     /** Re-initialize the cache if the directory was deleted. */
@@ -289,75 +276,6 @@ public class DiskBasedCache implements Cache {
             mEntries.clear();
             mTotalSize = 0;
             initialize();
-        }
-    }
-
-    /** Represents a supplier for {@link File}s. */
-    public interface FileSupplier {
-        File get();
-    }
-
-    /** Prunes the cache to fit the maximum size. */
-    private void pruneIfNeeded() {
-        if (mTotalSize < mMaxCacheSizeInBytes) {
-            return;
-        }
-        if (VolleyLog.DEBUG) {
-            VolleyLog.v("Pruning old cache entries.");
-        }
-
-        long before = mTotalSize;
-        int prunedFiles = 0;
-        long startTime = SystemClock.elapsedRealtime();
-
-        Iterator<Map.Entry<String, CacheHeader>> iterator = mEntries.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, CacheHeader> entry = iterator.next();
-            CacheHeader e = entry.getValue();
-            boolean deleted = getFileForKey(e.key).delete();
-            if (deleted) {
-                mTotalSize -= e.size;
-            } else {
-                VolleyLog.d(
-                        "Could not delete cache entry for key=%s, filename=%s",
-                        e.key, getFilenameForKey(e.key));
-            }
-            iterator.remove();
-            prunedFiles++;
-
-            if (mTotalSize < mMaxCacheSizeInBytes * DiskBasedCacheUtility.HYSTERESIS_FACTOR) {
-                break;
-            }
-        }
-
-        if (VolleyLog.DEBUG) {
-            VolleyLog.v(
-                    "pruned %d files, %d bytes, %d ms",
-                    prunedFiles, (mTotalSize - before), SystemClock.elapsedRealtime() - startTime);
-        }
-    }
-
-    /**
-     * Puts the entry with the specified key into the cache.
-     *
-     * @param key The key to identify the entry by.
-     * @param entry The entry to cache.
-     */
-    private void putEntry(String key, CacheHeader entry) {
-        if (!mEntries.containsKey(key)) {
-            mTotalSize += entry.size;
-        } else {
-            CacheHeader oldEntry = mEntries.get(key);
-            mTotalSize += (entry.size - oldEntry.size);
-        }
-        mEntries.put(key, entry);
-    }
-
-    /** Removes the entry identified by 'key' from the cache. */
-    private void removeEntry(String key) {
-        CacheHeader removed = mEntries.remove(key);
-        if (removed != null) {
-            mTotalSize -= removed.size;
         }
     }
 

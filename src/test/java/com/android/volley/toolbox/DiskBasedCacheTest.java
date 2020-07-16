@@ -161,7 +161,7 @@ public class DiskBasedCacheTest {
 
     @Test
     public void testTooLargeEntry() {
-        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("oversize"));
+        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("oversize") + 1);
         cache.put("oversize", entry);
 
         assertThat(cache.get("oversize"), is(nullValue()));
@@ -481,7 +481,6 @@ public class DiskBasedCacheTest {
                 DiskBasedCache.class.getConstructor(DiskBasedCache.FileSupplier.class, int.class));
         assertNotNull(DiskBasedCache.class.getConstructor(File.class));
         assertNotNull(DiskBasedCache.class.getConstructor(DiskBasedCache.FileSupplier.class));
-
         assertNotNull(DiskBasedCache.class.getMethod("getFileForKey", String.class));
     }
 
