@@ -25,11 +25,6 @@ class DiskBasedCacheUtility {
     /** High water mark percentage for the cache */
     static final float HYSTERESIS_FACTOR = 0.9f;
 
-    /** Represents a supplier for {@link File}s. */
-    public interface FileSupplier {
-        File get();
-    }
-
     /**
      * Creates a pseudo-unique filename for the specified cache key.
      *
@@ -44,7 +39,7 @@ class DiskBasedCacheUtility {
     }
 
     /** Returns a file object for the given cache key. */
-    public static File getFileForKey(String key, FileSupplier rootDirectorySupplier) {
+    public static File getFileForKey(String key, FileSupplierParent rootDirectorySupplier) {
         return new File(rootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
@@ -86,7 +81,7 @@ class DiskBasedCacheUtility {
             long totalSize,
             int maxCacheSizeInBytes,
             Map<String, CacheHeader> entries,
-            FileSupplier rootDirectorySupplier) {
+            FileSupplierParent rootDirectorySupplier) {
         if (!wouldExceedCacheSize(totalSize, maxCacheSizeInBytes)) {
             return totalSize;
         }
