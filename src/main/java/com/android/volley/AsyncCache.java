@@ -24,20 +24,42 @@ public abstract class AsyncCache {
      */
     public abstract void get(String key, OnGetCompleteCallback callback);
 
-    public interface OnPutCompleteCallback {
-        /** Invoked when the put to the cache is complete. */
-        void onPutComplete();
+    public interface OnCompleteCallback {
+        /** Invoked when the cache operation is complete */
+        void onComplete();
     }
 
     /**
-     * Writes a {@link Cache.Entry} to the cache, and calls {@link
-     * OnPutCompleteCallback#onPutComplete} after the operation is finished.
+     * Writes a {@link Cache.Entry} to the cache, and calls {@link OnCompleteCallback#onComplete}
+     * after the operation is finished.
      *
      * @param key Cache key
      * @param entry The entry to be written to the cache
      * @param callback Callback that will be notified when the information has been written
      */
-    public abstract void put(String key, Cache.Entry entry, OnPutCompleteCallback callback);
+    public abstract void put(String key, Cache.Entry entry, OnCompleteCallback callback);
 
-    // TODO(#181): Implement the rest.
+    /** Clears the cache. Deletes all cached files from disk. */
+    public abstract void clear(OnCompleteCallback callback);
+
+    /** Initializes the cache. */
+    public abstract void initialize(OnCompleteCallback callback);
+
+    /**
+     * Invalidates an entry in the cache.
+     *
+     * @param key Cache key
+     * @param fullExpire True to fully expire the entry, false to soft expire
+     * @param callback Callback that's invoked once the entry has been invalidated
+     */
+    public abstract void invalidate(String key, boolean fullExpire, OnCompleteCallback callback);
+
+    /**
+     * Removes a {@link Cache.Entry} from the cache, and calls {@link OnCompleteCallback#onComplete}
+     * after the operation is finished.
+     *
+     * @param key Cache key
+     * @param callback Callback that's invoked once the entry has been removed
+     */
+    public abstract void remove(String key, OnCompleteCallback callback);
 }

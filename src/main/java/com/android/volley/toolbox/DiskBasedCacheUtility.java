@@ -236,6 +236,15 @@ class DiskBasedCacheUtility {
         return new String(b, "UTF-8");
     }
 
+    static String readString(ByteBuffer buffer) throws IOException {
+        int length = (int) buffer.getLong();
+        byte[] array = new byte[length];
+        for (int i = 0; i < length; i++) {
+            array[i] = buffer.get();
+        }
+        return new String(array, "UTF-8");
+    }
+
     static void writeHeaderList(@Nullable List<Header> headers, OutputStream os)
             throws IOException {
         if (headers != null) {
@@ -277,6 +286,21 @@ class DiskBasedCacheUtility {
         return result;
     }
 
+    static List<Header> readHeaderList(ByteBuffer buffer) throws IOException {
+        int size = buffer.getInt();
+        if (size < 0) {
+            throw new IOException("readHeaderList size=" + size);
+        }
+        List<Header> result =
+                (size == 0) ? Collections.<Header>emptyList() : new ArrayList<Header>();
+        for (int i = 0; i < size; i++) {
+            String name = readString(buffer);
+            String value = readString(buffer);
+            result.add(new Header(name, value));
+        }
+        return result;
+    }
+
     static int headerListSize(@Nullable List<Header> headers) throws IOException {
         if (headers == null) {
             return 4;
@@ -286,6 +310,7 @@ class DiskBasedCacheUtility {
         for (Header header : headers) {
             bytes += header.getName().getBytes("UTF-8").length;
             bytes += header.getValue().getBytes("UTF-8").length;
+            bytes += 16; // two longs denoting length of strings
         }
 
         return bytes;
