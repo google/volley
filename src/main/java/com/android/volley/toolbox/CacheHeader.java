@@ -148,10 +148,8 @@ class CacheHeader {
             List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(buffer);
             return new CacheHeader(
                     key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
-        } catch (ExecutionException e) {
-            throw new IOException();
-        } catch (InterruptedException e) {
-            throw new IOException();
+        } catch (ExecutionException | InterruptedException e) {
+            throw new IOException(e);
         }
     }
 

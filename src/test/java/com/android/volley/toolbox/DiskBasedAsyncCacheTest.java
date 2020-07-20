@@ -110,7 +110,7 @@ public class DiskBasedAsyncCacheTest {
     @Test
     public void testTrimAtThreshold() throws ExecutionException, InterruptedException {
         // Start with the largest possible entry.
-        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("maxsize") - 1);
+        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("maxsize"));
         putEntry("maxsize", entry).get();
 
         assertThatEntriesAreEqual(getEntry("maxsize").get(), entry);
@@ -119,7 +119,7 @@ public class DiskBasedAsyncCacheTest {
         entry = randomData(0);
         putEntry("bit", entry).get();
 
-        assertThat(getEntry("goodsize").get(), is(nullValue()));
+        assertThat(getEntry("maxsize").get(), is(nullValue()));
         assertThatEntriesAreEqual(getEntry("bit").get(), entry);
     }
 
@@ -268,20 +268,9 @@ public class DiskBasedAsyncCacheTest {
 
         assertThatEntriesAreEqual(getEntry("key").get(), entry);
 
-        cache.clear(
-                new AsyncCache.OnCompleteCallback() {
-                    @Override
-                    public void onComplete() {
-                        try {
-                            assertThat(getEntry("key").get(), is(nullValue()));
-                        } catch (ExecutionException e) {
-                            // do nothing
-                        } catch (InterruptedException e) {
-                            // do nothing
-                        }
-                        assertThat(listCachedFiles(), is(emptyArray()));
-                    }
-                });
+        clearEntries().get();
+        assertThat(getEntry("key").get(), is(nullValue()));
+        assertThat(listCachedFiles(), is(emptyArray()));
     }
 
     @Test
@@ -312,7 +301,7 @@ public class DiskBasedAsyncCacheTest {
         entry.ttl = 9876543L;
         putEntry("key", entry).get();
 
-        invalidateEntry("key", false).get();
+        invalidateEntry("key", /* fullExpire= */ false).get();
         entry.softTtl = 0; // expired
         assertThatEntriesAreEqual(getEntry("key").get(), entry);
     }
@@ -324,7 +313,7 @@ public class DiskBasedAsyncCacheTest {
         entry.ttl = 9876543L;
         putEntry("key", entry).get();
 
-        invalidateEntry("key", true).get();
+        invalidateEntry("key", /* fullExpire= */ true).get();
         entry.softTtl = 0; // expired
         entry.ttl = 0; // expired
         assertThatEntriesAreEqual(getEntry("key").get(), entry);
@@ -357,7 +346,7 @@ public class DiskBasedAsyncCacheTest {
 
     /* Test helpers */
 
-    /** Puts entry into the cache, and returns a CompletableFuture, to let us know when it's done */
+    /** Puts entry into the cache, and returns a CompletableFuture after putting the entry. */
     private CompletableFuture<Void> putEntry(final String key, Cache.Entry entry) {
         final CompletableFuture<Void> put = new CompletableFuture<>();
         cache.put(
@@ -372,7 +361,7 @@ public class DiskBasedAsyncCacheTest {
         return put;
     }
 
-    /** Gets an entry from the cache, and returns a CompletableFuture containing the entry */
+    /** Gets an entry from the cache, and returns a CompletableFuture containing the entry. */
     private CompletableFuture<Cache.Entry> getEntry(final String key) {
         final CompletableFuture<Cache.Entry> get = new CompletableFuture<>();
         cache.get(
@@ -411,6 +400,18 @@ public class DiskBasedAsyncCacheTest {
                     }
                 });
         return remove;
+    }
+
+    private CompletableFuture<Void> clearEntries() {
+        final CompletableFuture<Void> clear = new CompletableFuture<>();
+        cache.clear(
+                new AsyncCache.OnCompleteCallback() {
+                    @Override
+                    public void onComplete() {
+                        clear.complete(null);
+                    }
+                });
+        return clear;
     }
 
     private void assertThatEntriesAreEqual(Cache.Entry actual, Cache.Entry expected) {

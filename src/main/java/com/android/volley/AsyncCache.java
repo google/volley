@@ -39,14 +39,21 @@ public abstract class AsyncCache {
      */
     public abstract void put(String key, Cache.Entry entry, OnCompleteCallback callback);
 
-    /** Clears the cache. Deletes all cached files from disk. */
+    /**
+     * Clears the cache. Deletes all cached files from disk. Calls {@link
+     * OnCompleteCallback#onComplete} after the operation is finished.
+     */
     public abstract void clear(OnCompleteCallback callback);
 
-    /** Initializes the cache. */
+    /**
+     * Initializes the cache and calls {@link OnCompleteCallback#onComplete} after the operation is
+     * finished.
+     */
     public abstract void initialize(OnCompleteCallback callback);
 
     /**
-     * Invalidates an entry in the cache.
+     * Invalidates an entry in the cache and calls {@link OnCompleteCallback#onComplete} after the
+     * operation is finished.
      *
      * @param key Cache key
      * @param fullExpire True to fully expire the entry, false to soft expire

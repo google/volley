@@ -78,8 +78,6 @@ public class DiskBasedAsyncCache extends AsyncCache {
             if (!TextUtils.equals(key, entryOnDisk.key)) {
                 // File was shared by two keys and now holds data for a different entry!
                 VolleyLog.d("%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
-                System.out.println(
-                        file.getAbsolutePath() + " " + key + " entry on disk " + entryOnDisk.key);
                 // Remove key whose contents on disk have been replaced.
                 mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
                 callback.onGetComplete(null);
@@ -219,9 +217,14 @@ public class DiskBasedAsyncCache extends AsyncCache {
             if (!rootDirectory.mkdirs()) {
                 VolleyLog.e("Unable to create cache dir %s", rootDirectory.getAbsolutePath());
             }
+            callback.onComplete();
             return;
         }
         File[] files = rootDirectory.listFiles();
+        if (files == null) {
+            callback.onComplete();
+            return;
+        }
         for (File file : files) {
             Path path = file.toPath();
             AsynchronousFileChannel afc = null;
@@ -310,7 +313,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
         initializeIfRootDirectoryDeleted();
     }
 
-    /** Empty onCompleteCallback when no operation is needed in the callback */
+    /** Empty onCompleteCallback when no operation is needed in the callback. */
     private OnCompleteCallback emptyCallback =
             new OnCompleteCallback() {
                 @Override
@@ -319,7 +322,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                 }
             };
 
-    /** Invokes get method, and returns a future with the cache entry for the specified key */
+    /** Invokes get method, and returns a future with the cache entry for the specified key. */
     private CompletableFuture<Cache.Entry> getFuture(String key) {
         final CompletableFuture<Cache.Entry> future = new CompletableFuture<>();
         get(
@@ -333,7 +336,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
         return future;
     }
 
-    /** Invokes put method, and returns a future that completes once put is finished */
+    /** Invokes put method, and returns a future that completes once put is finished. */
     private CompletableFuture<Void> putFuture(String key, Cache.Entry entry) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         put(

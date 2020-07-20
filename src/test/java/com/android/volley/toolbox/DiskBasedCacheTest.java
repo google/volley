@@ -178,7 +178,7 @@ public class DiskBasedCacheTest {
     @Test
     public void testTrimAtThreshold() {
         // Start with the largest possible entry.
-        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("maxsize") - 1);
+        Cache.Entry entry = randomData(MAX_SIZE - getEntrySizeOnDisk("maxsize"));
         cache.put("maxsize", entry);
 
         assertThatEntriesAreEqual(cache.get("maxsize"), entry);
@@ -187,7 +187,7 @@ public class DiskBasedCacheTest {
         entry = randomData(0);
         cache.put("bit", entry);
 
-        assertThat(cache.get("goodsize"), is(nullValue()));
+        assertThat(cache.get("maxsize"), is(nullValue()));
         assertThatEntriesAreEqual(cache.get("bit"), entry);
     }
 
