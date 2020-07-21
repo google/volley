@@ -114,8 +114,14 @@ public class DiskBasedAsyncCache extends AsyncCache {
         } catch (IOException e) {
             VolleyLog.e(e, "Failed to read file %s", file.getAbsolutePath());
             closeChannel(channel, "IOException");
-            remove(key, emptyCallback);
-            callback.onGetComplete(null);
+            remove(
+                    key,
+                    new OnCompleteCallback() {
+                        @Override
+                        public void onComplete() {
+                            callback.onGetComplete(null);
+                        }
+                    });
         }
     }
 
@@ -280,7 +286,11 @@ public class DiskBasedAsyncCache extends AsyncCache {
         VolleyLog.d("Re-initializing cache after external clearing.");
         mEntries.clear();
         mTotalSize = 0;
-        initialize(emptyCallback);
+        try {
+            initFuture().get();
+        } catch (ExecutionException | InterruptedException e) {
+            VolleyLog.e(e, "Failed to initialize the cache");
+        }
     }
 
     /**
@@ -313,15 +323,6 @@ public class DiskBasedAsyncCache extends AsyncCache {
         initializeIfRootDirectoryDeleted();
     }
 
-    /** Empty onCompleteCallback when no operation is needed in the callback. */
-    private OnCompleteCallback emptyCallback =
-            new OnCompleteCallback() {
-                @Override
-                public void onComplete() {
-                    // do nothing
-                }
-            };
-
     /** Invokes get method, and returns a future with the cache entry for the specified key. */
     private CompletableFuture<Cache.Entry> getFuture(String key) {
         final CompletableFuture<Cache.Entry> future = new CompletableFuture<>();
@@ -342,6 +343,18 @@ public class DiskBasedAsyncCache extends AsyncCache {
         put(
                 key,
                 entry,
+                new OnCompleteCallback() {
+                    @Override
+                    public void onComplete() {
+                        future.complete(null);
+                    }
+                });
+        return future;
+    }
+
+    private CompletableFuture<Void> initFuture() {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        initialize(
                 new OnCompleteCallback() {
                     @Override
                     public void onComplete() {
