@@ -128,6 +128,7 @@ class CacheHeader {
      * @throws IOException if fails to read header
      */
     @RequiresApi(api = Build.VERSION_CODES.O)
+    @Nullable
     static CacheHeader readHeader(final AsynchronousFileChannel afc, int size) throws IOException {
         final ByteBuffer buffer = ByteBuffer.allocate(size);
         Future<Integer> fillBuffer = afc.read(buffer, 0);
@@ -149,7 +150,7 @@ class CacheHeader {
             return new CacheHeader(
                     key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
         } catch (ExecutionException | InterruptedException e) {
-            throw new IOException(e);
+            return null;
         }
     }
 

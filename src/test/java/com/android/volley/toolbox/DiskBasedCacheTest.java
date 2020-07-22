@@ -19,8 +19,8 @@ package com.android.volley.toolbox;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -77,7 +77,7 @@ public class DiskBasedCacheTest {
 
     @Test
     public void testEmptyInitialize() {
-        assertThat(cache.get("key"), is(nullValue()));
+        assertNull(cache.get("key"));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class DiskBasedCacheTest {
         cache.put("my-magical-key", entry);
 
         CacheTestUtils.assertThatEntriesAreEqual(cache.get("my-magical-key"), entry);
-        assertThat(cache.get("unknown-key"), is(nullValue()));
+        assertNull(cache.get("unknown-key"));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class DiskBasedCacheTest {
         CacheTestUtils.assertThatEntriesAreEqual(cache.get("key"), entry);
 
         cache.remove("key");
-        assertThat(cache.get("key"), is(nullValue()));
+        assertNull(cache.get("key"));
         assertThat(listCachedFiles(), is(emptyArray()));
     }
 
@@ -118,7 +118,7 @@ public class DiskBasedCacheTest {
         CacheTestUtils.assertThatEntriesAreEqual(cache.get("key"), entry);
 
         cache.clear();
-        assertThat(cache.get("key"), is(nullValue()));
+        assertNull(cache.get("key"));
         assertThat(listCachedFiles(), is(emptyArray()));
     }
 
@@ -165,7 +165,7 @@ public class DiskBasedCacheTest {
                         MAX_SIZE - CacheTestUtils.getEntrySizeOnDisk("oversize") + 1);
         cache.put("oversize", entry);
 
-        assertThat(cache.get("oversize"), is(nullValue()));
+        assertNull(cache.get("oversize"));
     }
 
     @Test
@@ -191,7 +191,7 @@ public class DiskBasedCacheTest {
         entry = CacheTestUtils.randomData(0);
         cache.put("bit", entry);
 
-        assertThat(cache.get("maxsize"), is(nullValue()));
+        assertNull(cache.get("maxsize"));
         CacheTestUtils.assertThatEntriesAreEqual(cache.get("bit"), entry);
     }
 
@@ -220,9 +220,9 @@ public class DiskBasedCacheTest {
                                 - CacheTestUtils.getEntrySizeOnDisk("max"));
         cache.put("max", entry);
 
-        assertThat(cache.get("entry1"), is(nullValue()));
-        assertThat(cache.get("entry2"), is(nullValue()));
-        assertThat(cache.get("entry3"), is(nullValue()));
+        assertNull(cache.get("entry1"));
+        assertNull(cache.get("entry2"));
+        assertNull(cache.get("entry3"));
         CacheTestUtils.assertThatEntriesAreEqual(cache.get("max"), entry);
     }
 
@@ -252,10 +252,10 @@ public class DiskBasedCacheTest {
                                 + 1);
         cache.put("max", entry);
 
-        assertThat(cache.get("entry1"), is(nullValue()));
-        assertThat(cache.get("entry2"), is(nullValue()));
-        assertThat(cache.get("entry3"), is(nullValue()));
-        assertThat(cache.get("max"), is(nullValue()));
+        assertNull(cache.get("entry1"));
+        assertNull(cache.get("entry2"));
+        assertNull(cache.get("entry3"));
+        assertNull(cache.get("max"));
     }
 
     @Test
@@ -282,8 +282,8 @@ public class DiskBasedCacheTest {
                         (MAX_SIZE - CacheTestUtils.getEntrySizeOnDisk("entry4") - 1) / 2);
         cache.put("entry4", entry4);
 
-        assertThat(cache.get("entry1"), is(nullValue()));
-        assertThat(cache.get("entry2"), is(nullValue()));
+        assertNull(cache.get("entry1"));
+        assertNull(cache.get("entry2"));
         CacheTestUtils.assertThatEntriesAreEqual(cache.get("entry3"), entry3);
         CacheTestUtils.assertThatEntriesAreEqual(cache.get("entry4"), entry4);
     }
@@ -311,7 +311,7 @@ public class DiskBasedCacheTest {
         // the whole cache, since the large entry is above the hysteresis threshold.
         cache.put("largeEntry", largeEntry);
 
-        assertThat(cache.get("largeEntry"), is(nullValue()));
+        assertNull(cache.get("largeEntry"));
         CacheTestUtils.assertThatEntriesAreEqual(cache.get("entry"), entry);
     }
 
@@ -334,7 +334,7 @@ public class DiskBasedCacheTest {
             fos.close();
         }
 
-        assertThat(cache.get("key"), is(nullValue()));
+        assertNull(cache.get("key"));
         assertThat(listCachedFiles(), is(emptyArray()));
     }
 
@@ -360,7 +360,7 @@ public class DiskBasedCacheTest {
         }
 
         // key is gone, but file is still there
-        assertThat(cache.get("key"), is(nullValue()));
+        assertNull(cache.get("key"));
         assertThat(listCachedFiles(), is(arrayWithSize(1)));
 
         // Note: file is now a zombie because its key does not map to its name
@@ -409,11 +409,11 @@ public class DiskBasedCacheTest {
 
         // write is called at least once because each linked stream flushes when closed
         verify(mockedOutputStream, atLeastOnce()).write(anyInt());
-        assertThat(readonly.get("key"), is(nullValue()));
+        assertNull(cache.get("key"));
         assertThat(listCachedFiles(), is(emptyArray()));
 
         // Note: original cache will try (without success) to read from file
-        assertThat(cache.get("key"), is(nullValue()));
+        assertNull(cache.get("key"));
     }
 
     @Test
@@ -436,15 +436,15 @@ public class DiskBasedCacheTest {
         broken.initialize();
 
         // Everything is gone
-        assertThat(broken.get("kilobyte"), is(nullValue()));
-        assertThat(broken.get("kilobyte2"), is(nullValue()));
-        assertThat(broken.get("kilobyte3"), is(nullValue()));
+        assertNull(broken.get("kilobyte"));
+        assertNull(broken.get("kilobyte2"));
+        assertNull(broken.get("kilobyte3"));
         assertThat(listCachedFiles(), is(emptyArray()));
 
         // Verify that original cache can cope with missing files
-        assertThat(cache.get("kilobyte"), is(nullValue()));
-        assertThat(cache.get("kilobyte2"), is(nullValue()));
-        assertThat(cache.get("kilobyte3"), is(nullValue()));
+        assertNull(cache.get("kilobyte"));
+        assertNull(cache.get("kilobyte2"));
+        assertNull(cache.get("kilobyte3"));
     }
 
     @Test
@@ -519,7 +519,7 @@ public class DiskBasedCacheTest {
         Cache.Entry entry = CacheTestUtils.randomData(101);
         cache.put("key1", entry);
 
-        assertThat(cache.get("key1"), is(nullValue()));
+        assertNull(cache.get("key1"));
 
         // confirm that we can now store entries
         cache.put("key2", entry);

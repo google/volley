@@ -3,7 +3,6 @@ package com.android.volley.toolbox;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
@@ -82,7 +81,7 @@ public class DiskBasedAsyncCacheTest {
         putEntry("my-magical-key", entry).get();
 
         CacheTestUtils.assertThatEntriesAreEqual(getEntry("my-magical-key").get(), entry);
-        assertThat(getEntry("unknown-key").get(), is(nullValue()));
+        assertNull(getEntry("unknown-key").get());
     }
 
     @Test
@@ -92,7 +91,7 @@ public class DiskBasedAsyncCacheTest {
                         MAX_SIZE - CacheTestUtils.getEntrySizeOnDisk("oversize") + 1);
         putEntry("oversize", entry).get();
 
-        assertThat(getEntry("oversize").get(), is(nullValue()));
+        assertNull(getEntry("oversize").get());
     }
 
     @Test
@@ -118,7 +117,7 @@ public class DiskBasedAsyncCacheTest {
         entry = CacheTestUtils.randomData(0);
         putEntry("bit", entry).get();
 
-        assertThat(getEntry("maxsize").get(), is(nullValue()));
+        assertNull(getEntry("maxsize").get());
         CacheTestUtils.assertThatEntriesAreEqual(getEntry("bit").get(), entry);
     }
 
@@ -150,9 +149,9 @@ public class DiskBasedAsyncCacheTest {
 
         putEntry("max", entry).get();
 
-        assertThat(getEntry("entry1").get(), is(nullValue()));
-        assertThat(getEntry("entry2").get(), is(nullValue()));
-        assertThat(getEntry("entry3").get(), is(nullValue()));
+        assertNull(getEntry("entry1").get());
+        assertNull(getEntry("entry2").get());
+        assertNull(getEntry("entry3").get());
         CacheTestUtils.assertThatEntriesAreEqual(getEntry("max").get(), entry);
     }
 
@@ -185,10 +184,10 @@ public class DiskBasedAsyncCacheTest {
 
         putEntry("max", entry).get();
 
-        assertThat(getEntry("entry1").get(), is(nullValue()));
-        assertThat(getEntry("entry2").get(), is(nullValue()));
-        assertThat(getEntry("entry3").get(), is(nullValue()));
-        assertThat(getEntry("max").get(), is(nullValue()));
+        assertNull(getEntry("entry1").get());
+        assertNull(getEntry("entry2").get());
+        assertNull(getEntry("entry3").get());
+        assertNull(getEntry("max").get());
     }
 
     @Test
@@ -216,8 +215,8 @@ public class DiskBasedAsyncCacheTest {
 
         putEntry("entry4", entry4).get();
 
-        assertThat(getEntry("entry1").get(), is(nullValue()));
-        assertThat(getEntry("entry2").get(), is(nullValue()));
+        assertNull(getEntry("entry1").get());
+        assertNull(getEntry("entry2").get());
         CacheTestUtils.assertThatEntriesAreEqual(getEntry("entry3").get(), entry3);
         CacheTestUtils.assertThatEntriesAreEqual(getEntry("entry4").get(), entry4);
     }
@@ -235,7 +234,7 @@ public class DiskBasedAsyncCacheTest {
         FileOutputStream fos = new FileOutputStream(file);
         DiskBasedCacheUtility.writeInt(fos, 0);
         fos.close();
-        assertThat(getEntry("key").get(), is(nullValue()));
+        assertNull(getEntry("key").get());
         assertThat(listCachedFiles(), is(emptyArray())); // should this be??
     }
 
@@ -262,7 +261,7 @@ public class DiskBasedAsyncCacheTest {
         afc.close();
 
         // key is gone, but file is still there
-        assertThat(getEntry("key").get(), is(nullValue()));
+        assertNull(getEntry("key").get());
         assertThat(listCachedFiles(), is(arrayWithSize(1)));
 
         // Note: file is now a zombie because its key does not map to its name
@@ -276,7 +275,7 @@ public class DiskBasedAsyncCacheTest {
         CacheTestUtils.assertThatEntriesAreEqual(getEntry("key").get(), entry);
 
         removeEntry("key").get();
-        assertThat(getEntry("key").get(), is(nullValue()));
+        assertNull(getEntry("key").get());
         assertThat(listCachedFiles(), is(emptyArray()));
     }
 
@@ -288,7 +287,7 @@ public class DiskBasedAsyncCacheTest {
         CacheTestUtils.assertThatEntriesAreEqual(getEntry("key").get(), entry);
 
         clearEntries().get();
-        assertThat(getEntry("key").get(), is(nullValue()));
+        assertNull(getEntry("key").get());
         assertThat(listCachedFiles(), is(emptyArray()));
     }
 
@@ -356,7 +355,7 @@ public class DiskBasedAsyncCacheTest {
         Cache.Entry entry = CacheTestUtils.randomData(101);
         putEntry("key1", entry).get();
 
-        assertThat(getEntry("key1").get(), is(nullValue()));
+        assertNull(getEntry("key1").get());
 
         // confirm that we can now store entries
         putEntry("key2", entry).get();
