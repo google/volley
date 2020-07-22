@@ -250,7 +250,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
                 afc.close();
                 if (entry != null) {
                     entry.size = entrySize;
-                    mTotalSize = DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
+                    mTotalSize =
+                            DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
                 } else {
                     deleteFile(file);
                 }
