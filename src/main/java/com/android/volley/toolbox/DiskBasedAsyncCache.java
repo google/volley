@@ -75,19 +75,11 @@ public class DiskBasedAsyncCache extends AsyncCache {
             channel = afc;
             int headerSize = entry.getHeaderSize();
             CacheHeader entryOnDisk = CacheHeader.readHeader(afc, headerSize);
-            if (entryOnDisk == null || !TextUtils.equals(key, entryOnDisk.key)) {
-                if (entryOnDisk == null) {
-                    // ExecutionException/InterruptedException was thrown while reading CacheHeader!
-                    VolleyLog.e(
-                            "%s: key=%s, exception was thrown while reading header",
-                            file.getAbsolutePath(), key);
-                } else {
-                    // File was shared by two keys and now holds data for a different entry!
-                    VolleyLog.d(
-                            "%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
-                    // Remove key whose contents on disk have been replaced.
-                    mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
-                }
+            if (!TextUtils.equals(key, entryOnDisk.key)) {
+                // File was shared by two keys and now holds data for a different entry!
+                VolleyLog.d("%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
+                // Remove key whose contents on disk have been replaced.
+                mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
                 closeChannel(afc, "failed read");
                 callback.onGetComplete(null);
                 return;
@@ -248,13 +240,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
                 int entrySize = (int) file.length();
                 CacheHeader entry = CacheHeader.readHeader(afc, entrySize);
                 afc.close();
-                if (entry != null) {
-                    entry.size = entrySize;
-                    mTotalSize =
-                            DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
-                } else {
-                    deleteFile(file);
-                }
+                entry.size = entrySize;
+                mTotalSize = DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
             } catch (IOException e) {
                 closeChannel(afc, "IOException in initialize");
                 deleteFile(file);

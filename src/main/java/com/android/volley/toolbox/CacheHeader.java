@@ -128,30 +128,34 @@ class CacheHeader {
      * @throws IOException if fails to read header
      */
     @RequiresApi(api = Build.VERSION_CODES.O)
-    @Nullable
     static CacheHeader readHeader(final AsynchronousFileChannel afc, int size) throws IOException {
         final ByteBuffer buffer = ByteBuffer.allocate(size);
         Future<Integer> fillBuffer = afc.read(buffer, 0);
         try {
             fillBuffer.get();
-            buffer.flip();
-            int magic = buffer.getInt();
-            if (magic != CACHE_MAGIC) {
-                // don't bother deleting, it'll get pruned eventually
-                throw new IOException();
-            }
-            String key = DiskBasedCacheUtility.readString(buffer);
-            String etag = DiskBasedCacheUtility.readString(buffer);
-            long serverDate = buffer.getLong();
-            long lastModified = buffer.getLong();
-            long ttl = buffer.getLong();
-            long softTtl = buffer.getLong();
-            List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(buffer);
-            return new CacheHeader(
-                    key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
-        } catch (ExecutionException | InterruptedException e) {
-            return null;
+        } catch (ExecutionException e) {
+            VolleyLog.e(e.toString(), "ExecutionException thrown");
+            throw new IOException(e);
+        } catch (InterruptedException e) {
+            VolleyLog.e(e.toString(), "InterruptedException thrown");
+            Thread.currentThread().interrupt();
+            throw new IOException(e);
         }
+        buffer.flip();
+        int magic = buffer.getInt();
+        if (magic != CACHE_MAGIC) {
+            // don't bother deleting, it'll get pruned eventually
+            throw new IOException();
+        }
+        String key = DiskBasedCacheUtility.readString(buffer);
+        String etag = DiskBasedCacheUtility.readString(buffer);
+        long serverDate = buffer.getLong();
+        long lastModified = buffer.getLong();
+        long ttl = buffer.getLong();
+        long softTtl = buffer.getLong();
+        List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(buffer);
+        return new CacheHeader(
+                key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
     }
 
     /** Creates a cache entry for the specified data. */
