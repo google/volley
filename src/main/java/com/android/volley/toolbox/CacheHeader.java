@@ -137,9 +137,8 @@ class CacheHeader {
             VolleyLog.e(e.toString(), "ExecutionException thrown");
             throw new IOException(e);
         } catch (InterruptedException e) {
-            VolleyLog.e(e.toString(), "InterruptedException thrown");
+            VolleyLog.e(e.toString(), "InterruptedException caught");
             Thread.currentThread().interrupt();
-            throw new IOException(e);
         }
         buffer.flip();
         int magic = buffer.getInt();
