@@ -24,49 +24,50 @@ public abstract class AsyncCache {
      */
     public abstract void get(String key, OnGetCompleteCallback callback);
 
-    public interface OnCompleteCallback {
+    public interface OnWriteCompleteCallback {
         /** Invoked when the cache operation is complete */
-        void onComplete();
+        void onWriteComplete();
     }
 
     /**
-     * Writes a {@link Cache.Entry} to the cache, and calls {@link OnCompleteCallback#onComplete}
-     * after the operation is finished.
+     * Writes a {@link Cache.Entry} to the cache, and calls {@link
+     * OnWriteCompleteCallback#onWriteComplete} after the operation is finished.
      *
      * @param key Cache key
      * @param entry The entry to be written to the cache
      * @param callback Callback that will be notified when the information has been written
      */
-    public abstract void put(String key, Cache.Entry entry, OnCompleteCallback callback);
+    public abstract void put(String key, Cache.Entry entry, OnWriteCompleteCallback callback);
 
     /**
      * Clears the cache. Deletes all cached files from disk. Calls {@link
-     * OnCompleteCallback#onComplete} after the operation is finished.
+     * OnWriteCompleteCallback#onWriteComplete} after the operation is finished.
      */
-    public abstract void clear(OnCompleteCallback callback);
+    public abstract void clear(OnWriteCompleteCallback callback);
 
     /**
-     * Initializes the cache and calls {@link OnCompleteCallback#onComplete} after the operation is
-     * finished.
-     */
-    public abstract void initialize(OnCompleteCallback callback);
-
-    /**
-     * Invalidates an entry in the cache and calls {@link OnCompleteCallback#onComplete} after the
+     * Initializes the cache and calls {@link OnWriteCompleteCallback#onWriteComplete} after the
      * operation is finished.
+     */
+    public abstract void initialize(OnWriteCompleteCallback callback);
+
+    /**
+     * Invalidates an entry in the cache and calls {@link OnWriteCompleteCallback#onWriteComplete}
+     * after the operation is finished.
      *
      * @param key Cache key
      * @param fullExpire True to fully expire the entry, false to soft expire
      * @param callback Callback that's invoked once the entry has been invalidated
      */
-    public abstract void invalidate(String key, boolean fullExpire, OnCompleteCallback callback);
+    public abstract void invalidate(
+            String key, boolean fullExpire, OnWriteCompleteCallback callback);
 
     /**
-     * Removes a {@link Cache.Entry} from the cache, and calls {@link OnCompleteCallback#onComplete}
-     * after the operation is finished.
+     * Removes a {@link Cache.Entry} from the cache, and calls {@link
+     * OnWriteCompleteCallback#onWriteComplete} after the operation is finished.
      *
      * @param key Cache key
      * @param callback Callback that's invoked once the entry has been removed
      */
-    public abstract void remove(String key, OnCompleteCallback callback);
+    public abstract void remove(String key, OnWriteCompleteCallback callback);
 }

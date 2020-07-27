@@ -110,9 +110,9 @@ public class DiskBasedAsyncCache extends AsyncCache {
             closeChannel(channel, "IOException");
             remove(
                     key,
-                    new OnCompleteCallback() {
+                    new OnWriteCompleteCallback() {
                         @Override
-                        public void onComplete() {
+                        public void onWriteComplete() {
                             callback.onGetComplete(null);
                         }
                     });
@@ -121,7 +121,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
 
     /** Puts the cache entry with a specified key into the cache. */
     @Override
-    public void put(final String key, Cache.Entry entry, final OnCompleteCallback callback) {
+    public void put(final String key, Cache.Entry entry, final OnWriteCompleteCallback callback) {
         if (DiskBasedCacheUtility.wouldBePruned(
                 mTotalSize, entry.data.length, mMaxCacheSizeInBytes)) {
             return;
@@ -157,7 +157,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                             "File changed while writing: %s",
                                             file.getAbsolutePath());
                                     deleteFile(file);
-                                    callback.onComplete();
+                                    callback.onWriteComplete();
                                     return;
                                 }
                                 header.size = resultLen;
@@ -174,7 +174,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                                 deleteFile(file);
                             }
 
-                            callback.onComplete();
+                            callback.onWriteComplete();
                         }
 
                         @Override
@@ -182,7 +182,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             VolleyLog.e(
                                     throwable, "Failed to read file %s", file.getAbsolutePath());
                             deleteFile(file);
-                            callback.onComplete();
+                            callback.onWriteComplete();
                             closeChannel(afc, "failed read");
                         }
                     });
@@ -191,13 +191,13 @@ public class DiskBasedAsyncCache extends AsyncCache {
                 deleteFile(file);
                 initializeIfRootDirectoryDeleted();
             }
-            callback.onComplete();
+            callback.onWriteComplete();
         }
     }
 
     /** Clears the cache. Deletes all cached files from disk. */
     @Override
-    public void clear(OnCompleteCallback callback) {
+    public void clear(OnWriteCompleteCallback callback) {
         File[] files = mRootDirectorySupplier.get().listFiles();
         if (files != null) {
             for (File file : files) {
@@ -207,7 +207,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
         mEntries.clear();
         mTotalSize = 0;
         VolleyLog.d("Cache cleared.");
-        callback.onComplete();
+        callback.onWriteComplete();
     }
 
     /**
@@ -216,16 +216,16 @@ public class DiskBasedAsyncCache extends AsyncCache {
      */
     @Override
     @SuppressWarnings("FutureReturnValueIgnored")
-    public void initialize(final OnCompleteCallback callback) {
+    public void initialize(final OnWriteCompleteCallback callback) {
         File rootDirectory = mRootDirectorySupplier.get();
         if (!rootDirectory.exists()) {
             createCacheDirectory(rootDirectory);
-            callback.onComplete();
+            callback.onWriteComplete();
             return;
         }
         File[] files = rootDirectory.listFiles();
         if (files == null) {
-            callback.onComplete();
+            callback.onWriteComplete();
             return;
         }
         List<CompletableFuture<Void>> reads = new ArrayList<>();
@@ -278,7 +278,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                 new Runnable() {
                     @Override
                     public void run() {
-                        callback.onComplete();
+                        callback.onWriteComplete();
                     }
                 });
     }
@@ -286,7 +286,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
     /** Invalidates an entry in the cache. */
     @Override
     public void invalidate(
-            final String key, final boolean fullExpire, final OnCompleteCallback callback) {
+            final String key, final boolean fullExpire, final OnWriteCompleteCallback callback) {
         Cache.Entry entry = null;
         get(
                 key,
@@ -294,7 +294,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                     @Override
                     public void onGetComplete(@Nullable Cache.Entry entry) {
                         if (entry == null) {
-                            callback.onComplete();
+                            callback.onWriteComplete();
                         } else {
                             entry.softTtl = 0;
                             if (fullExpire) {
@@ -303,10 +303,10 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             put(
                                     key,
                                     entry,
-                                    new OnCompleteCallback() {
+                                    new OnWriteCompleteCallback() {
                                         @Override
-                                        public void onComplete() {
-                                            callback.onComplete();
+                                        public void onWriteComplete() {
+                                            callback.onWriteComplete();
                                         }
                                     });
                         }
@@ -316,10 +316,10 @@ public class DiskBasedAsyncCache extends AsyncCache {
 
     /** Removes an entry from the cache. */
     @Override
-    public void remove(String key, OnCompleteCallback callback) {
+    public void remove(String key, OnWriteCompleteCallback callback) {
         deleteFile(DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier));
         mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
-        callback.onComplete();
+        callback.onWriteComplete();
     }
 
     /** Re-initialize the cache if the directory was deleted. */

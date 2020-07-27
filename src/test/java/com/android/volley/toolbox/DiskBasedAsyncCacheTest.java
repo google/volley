@@ -37,7 +37,7 @@ public class DiskBasedAsyncCacheTest {
 
     private DiskBasedAsyncCache cache;
 
-    private AsyncCache.OnCompleteCallback emptyCallback;
+    private AsyncCache.OnWriteCompleteCallback emptyCallback;
 
     @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -47,9 +47,9 @@ public class DiskBasedAsyncCacheTest {
     public void setup() throws IOException, ExecutionException, InterruptedException {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         emptyCallback =
-                new AsyncCache.OnCompleteCallback() {
+                new AsyncCache.OnWriteCompleteCallback() {
                     @Override
-                    public void onComplete() {
+                    public void onWriteComplete() {
                         future.complete(null);
                     }
                 };
@@ -370,9 +370,9 @@ public class DiskBasedAsyncCacheTest {
         cache.put(
                 key,
                 entry,
-                new AsyncCache.OnCompleteCallback() {
+                new AsyncCache.OnWriteCompleteCallback() {
                     @Override
-                    public void onComplete() {
+                    public void onWriteComplete() {
                         put.complete(null);
                     }
                 });
@@ -397,9 +397,9 @@ public class DiskBasedAsyncCacheTest {
         final CompletableFuture<Void> remove = new CompletableFuture<>();
         cache.remove(
                 key,
-                new AsyncCache.OnCompleteCallback() {
+                new AsyncCache.OnWriteCompleteCallback() {
                     @Override
-                    public void onComplete() {
+                    public void onWriteComplete() {
                         remove.complete(null);
                     }
                 });
@@ -411,9 +411,9 @@ public class DiskBasedAsyncCacheTest {
         cache.invalidate(
                 key,
                 fullExpire,
-                new AsyncCache.OnCompleteCallback() {
+                new AsyncCache.OnWriteCompleteCallback() {
                     @Override
-                    public void onComplete() {
+                    public void onWriteComplete() {
                         remove.complete(null);
                     }
                 });
@@ -423,9 +423,9 @@ public class DiskBasedAsyncCacheTest {
     private CompletableFuture<Void> clearEntries() {
         final CompletableFuture<Void> clear = new CompletableFuture<>();
         cache.clear(
-                new AsyncCache.OnCompleteCallback() {
+                new AsyncCache.OnWriteCompleteCallback() {
                     @Override
-                    public void onComplete() {
+                    public void onWriteComplete() {
                         clear.complete(null);
                     }
                 });
