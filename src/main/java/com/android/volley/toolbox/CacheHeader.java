@@ -157,6 +157,36 @@ class CacheHeader {
                 key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
     }
 
+    /**
+     * Reads the header from a AsynchronousFileChannel and returns a CacheHeader object.
+     *
+     * @param buffer Buffer to get header info from.
+     * @throws IOException if fails to read header
+     */
+    @Nullable
+    static CacheHeader readHeader(final ByteBuffer buffer) {
+        try {
+            buffer.flip();
+            int magic = buffer.getInt();
+            if (magic != CACHE_MAGIC) {
+                // don't bother deleting, it'll get pruned eventually
+                return null;
+            }
+            String key = DiskBasedCacheUtility.readString(buffer);
+            String etag = DiskBasedCacheUtility.readString(buffer);
+            long serverDate = buffer.getLong();
+            long lastModified = buffer.getLong();
+            long ttl = buffer.getLong();
+            long softTtl = buffer.getLong();
+            List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(buffer);
+            return new CacheHeader(
+                    key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
+        } catch (IOException e) {
+            VolleyLog.d(e.toString(), "Failed to read CacheHeader");
+            return null;
+        }
+    }
+
     /** Creates a cache entry for the specified data. */
     Cache.Entry toCacheEntry(byte[] data) {
         Cache.Entry e = new Cache.Entry();

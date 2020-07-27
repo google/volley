@@ -15,10 +15,12 @@ import java.nio.channels.CompletionHandler;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 /**
  * AsyncCache implementation that uses Java NIO's AsynchronousFileChannel to perform asynchronous
@@ -57,7 +59,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
 
     /** Returns the cache entry with the specified key if it exists, null otherwise. */
     @Override
-    public void get(String key, final OnGetCompleteCallback callback) {
+    public void get(final String key, final OnGetCompleteCallback callback) {
         final CacheHeader entry = mEntries.get(key);
         // if the entry does not exist, return null.
         if (entry == null) {
@@ -73,43 +75,34 @@ public class DiskBasedAsyncCache extends AsyncCache {
             final AsynchronousFileChannel afc =
                     AsynchronousFileChannel.open(path, StandardOpenOption.READ);
             channel = afc;
-            int headerSize = entry.getHeaderSize();
-            CacheHeader entryOnDisk = CacheHeader.readHeader(afc, headerSize);
-            if (!TextUtils.equals(key, entryOnDisk.key)) {
-                // File was shared by two keys and now holds data for a different entry!
-                VolleyLog.d("%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
-                // Remove key whose contents on disk have been replaced.
-                mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
-                closeChannel(afc, "failed read");
-                callback.onGetComplete(null);
-                return;
-            }
-            final int size = (int) file.length() - headerSize;
+            final int size = (int) file.length();
             final ByteBuffer buffer = ByteBuffer.allocate(size);
             afc.read(
                     /* destination= */ buffer,
-                    /* position= */ headerSize,
+                    /* position= */ 0,
                     /* attachment= */ null,
                     new CompletionHandler<Integer, Void>() {
                         @Override
                         public void completed(Integer result, Void v) {
                             closeChannel(afc, "completed read");
-                            // if the file size changes, return null
+                            CacheHeader entryOnDisk = CacheHeader.readHeader(buffer);
                             if (size != result) {
                                 VolleyLog.e(
                                         "File changed while reading: %s", file.getAbsolutePath());
                                 callback.onGetComplete(null);
-                                return;
                             }
-                            byte[] data = buffer.array();
-                            callback.onGetComplete(entry.toCacheEntry(data));
+                            if (!readHeaderError(key, entryOnDisk, callback, file)) {
+                                int pos = buffer.position();
+                                byte[] data = Arrays.copyOfRange(buffer.array(), pos, size);
+                                callback.onGetComplete(entry.toCacheEntry(data));
+                            }
                         }
 
                         @Override
                         public void failed(Throwable exc, Void ignore) {
+                            closeChannel(afc, "completed read");
                             VolleyLog.e(exc, "Failed to read file %s", file.getAbsolutePath());
-                            closeChannel(afc, "failed read");
-                            callback.onGetComplete(null);
+                            closeAndCall(key, callback);
                         }
                     });
         } catch (IOException e) {
@@ -196,6 +189,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
         } catch (IOException e) {
             if (closeChannel(channel, "IOException")) {
                 deleteFile(file);
+                initializeIfRootDirectoryDeleted();
             }
             callback.onComplete();
         }
@@ -216,14 +210,16 @@ public class DiskBasedAsyncCache extends AsyncCache {
         callback.onComplete();
     }
 
-    /** Initializes the cache. */
+    /**
+     * Initializes the cache. We are suppressing warnings, since we create the futures above and
+     * there is no chance this fails.
+     */
     @Override
-    public void initialize(OnCompleteCallback callback) {
+    @SuppressWarnings("FutureReturnValueIgnored")
+    public void initialize(final OnCompleteCallback callback) {
         File rootDirectory = mRootDirectorySupplier.get();
         if (!rootDirectory.exists()) {
-            if (!rootDirectory.mkdirs()) {
-                VolleyLog.e("Unable to create cache dir %s", rootDirectory.getAbsolutePath());
-            }
+            createCacheDirectory(rootDirectory);
             callback.onComplete();
             return;
         }
@@ -232,22 +228,59 @@ public class DiskBasedAsyncCache extends AsyncCache {
             callback.onComplete();
             return;
         }
+        List<CompletableFuture<Void>> reads = new ArrayList<>();
         for (File file : files) {
             Path path = file.toPath();
-            AsynchronousFileChannel afc = null;
+            AsynchronousFileChannel channel = null;
+            final int entrySize = (int) file.length();
+            final ByteBuffer buffer = ByteBuffer.allocate(entrySize);
+            final CompletableFuture<Void> fileRead = new CompletableFuture<>();
             try {
-                afc = AsynchronousFileChannel.open(path, StandardOpenOption.READ);
-                int entrySize = (int) file.length();
-                CacheHeader entry = CacheHeader.readHeader(afc, entrySize);
-                afc.close();
-                entry.size = entrySize;
-                mTotalSize = DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
+                channel = AsynchronousFileChannel.open(path, StandardOpenOption.READ);
+                final AsynchronousFileChannel afc = channel;
+                afc.read(
+                        buffer,
+                        0,
+                        file,
+                        new CompletionHandler<Integer, File>() {
+                            @Override
+                            public void completed(Integer integer, File ignore) {
+                                CacheHeader entry = CacheHeader.readHeader(buffer);
+                                if (entry != null) {
+                                    closeChannel(afc, "after successful read");
+                                    entry.size = entrySize;
+                                    mTotalSize =
+                                            DiskBasedCacheUtility.putEntry(
+                                                    entry.key, entry, mTotalSize, mEntries);
+                                } else {
+                                    closeChannel(afc, "after failed read");
+                                }
+                                fileRead.complete(null);
+                            }
+
+                            @Override
+                            public void failed(Throwable throwable, File file) {
+                                closeChannel(afc, "after failed read");
+                                deleteFile(file);
+                                fileRead.complete(null);
+                            }
+                        });
             } catch (IOException e) {
-                closeChannel(afc, "IOException in initialize");
+                closeChannel(channel, "IOException in initialize");
                 deleteFile(file);
             }
+            reads.add(fileRead);
         }
-        callback.onComplete();
+        CompletableFuture<Void> voidCompletableFuture =
+                CompletableFuture.allOf(reads.toArray(new CompletableFuture[0]));
+
+        voidCompletableFuture.thenRun(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onComplete();
+                    }
+                });
     }
 
     /** Invalidates an entry in the cache. */
@@ -255,20 +288,30 @@ public class DiskBasedAsyncCache extends AsyncCache {
     public void invalidate(
             final String key, final boolean fullExpire, final OnCompleteCallback callback) {
         Cache.Entry entry = null;
-        try {
-            entry = getFuture(key).get();
-            if (entry != null) {
-                entry.softTtl = 0;
-                if (fullExpire) {
-                    entry.ttl = 0;
-                }
-            }
-            putFuture(key, entry).get();
-            callback.onComplete();
-        } catch (ExecutionException | InterruptedException e) {
-            VolleyLog.e(e, "Failed to invalidate entry for key %s", key);
-            callback.onComplete();
-        }
+        get(
+                key,
+                new OnGetCompleteCallback() {
+                    @Override
+                    public void onGetComplete(@Nullable Cache.Entry entry) {
+                        if (entry == null) {
+                            callback.onComplete();
+                        } else {
+                            entry.softTtl = 0;
+                            if (fullExpire) {
+                                entry.ttl = 0;
+                            }
+                            put(
+                                    key,
+                                    entry,
+                                    new OnCompleteCallback() {
+                                        @Override
+                                        public void onComplete() {
+                                            callback.onComplete();
+                                        }
+                                    });
+                        }
+                    }
+                });
     }
 
     /** Removes an entry from the cache. */
@@ -287,11 +330,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
         VolleyLog.d("Re-initializing cache after external clearing.");
         mEntries.clear();
         mTotalSize = 0;
-        try {
-            initFuture().get();
-        } catch (ExecutionException | InterruptedException e) {
-            VolleyLog.e(e, "Failed to initialize the cache");
-        }
+        createCacheDirectory(mRootDirectorySupplier.get());
     }
 
     /**
@@ -321,47 +360,34 @@ public class DiskBasedAsyncCache extends AsyncCache {
         if (!deleted) {
             VolleyLog.d("Could not clean up file %s", file.getAbsolutePath());
         }
-        initializeIfRootDirectoryDeleted();
     }
 
-    /** Invokes get method, and returns a future with the cache entry for the specified key. */
-    private CompletableFuture<Cache.Entry> getFuture(String key) {
-        final CompletableFuture<Cache.Entry> future = new CompletableFuture<>();
-        get(
-                key,
-                new OnGetCompleteCallback() {
-                    @Override
-                    public void onGetComplete(@Nullable Cache.Entry entry) {
-                        future.complete(entry);
-                    }
-                });
-        return future;
+    /** Attempts to create the root directory, logging if it was unable to. */
+    private void createCacheDirectory(File rootDirectory) {
+        if (!rootDirectory.mkdirs()) {
+            VolleyLog.e("Unable to create cache dir %s", rootDirectory.getAbsolutePath());
+        }
     }
 
-    /** Invokes put method, and returns a future that completes once put is finished. */
-    private CompletableFuture<Void> putFuture(String key, Cache.Entry entry) {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        put(
-                key,
-                entry,
-                new OnCompleteCallback() {
-                    @Override
-                    public void onComplete() {
-                        future.complete(null);
-                    }
-                });
-        return future;
+    /** Closes the file channel, removes the key, calls the callback. */
+    private void closeAndCall(String key, OnGetCompleteCallback callback) {
+        mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
+        callback.onGetComplete(null);
     }
 
-    private CompletableFuture<Void> initFuture() {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        initialize(
-                new OnCompleteCallback() {
-                    @Override
-                    public void onComplete() {
-                        future.complete(null);
-                    }
-                });
-        return future;
+    private boolean readHeaderError(
+            String key, CacheHeader entryOnDisk, OnGetCompleteCallback callback, File file) {
+        if (entryOnDisk == null) {
+            // IOException was thrown while reading header!
+            deleteFile(file);
+            closeAndCall(key, callback);
+            return true;
+        } else if (!TextUtils.equals(key, entryOnDisk.key)) {
+            // File was shared by two keys and now holds data for a different entry!
+            VolleyLog.d("%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
+            closeAndCall(key, callback);
+            return true;
+        }
+        return false;
     }
 }
