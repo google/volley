@@ -37,7 +37,7 @@ public class DiskBasedAsyncCacheTest {
 
     private DiskBasedAsyncCache cache;
 
-    private AsyncCache.OnWriteCompleteCallback emptyCallback;
+    private AsyncCache.OnWriteCompleteCallback futureCallback;
 
     @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -46,7 +46,7 @@ public class DiskBasedAsyncCacheTest {
     @Before
     public void setup() throws IOException, ExecutionException, InterruptedException {
         final CompletableFuture<Void> future = new CompletableFuture<>();
-        emptyCallback =
+        futureCallback =
                 new AsyncCache.OnWriteCompleteCallback() {
                     @Override
                     public void onWriteComplete() {
@@ -55,7 +55,7 @@ public class DiskBasedAsyncCacheTest {
                 };
         // Initialize empty cache
         cache = new DiskBasedAsyncCache(temporaryFolder.getRoot(), MAX_SIZE);
-        cache.initialize(emptyCallback);
+        cache.initialize(futureCallback);
         future.get();
     }
 
@@ -296,19 +296,22 @@ public class DiskBasedAsyncCacheTest {
         Cache.Entry entry = CacheTestUtils.randomData(1023);
         putEntry("key", entry).get();
 
-        AsyncCache copy = new DiskBasedAsyncCache(temporaryFolder.getRoot(), MAX_SIZE);
-        copy.initialize(emptyCallback);
-
+        final AsyncCache copy = new DiskBasedAsyncCache(temporaryFolder.getRoot(), MAX_SIZE);
         final CompletableFuture<Cache.Entry> getEntry = new CompletableFuture<>();
-        copy.get(
-                "key",
-                new AsyncCache.OnGetCompleteCallback() {
+        copy.initialize(
+                new AsyncCache.OnWriteCompleteCallback() {
                     @Override
-                    public void onGetComplete(@Nullable Cache.Entry entry) {
-                        getEntry.complete(entry);
+                    public void onWriteComplete() {
+                        copy.get(
+                                "key",
+                                new AsyncCache.OnGetCompleteCallback() {
+                                    @Override
+                                    public void onGetComplete(@Nullable Cache.Entry entry) {
+                                        getEntry.complete(entry);
+                                    }
+                                });
                     }
                 });
-
         CacheTestUtils.assertThatEntriesAreEqual(getEntry.get(), entry);
     }
 

@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,15 +84,28 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         @Override
                         public void completed(Integer result, Void v) {
                             closeChannel(afc, "completed read");
-                            CacheHeader entryOnDisk = CacheHeader.readHeader(buffer);
                             if (size != result) {
                                 VolleyLog.e(
                                         "File changed while reading: %s", file.getAbsolutePath());
                                 callback.onGetComplete(null);
+                                return;
                             }
-                            if (!readHeaderError(key, entryOnDisk, callback, file)) {
-                                int pos = buffer.position();
-                                byte[] data = Arrays.copyOfRange(buffer.array(), pos, size);
+                            buffer.flip();
+                            CacheHeader entryOnDisk = CacheHeader.readHeader(buffer);
+                            if (entryOnDisk == null) {
+                                // IOException or RuntimeException was thrown while reading header!
+                                deleteFile(file);
+                                removeAndCall(key, callback);
+                            } else if (!TextUtils.equals(key, entryOnDisk.key)) {
+                                // File was shared by two keys and now holds data for a different
+                                // entry!
+                                VolleyLog.d(
+                                        "%s: key=%s, found=%s",
+                                        file.getAbsolutePath(), key, entryOnDisk.key);
+                                removeAndCall(key, callback);
+                            } else {
+                                byte[] data = new byte[buffer.remaining()];
+                                buffer.get(data);
                                 callback.onGetComplete(entry.toCacheEntry(data));
                             }
                         }
@@ -102,7 +114,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         public void failed(Throwable exc, Void ignore) {
                             closeChannel(afc, "completed read");
                             VolleyLog.e(exc, "Failed to read file %s", file.getAbsolutePath());
-                            closeAndCall(key, callback);
+                            removeAndCall(key, callback);
                         }
                     });
         } catch (IOException e) {
@@ -244,7 +256,15 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         file,
                         new CompletionHandler<Integer, File>() {
                             @Override
-                            public void completed(Integer integer, File ignore) {
+                            public void completed(Integer result, File file) {
+                                if (entrySize != result) {
+                                    VolleyLog.e(
+                                            "File changed while reading: %s",
+                                            file.getAbsolutePath());
+                                    fileRead.complete(null);
+                                    return;
+                                }
+                                buffer.flip();
                                 CacheHeader entry = CacheHeader.readHeader(buffer);
                                 if (entry != null) {
                                     closeChannel(afc, "after successful read");
@@ -369,25 +389,9 @@ public class DiskBasedAsyncCache extends AsyncCache {
         }
     }
 
-    /** Closes the file channel, removes the key, calls the callback. */
-    private void closeAndCall(String key, OnGetCompleteCallback callback) {
+    /** Removes the key, calls the callback. */
+    private void removeAndCall(String key, OnGetCompleteCallback callback) {
         mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
         callback.onGetComplete(null);
-    }
-
-    private boolean readHeaderError(
-            String key, CacheHeader entryOnDisk, OnGetCompleteCallback callback, File file) {
-        if (entryOnDisk == null) {
-            // IOException was thrown while reading header!
-            deleteFile(file);
-            closeAndCall(key, callback);
-            return true;
-        } else if (!TextUtils.equals(key, entryOnDisk.key)) {
-            // File was shared by two keys and now holds data for a different entry!
-            VolleyLog.d("%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
-            closeAndCall(key, callback);
-            return true;
-        }
-        return false;
     }
 }

@@ -291,8 +291,7 @@ class DiskBasedCacheUtility {
         if (size < 0) {
             throw new IOException("readHeaderList size=" + size);
         }
-        List<Header> result =
-                (size == 0) ? Collections.<Header>emptyList() : new ArrayList<Header>();
+        List<Header> result = new ArrayList<Header>();
         for (int i = 0; i < size; i++) {
             String name = readString(buffer);
             String value = readString(buffer);
