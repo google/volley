@@ -1,19 +1,14 @@
 package com.android.volley.toolbox;
 
-import android.os.Build;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import com.android.volley.Cache;
 import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 /** Handles holding onto the cache headers for an entry. */
 class CacheHeader {
@@ -116,43 +111,6 @@ class CacheHeader {
         long ttl = DiskBasedCacheUtility.readLong(is);
         long softTtl = DiskBasedCacheUtility.readLong(is);
         List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(is);
-        return new CacheHeader(
-                key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
-    }
-
-    /**
-     * Reads the header from a AsynchronousFileChannel and returns a CacheHeader object.
-     *
-     * @param afc File channel to read from.
-     * @param size Size of the cache header.
-     * @throws IOException if fails to read header
-     */
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    static CacheHeader readHeader(final AsynchronousFileChannel afc, int size) throws IOException {
-        final ByteBuffer buffer = ByteBuffer.allocate(size);
-        Future<Integer> fillBuffer = afc.read(buffer, 0);
-        try {
-            fillBuffer.get();
-        } catch (ExecutionException e) {
-            VolleyLog.e(e.toString(), "ExecutionException thrown");
-            throw new IOException(e);
-        } catch (InterruptedException e) {
-            VolleyLog.e(e.toString(), "InterruptedException caught");
-            Thread.currentThread().interrupt();
-        }
-        buffer.flip();
-        int magic = buffer.getInt();
-        if (magic != CACHE_MAGIC) {
-            // don't bother deleting, it'll get pruned eventually
-            throw new IOException();
-        }
-        String key = DiskBasedCacheUtility.readString(buffer);
-        String etag = DiskBasedCacheUtility.readString(buffer);
-        long serverDate = buffer.getLong();
-        long lastModified = buffer.getLong();
-        long ttl = buffer.getLong();
-        long softTtl = buffer.getLong();
-        List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(buffer);
         return new CacheHeader(
                 key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
     }
