@@ -118,14 +118,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
         } catch (IOException e) {
             VolleyLog.e(e, "Failed to read file %s", file.getAbsolutePath());
             closeChannel(channel, "IOException");
-            remove(
-                    key,
-                    new OnWriteCompleteCallback() {
-                        @Override
-                        public void onWriteComplete() {
-                            callback.onGetComplete(null);
-                        }
-                    });
+            removeDeleteAndCall(key, callback, file);
         }
     }
 
