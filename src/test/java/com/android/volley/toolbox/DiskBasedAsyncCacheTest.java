@@ -260,9 +260,9 @@ public class DiskBasedAsyncCacheTest {
         operation.get();
         afc.close();
 
-        // key is gone, but file is still there
+        // key is gone, and file is deleted
         assertNull(getEntry("key").get());
-        assertThat(listCachedFiles(), is(arrayWithSize(1)));
+        assertThat(listCachedFiles(), is(arrayWithSize(0)));
 
         // Note: file is now a zombie because its key does not map to its name
     }

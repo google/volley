@@ -93,11 +93,10 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             buffer.flip();
                             CacheHeader entryOnDisk = CacheHeader.readHeader(buffer);
                             if (entryOnDisk == null) {
-                                // IOException or RuntimeException was thrown while reading header!
+                                // BufferUnderflowException was thrown while reading header
                                 removeDeleteAndCall(key, callback, file);
                             } else if (!TextUtils.equals(key, entryOnDisk.key)) {
-                                // File was shared by two keys and now holds data for a different
-                                // entry!
+                                // File shared by two keys and holds data for a different entry!
                                 VolleyLog.d(
                                         "%s: key=%s, found=%s",
                                         file.getAbsolutePath(), key, entryOnDisk.key);
@@ -388,7 +387,13 @@ public class DiskBasedAsyncCache extends AsyncCache {
         }
     }
 
-    /** Removes the key, calls the callback. */
+    /**
+     * Deletes the file, removes the entry from the map, and calls OnGetComplete with a null value.
+     *
+     * @param key of the file to be removed.
+     * @param callback to be called after removing.
+     * @param file to be deleted.
+     */
     private void removeDeleteAndCall(String key, OnGetCompleteCallback callback, File file) {
         deleteFile(file);
         mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
