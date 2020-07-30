@@ -87,22 +87,21 @@ public class DiskBasedAsyncCache extends AsyncCache {
                             if (size != result) {
                                 VolleyLog.e(
                                         "File changed while reading: %s", file.getAbsolutePath());
-                                callback.onGetComplete(null);
+                                removeDeleteAndCall(key, callback, file);
                                 return;
                             }
                             buffer.flip();
                             CacheHeader entryOnDisk = CacheHeader.readHeader(buffer);
                             if (entryOnDisk == null) {
                                 // IOException or RuntimeException was thrown while reading header!
-                                deleteFile(file);
-                                removeAndCall(key, callback);
+                                removeDeleteAndCall(key, callback, file);
                             } else if (!TextUtils.equals(key, entryOnDisk.key)) {
                                 // File was shared by two keys and now holds data for a different
                                 // entry!
                                 VolleyLog.d(
                                         "%s: key=%s, found=%s",
                                         file.getAbsolutePath(), key, entryOnDisk.key);
-                                removeAndCall(key, callback);
+                                removeDeleteAndCall(key, callback, file);
                             } else {
                                 byte[] data = new byte[buffer.remaining()];
                                 buffer.get(data);
@@ -114,7 +113,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
                         public void failed(Throwable exc, Void ignore) {
                             closeChannel(afc, "completed read");
                             VolleyLog.e(exc, "Failed to read file %s", file.getAbsolutePath());
-                            removeAndCall(key, callback);
+                            removeDeleteAndCall(key, callback, file);
                         }
                     });
         } catch (IOException e) {
@@ -390,7 +389,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
     }
 
     /** Removes the key, calls the callback. */
-    private void removeAndCall(String key, OnGetCompleteCallback callback) {
+    private void removeDeleteAndCall(String key, OnGetCompleteCallback callback, File file) {
+        deleteFile(file);
         mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
         callback.onGetComplete(null);
     }
