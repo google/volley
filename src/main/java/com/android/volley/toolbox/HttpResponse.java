@@ -16,6 +16,7 @@
 package com.android.volley.toolbox;
 
 import com.android.volley.Header;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +28,7 @@ public final class HttpResponse {
     private final List<Header> mHeaders;
     private final int mContentLength;
     private final InputStream mContent;
+    private final byte[] mContentBytes;
 
     /**
      * Construct a new HttpResponse for an empty response body.
@@ -53,6 +55,23 @@ public final class HttpResponse {
         mHeaders = headers;
         mContentLength = contentLength;
         mContent = content;
+        mContentBytes = null;
+    }
+
+    /**
+     * Construct a new HttpResponse.
+     *
+     * @param statusCode the HTTP status code of the response
+     * @param headers the response headers
+     * @param content an {@link InputStream} of the response content. May be null to indicate that
+     *     the response has no content.
+     */
+    public HttpResponse(int statusCode, List<Header> headers, byte[] content) {
+        mStatusCode = statusCode;
+        mHeaders = headers;
+        mContentLength = content.length;
+        mContentBytes = content;
+        mContent = null;
     }
 
     /** Returns the HTTP status code of the response. */
@@ -71,10 +90,25 @@ public final class HttpResponse {
     }
 
     /**
+     * Returns an byte[] of the response content. May be null to indicate that the response has no
+     * content.
+     */
+    public final byte[] getContentBytes() {
+        return mContentBytes;
+    }
+
+    /**
      * Returns an {@link InputStream} of the response content. May be null to indicate that the
      * response has no content.
      */
     public final InputStream getContent() {
-        return mContent;
+        if (mContentLength == -1) {
+            return null;
+        }
+        if (mContent != null) {
+            return mContent;
+        } else {
+            return new ByteArrayInputStream(mContentBytes);
+        }
     }
 }
