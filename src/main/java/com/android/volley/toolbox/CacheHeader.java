@@ -6,6 +6,7 @@ import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -113,6 +114,37 @@ class CacheHeader {
         List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(is);
         return new CacheHeader(
                 key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
+    }
+
+    /**
+     * Reads the header from a ByteBuffer and returns a CacheHeader object.
+     *
+     * @param buffer Buffer to get header info from.
+     * @throws IOException if fails to read header
+     */
+    @Nullable
+    static CacheHeader readHeader(final ByteBuffer buffer) {
+        try {
+            int magic = buffer.getInt();
+            if (magic != CACHE_MAGIC) {
+                return null;
+            }
+            String key = DiskBasedCacheUtility.readString(buffer);
+            String etag = DiskBasedCacheUtility.readString(buffer);
+            long serverDate = buffer.getLong();
+            long lastModified = buffer.getLong();
+            long ttl = buffer.getLong();
+            long softTtl = buffer.getLong();
+            List<Header> allResponseHeaders = DiskBasedCacheUtility.readHeaderList(buffer);
+            return new CacheHeader(
+                    key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
+        } catch (IOException e) {
+            VolleyLog.e(e, "Failed to read CacheHeader");
+            return null;
+        } catch (BufferUnderflowException e) {
+            VolleyLog.e(e, "Ran out of room while reading from the buffer");
+            return null;
+        }
     }
 
     /** Creates a cache entry for the specified data. */
