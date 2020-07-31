@@ -389,7 +389,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
      * @param callback to be called after removing.
      * @param file to be deleted.
      */
-    private void deleteFileAndInvokeCallback(String key, OnGetCompleteCallback callback, File file) {
+    private void deleteFileAndInvokeCallback(
+            String key, OnGetCompleteCallback callback, File file) {
         deleteFile(file);
         mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
         callback.onGetComplete(null);
