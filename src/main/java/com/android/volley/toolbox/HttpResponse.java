@@ -63,14 +63,14 @@ public final class HttpResponse {
      *
      * @param statusCode the HTTP status code of the response
      * @param headers the response headers
-     * @param content an {@link InputStream} of the response content. May be null to indicate that
-     *     the response has no content.
+     * @param contentBytes a byte[] of the response content. This is an optimization for HTTP stacks
+     *     that natively support returning a byte[].
      */
-    public HttpResponse(int statusCode, List<Header> headers, byte[] content) {
+    public HttpResponse(int statusCode, List<Header> headers, byte[] contentBytes) {
         mStatusCode = statusCode;
         mHeaders = headers;
-        mContentLength = content.length;
-        mContentBytes = content;
+        mContentLength = contentBytes.length;
+        mContentBytes = contentBytes;
         mContent = null;
     }
 
@@ -90,8 +90,10 @@ public final class HttpResponse {
     }
 
     /**
-     * Returns an byte[] of the response content. May be null to indicate that the response has no
-     * content.
+     * If a byte[] was already provided by an HTTP stack that natively supports returning one, this
+     * method will return that byte[] as an optimization over copying the bytes from an input
+     * stream. It may return null, even if the response has content, as long as mContent is
+     * provided.
      */
     public final byte[] getContentBytes() {
         return mContentBytes;
