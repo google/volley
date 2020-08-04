@@ -106,7 +106,7 @@ public class CronetHttpStack extends AsyncHttpStack {
                     @Override
                     public void onResponseStarted(
                             UrlRequest urlRequest, UrlResponseInfo urlResponseInfo) {
-                        int size = (int) urlResponseInfo.getReceivedByteCount();
+                        int size = getContentLength(urlResponseInfo);
                         urlRequest.read(ByteBuffer.allocateDirect(size));
                     }
 
@@ -189,14 +189,6 @@ public class CronetHttpStack extends AsyncHttpStack {
         return headers;
     }
 
-    private String rewriteUrl(String url) throws IOException {
-        String rewritten = mUrlRewriter.rewriteUrl(url);
-        if (rewritten == null) {
-            throw new IOException("URL blocked by rewriter: " + url);
-        }
-        return rewritten;
-    }
-
     /** Sets the connection parameters for the UrlRequest */
     private void setHttpMethod(Request<?> request, UrlRequest.Builder builder)
             throws AuthFailureError {
@@ -275,7 +267,17 @@ public class CronetHttpStack extends AsyncHttpStack {
         }
     }
 
+    /** Sets the priority of this request. */
     private void setPriority(Request<?> request, UrlRequest.Builder builder) {
         builder.setPriority(request.getPriority().ordinal());
+    }
+
+    private int getContentLength(UrlResponseInfo urlResponseInfo) {
+        List<String> content = urlResponseInfo.getAllHeaders().get("content-length");
+        if (content == null) {
+            return 1024;
+        } else {
+            return Integer.parseInt(content.get(0));
+        }
     }
 }
