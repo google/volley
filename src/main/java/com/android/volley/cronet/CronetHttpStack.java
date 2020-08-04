@@ -6,7 +6,6 @@ import androidx.annotation.VisibleForTesting;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.Request;
-import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.AsyncHttpStack;
 import com.android.volley.toolbox.ByteArrayPool;
 import com.android.volley.toolbox.HttpResponse;
@@ -81,7 +80,12 @@ public class CronetHttpStack extends AsyncHttpStack {
             Executor callbackExecutor,
             ExecutorService blockingExecutor,
             UrlRewriter rewriter) {
-        this(context, callbackExecutor, blockingExecutor, new ByteArrayPool(DEFAULT_POOL_SIZE), rewriter);
+        this(
+                context,
+                callbackExecutor,
+                blockingExecutor,
+                new ByteArrayPool(DEFAULT_POOL_SIZE),
+                rewriter);
     }
 
     @Override
