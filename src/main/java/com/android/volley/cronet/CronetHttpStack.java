@@ -6,6 +6,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.Request;
+import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.AsyncHttpStack;
 import com.android.volley.toolbox.ByteArrayPool;
 import com.android.volley.toolbox.HttpResponse;
@@ -32,6 +33,7 @@ import org.chromium.net.UrlResponseInfo;
 
 public class CronetHttpStack extends AsyncHttpStack {
 
+    private static final int DEFAULT_POOL_SIZE = 4096;
     private final CronetEngine mCronetEngine;
     private final Executor mCallbackExecutor;
     private final ExecutorService mBlockingExecutor;
@@ -71,7 +73,7 @@ public class CronetHttpStack extends AsyncHttpStack {
 
     public CronetHttpStack(
             Context context, ExecutorService blockingExecutor, Executor callbackExecutor) {
-        this(context, callbackExecutor, blockingExecutor, new ByteArrayPool(204800));
+        this(context, callbackExecutor, blockingExecutor, new ByteArrayPool(DEFAULT_POOL_SIZE));
     }
 
     public CronetHttpStack(
@@ -79,7 +81,7 @@ public class CronetHttpStack extends AsyncHttpStack {
             Executor callbackExecutor,
             ExecutorService blockingExecutor,
             UrlRewriter rewriter) {
-        this(context, callbackExecutor, blockingExecutor, new ByteArrayPool(204800), rewriter);
+        this(context, callbackExecutor, blockingExecutor, new ByteArrayPool(DEFAULT_POOL_SIZE), rewriter);
     }
 
     @Override
@@ -100,7 +102,8 @@ public class CronetHttpStack extends AsyncHttpStack {
                     @Override
                     public void onResponseStarted(
                             UrlRequest urlRequest, UrlResponseInfo urlResponseInfo) {
-                        urlRequest.read(ByteBuffer.wrap(mPool.getBuf(102400)));
+                        int size = (int) urlResponseInfo.getReceivedByteCount();
+                        urlRequest.read(ByteBuffer.allocateDirect(size));
                     }
 
                     @Override
@@ -148,7 +151,7 @@ public class CronetHttpStack extends AsyncHttpStack {
         url = rewritten;
 
         // We can call allowDirectExecutor here and run directly on the network thread, since all
-        // the callbacks are non-blocking
+        // the callbacks are non-blocking.
         final UrlRequest.Builder builder =
                 mCronetEngine
                         .newUrlRequestBuilder(url, urlCallback, mCallbackExecutor)
