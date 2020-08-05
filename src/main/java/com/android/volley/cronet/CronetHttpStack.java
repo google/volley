@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import org.chromium.net.CronetEngine;
 import org.chromium.net.CronetException;
 import org.chromium.net.UploadDataProvider;
@@ -30,6 +29,9 @@ import org.chromium.net.UrlRequest;
 import org.chromium.net.UrlRequest.Callback;
 import org.chromium.net.UrlResponseInfo;
 
+/**
+ * A {@link AsyncHttpStack} that's based on Cronet's fully asynchronous API for network requests.
+ */
 public class CronetHttpStack extends AsyncHttpStack {
 
     private static final int DEFAULT_POOL_SIZE = 4096;
@@ -163,21 +165,20 @@ public class CronetHttpStack extends AsyncHttpStack {
                         .disableCache();
         setPriority(request, builder);
         // This code may be blocking, so submit it to the blocking executor.
-        Future<?> future =
-                mBlockingExecutor.submit(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    setHttpMethod(request, builder);
-                                    setRequestHeaders(request, additionalHeaders, builder);
-                                    UrlRequest urlRequest = builder.build();
-                                    urlRequest.start();
-                                } catch (AuthFailureError authFailureError) {
-                                    callback.onAuthError(authFailureError);
-                                }
-                            }
-                        });
+        mBlockingExecutor.execute(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            setHttpMethod(request, builder);
+                            setRequestHeaders(request, additionalHeaders, builder);
+                            UrlRequest urlRequest = builder.build();
+                            urlRequest.start();
+                        } catch (AuthFailureError authFailureError) {
+                            callback.onAuthError(authFailureError);
+                        }
+                    }
+                });
     }
 
     @VisibleForTesting

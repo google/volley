@@ -15,6 +15,7 @@
  */
 package com.android.volley.toolbox;
 
+import androidx.annotation.Nullable;
 import com.android.volley.Header;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -27,8 +28,8 @@ public final class HttpResponse {
     private final int mStatusCode;
     private final List<Header> mHeaders;
     private final int mContentLength;
-    private final InputStream mContent;
-    private final byte[] mContentBytes;
+    @Nullable private final InputStream mContent;
+    @Nullable private final byte[] mContentBytes;
 
     /**
      * Construct a new HttpResponse for an empty response body.
@@ -95,6 +96,7 @@ public final class HttpResponse {
      * stream. It may return null, even if the response has content, as long as mContent is
      * provided.
      */
+    @Nullable
     public final byte[] getContentBytes() {
         return mContentBytes;
     }
@@ -103,6 +105,7 @@ public final class HttpResponse {
      * Returns an {@link InputStream} of the response content. May be null to indicate that the
      * response has no content.
      */
+    @Nullable
     public final InputStream getContent() {
         if (mContentLength == -1) {
             return null;

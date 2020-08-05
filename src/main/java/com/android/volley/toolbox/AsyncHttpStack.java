@@ -1,5 +1,6 @@
 package com.android.volley.toolbox;
 
+import androidx.annotation.Nullable;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.VolleyLog;
@@ -39,35 +40,39 @@ public abstract class AsyncHttpStack extends BaseHttpStack {
      * @param request the request to perform
      * @param additionalHeaders additional headers to be sent together with {@link
      *     Request#getHeaders()}
-     * @return the {@link HttpResponse}
+     * @return the {@link HttpResponse}, or null if an InterruptedException occurs.
      * @throws IOException if an I/O error occurs during the request
      * @throws AuthFailureError if an authentication failure occurs during the request
      */
+    @Nullable
     @Override
     public final HttpResponse executeRequest(
             Request<?> request, Map<String, String> additionalHeaders)
             throws IOException, AuthFailureError {
         final CountDownLatch latch = new CountDownLatch(1);
-        final AtomicReference<Object> entry = new AtomicReference<>();
+        final AtomicReference<Response> entry = new AtomicReference<>();
         executeRequest(
                 request,
                 additionalHeaders,
                 new OnRequestComplete() {
                     @Override
                     public void onSuccess(HttpResponse httpResponse) {
-                        entry.set(httpResponse);
+                        Response response = new Response(httpResponse, null, null, 1);
+                        entry.set(response);
                         latch.countDown();
                     }
 
                     @Override
                     public void onAuthError(AuthFailureError authFailureError) {
-                        entry.set(authFailureError);
+                        Response response = new Response(null, null, authFailureError, 3);
+                        entry.set(response);
                         latch.countDown();
                     }
 
                     @Override
                     public void onError(IOException ioException) {
-                        entry.set(ioException);
+                        Response response = new Response(null, ioException, null, 2);
+                        entry.set(response);
                         latch.countDown();
                     }
                 });
@@ -78,16 +83,31 @@ public abstract class AsyncHttpStack extends BaseHttpStack {
             Thread.currentThread().interrupt();
             return null;
         }
-        Object response = entry.get();
-        if (response instanceof HttpResponse) {
-            return (HttpResponse) response;
-        } else if (response instanceof IOException) {
-            throw (IOException) response;
-        } else if (response instanceof AuthFailureError) {
-            throw (AuthFailureError) response;
+        int type = entry.get().type;
+        if (type == 1) {
+            return entry.get().httpResponse;
+        } else if (type == 2) {
+            throw entry.get().ioException;
         } else {
-            VolleyLog.d("Response was in an unexpected form");
-            return null;
+            throw entry.get().authFailureError;
+        }
+    }
+
+    private static class Response {
+        HttpResponse httpResponse;
+        IOException ioException;
+        AuthFailureError authFailureError;
+        int type;
+
+        private Response(
+                @Nullable HttpResponse httpResponse,
+                @Nullable IOException ioException,
+                @Nullable AuthFailureError authFailureError,
+                int type) {
+            this.httpResponse = httpResponse;
+            this.ioException = ioException;
+            this.authFailureError = authFailureError;
+            this.type = type;
         }
     }
 }
