@@ -41,53 +41,12 @@ public class CronetHttpStack extends AsyncHttpStack {
     private final ByteArrayPool mPool;
     private final UrlRewriter mUrlRewriter;
 
-    public CronetHttpStack(
-            Context context,
-            Executor callbackExecutor,
-            ExecutorService blockingExecutor,
-            ByteArrayPool pool,
-            UrlRewriter rewriter) {
-        mCronetEngine = new CronetEngine.Builder(context).build();
-        mCallbackExecutor = callbackExecutor;
-        mBlockingExecutor = blockingExecutor;
-        mPool = pool;
-        mUrlRewriter = rewriter;
-    }
-
-    public CronetHttpStack(
-            Context context,
-            Executor callbackExecutor,
-            ExecutorService blockingExecutor,
-            ByteArrayPool pool) {
-        this(
-                context,
-                callbackExecutor,
-                blockingExecutor,
-                pool,
-                new UrlRewriter() {
-                    @Override
-                    public String rewriteUrl(String originalUrl) {
-                        return originalUrl;
-                    }
-                });
-    }
-
-    public CronetHttpStack(
-            Context context, ExecutorService blockingExecutor, Executor callbackExecutor) {
-        this(context, callbackExecutor, blockingExecutor, new ByteArrayPool(DEFAULT_POOL_SIZE));
-    }
-
-    public CronetHttpStack(
-            Context context,
-            Executor callbackExecutor,
-            ExecutorService blockingExecutor,
-            UrlRewriter rewriter) {
-        this(
-                context,
-                callbackExecutor,
-                blockingExecutor,
-                new ByteArrayPool(DEFAULT_POOL_SIZE),
-                rewriter);
+    private CronetHttpStack(Builder builder) {
+        mCronetEngine = builder.mCronetEngine;
+        mCallbackExecutor = builder.mCallbackExecutor;
+        mBlockingExecutor = builder.mBlockingExecutor;
+        mPool = builder.mPool;
+        mUrlRewriter = builder.mUrlRewriter;
     }
 
     @Override
@@ -95,10 +54,11 @@ public class CronetHttpStack extends AsyncHttpStack {
             final Request<?> request,
             final Map<String, String> additionalHeaders,
             final OnRequestComplete callback) {
-        final PoolingByteArrayOutputStream bytesReceived = new PoolingByteArrayOutputStream(mPool);
-        final WritableByteChannel receiveChannel = Channels.newChannel(bytesReceived);
         final Callback urlCallback =
                 new Callback() {
+                    PoolingByteArrayOutputStream bytesReceived = null;
+                    WritableByteChannel receiveChannel = null;
+
                     @Override
                     public void onRedirectReceived(
                             UrlRequest urlRequest, UrlResponseInfo urlResponseInfo, String s) {
@@ -108,8 +68,11 @@ public class CronetHttpStack extends AsyncHttpStack {
                     @Override
                     public void onResponseStarted(
                             UrlRequest urlRequest, UrlResponseInfo urlResponseInfo) {
-                        int size = getContentLength(urlResponseInfo);
-                        urlRequest.read(ByteBuffer.allocateDirect(size));
+                        bytesReceived =
+                                new PoolingByteArrayOutputStream(
+                                        mPool, getContentLength(urlResponseInfo));
+                        receiveChannel = Channels.newChannel(bytesReceived);
+                        urlRequest.read(ByteBuffer.allocateDirect(1024));
                     }
 
                     @Override
@@ -274,11 +237,64 @@ public class CronetHttpStack extends AsyncHttpStack {
     }
 
     private int getContentLength(UrlResponseInfo urlResponseInfo) {
-        List<String> content = urlResponseInfo.getAllHeaders().get("content-length");
+        List<String> content = urlResponseInfo.getAllHeaders().get("Content-Length");
         if (content == null) {
             return 1024;
         } else {
             return Integer.parseInt(content.get(0));
+        }
+    }
+
+    /**
+     * Builder is used to build an instance of {@link CronetHttpStack} from values configured by the
+     * setters.
+     */
+    public static class Builder {
+        private static final int DEFAULT_POOL_SIZE = 4096;
+        private CronetEngine mCronetEngine;
+        private Executor mCallbackExecutor;
+        private ExecutorService mBlockingExecutor;
+        private ByteArrayPool mPool;
+        private UrlRewriter mUrlRewriter;
+
+        public Builder(
+                Context context, ExecutorService blockingExecutor, Executor callbackExecutor) {
+            mCronetEngine = new CronetEngine.Builder(context).build();
+            mCallbackExecutor = callbackExecutor;
+            mBlockingExecutor = blockingExecutor;
+            mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
+            mUrlRewriter =
+                    new UrlRewriter() {
+                        @Override
+                        public String rewriteUrl(String originalUrl) {
+                            return originalUrl;
+                        }
+                    };
+        }
+
+        /**
+         * Sets the CronetEngine to be used. Would recommend disabling the HTTP cache, as it is
+         * redundant with Volley's.
+         */
+        public Builder setCronetEngine(CronetEngine engine) {
+            mCronetEngine = engine;
+            return this;
+        }
+
+        /** Sets the ByteArrayPool to be used. */
+        public Builder setPool(ByteArrayPool pool) {
+            mPool = pool;
+            return this;
+        }
+
+        /** Sets the UrlRewriter to be used. */
+        public Builder setUrlRewriter(UrlRewriter urlRewriter) {
+            mUrlRewriter = urlRewriter;
+            return this;
+        }
+
+        public CronetHttpStack build() {
+            return new CronetHttpStack(this);
         }
     }
 }
