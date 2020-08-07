@@ -34,7 +34,6 @@ import org.chromium.net.UrlResponseInfo;
  */
 public class CronetHttpStack extends AsyncHttpStack {
 
-    private static final int DEFAULT_POOL_SIZE = 4096;
     private final CronetEngine mCronetEngine;
     private final Executor mCallbackExecutor;
     private final ExecutorService mBlockingExecutor;
@@ -126,7 +125,6 @@ public class CronetHttpStack extends AsyncHttpStack {
                         .newUrlRequestBuilder(url, urlCallback, mCallbackExecutor)
                         .allowDirectExecutor()
                         .disableCache();
-        setPriority(request, builder);
         // This code may be blocking, so submit it to the blocking executor.
         mBlockingExecutor.execute(
                 new Runnable() {
@@ -229,11 +227,6 @@ public class CronetHttpStack extends AsyncHttpStack {
             UploadDataProvider dataProvider = UploadDataProviders.create(body);
             builder.setUploadDataProvider(dataProvider, mCallbackExecutor);
         }
-    }
-
-    /** Sets the priority of this request. */
-    private void setPriority(Request<?> request, UrlRequest.Builder builder) {
-        builder.setPriority(request.getPriority().ordinal());
     }
 
     private int getContentLength(UrlResponseInfo urlResponseInfo) {

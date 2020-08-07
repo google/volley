@@ -57,21 +57,33 @@ public abstract class AsyncHttpStack extends BaseHttpStack {
                 new OnRequestComplete() {
                     @Override
                     public void onSuccess(HttpResponse httpResponse) {
-                        Response response = new Response(httpResponse, null, null);
+                        Response response =
+                                new Response(
+                                        httpResponse,
+                                        /* ioException= */ null,
+                                        /* authFailureError= */ null);
                         entry.set(response);
                         latch.countDown();
                     }
 
                     @Override
                     public void onAuthError(AuthFailureError authFailureError) {
-                        Response response = new Response(null, null, authFailureError);
+                        Response response =
+                                new Response(
+                                        /* httpResponse= */ null,
+                                        /* ioException= */ null,
+                                        authFailureError);
                         entry.set(response);
                         latch.countDown();
                     }
 
                     @Override
                     public void onError(IOException ioException) {
-                        Response response = new Response(null, ioException, null);
+                        Response response =
+                                new Response(
+                                        /* httpResponse= */ null,
+                                        ioException,
+                                        /* authFailureError= */ null);
                         entry.set(response);
                         latch.countDown();
                     }
