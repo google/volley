@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import org.chromium.net.CronetEngine;
 import org.chromium.net.CronetException;
@@ -35,17 +34,22 @@ import org.chromium.net.UrlResponseInfo;
 public class CronetHttpStack extends AsyncHttpStack {
 
     private final CronetEngine mCronetEngine;
-    private final Executor mCallbackExecutor;
+    private final ExecutorService mCallbackExecutor;
     private final ExecutorService mBlockingExecutor;
     private final ByteArrayPool mPool;
     private final UrlRewriter mUrlRewriter;
 
-    private CronetHttpStack(Builder builder) {
-        mCronetEngine = builder.mCronetEngine;
-        mCallbackExecutor = builder.mCallbackExecutor;
-        mBlockingExecutor = builder.mBlockingExecutor;
-        mPool = builder.mPool;
-        mUrlRewriter = builder.mUrlRewriter;
+    private CronetHttpStack(
+            CronetEngine cronetEngine,
+            ExecutorService callbackExecutor,
+            ExecutorService blockingExecutor,
+            ByteArrayPool pool,
+            UrlRewriter urlRewriter) {
+        mCronetEngine = cronetEngine;
+        mCallbackExecutor = callbackExecutor;
+        mBlockingExecutor = blockingExecutor;
+        mPool = pool;
+        mUrlRewriter = urlRewriter;
     }
 
     @Override
@@ -60,7 +64,9 @@ public class CronetHttpStack extends AsyncHttpStack {
 
                     @Override
                     public void onRedirectReceived(
-                            UrlRequest urlRequest, UrlResponseInfo urlResponseInfo, String s) {
+                            UrlRequest urlRequest,
+                            UrlResponseInfo urlResponseInfo,
+                            String newLocationUrl) {
                         urlRequest.followRedirect();
                     }
 
@@ -115,6 +121,7 @@ public class CronetHttpStack extends AsyncHttpStack {
         String rewritten = mUrlRewriter.rewriteUrl(url);
         if (rewritten == null) {
             callback.onError(new IOException("URL blocked by rewriter: " + url));
+            return;
         }
         url = rewritten;
 
@@ -125,7 +132,8 @@ public class CronetHttpStack extends AsyncHttpStack {
                         .newUrlRequestBuilder(url, urlCallback, mCallbackExecutor)
                         .allowDirectExecutor()
                         .disableCache();
-        // This code may be blocking, so submit it to the blocking executor.
+        setRequestPriority(request, builder);
+        // request.getHeaders() may be blocking, so submit it to the blocking executor.
         mBlockingExecutor.execute(
                 new Runnable() {
                     @Override
@@ -229,6 +237,10 @@ public class CronetHttpStack extends AsyncHttpStack {
         }
     }
 
+    private void setRequestPriority(Request<?> request, UrlRequest.Builder builder) {
+        builder.setPriority(request.getPriority().ordinal() + 1);
+    }
+
     private int getContentLength(UrlResponseInfo urlResponseInfo) {
         List<String> content = urlResponseInfo.getAllHeaders().get("Content-Length");
         if (content == null) {
@@ -245,49 +257,77 @@ public class CronetHttpStack extends AsyncHttpStack {
     public static class Builder {
         private static final int DEFAULT_POOL_SIZE = 4096;
         private CronetEngine mCronetEngine;
-        private Executor mCallbackExecutor;
+        private Context context;
+        private ExecutorService mCallbackExecutor;
         private ExecutorService mBlockingExecutor;
         private ByteArrayPool mPool;
         private UrlRewriter mUrlRewriter;
 
-        public Builder(
-                Context context, ExecutorService blockingExecutor, Executor callbackExecutor) {
-            mCronetEngine = new CronetEngine.Builder(context).build();
-            mCallbackExecutor = callbackExecutor;
-            mBlockingExecutor = blockingExecutor;
-            mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
-            mUrlRewriter =
-                    new UrlRewriter() {
-                        @Override
-                        public String rewriteUrl(String originalUrl) {
-                            return originalUrl;
-                        }
-                    };
+        public Builder(Context context) {
+            mCronetEngine = null;
+            mCallbackExecutor = null;
+            mBlockingExecutor = null;
+            mPool = null;
+            mUrlRewriter = null;
         }
 
-        /**
-         * Sets the CronetEngine to be used. Would recommend disabling the HTTP cache, as it is
-         * redundant with Volley's.
-         */
+        /** Sets the CronetEngine to be used. Defaults to a vanialla CronetEngine. */
         public Builder setCronetEngine(CronetEngine engine) {
             mCronetEngine = engine;
             return this;
         }
 
-        /** Sets the ByteArrayPool to be used. */
+        /** Sets the ByteArrayPool to be used. Defaults to a new pool with 4096 bytes. */
         public Builder setPool(ByteArrayPool pool) {
             mPool = pool;
             return this;
         }
 
-        /** Sets the UrlRewriter to be used. */
+        /** Sets the UrlRewriter to be used. Default is to return the original string. */
         public Builder setUrlRewriter(UrlRewriter urlRewriter) {
             mUrlRewriter = urlRewriter;
             return this;
         }
 
+        /**
+         * Sets the callback executor. This method must be called with a non-null value before
+         * building.
+         */
+        public Builder setCallbackExecutor(ExecutorService callbackExecutor) {
+            mCallbackExecutor = callbackExecutor;
+            return this;
+        }
+
+        /**
+         * Sets the blocking executor. This method must be called with a non-null value before
+         * building.
+         */
+        public Builder setBlockingExecutor(ExecutorService blockingExecutor) {
+            mBlockingExecutor = blockingExecutor;
+            return this;
+        }
+
         public CronetHttpStack build() {
-            return new CronetHttpStack(this);
+            if (mCronetEngine == null) {
+                mCronetEngine = new CronetEngine.Builder(context).build();
+            }
+            if (mUrlRewriter == null) {
+                mUrlRewriter =
+                        new UrlRewriter() {
+                            @Override
+                            public String rewriteUrl(String originalUrl) {
+                                return originalUrl;
+                            }
+                        };
+            }
+            if (mPool == null) {
+                mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
+            }
+            if (mBlockingExecutor == null || mCallbackExecutor == null) {
+                throw new IllegalArgumentException();
+            }
+            return new CronetHttpStack(
+                    mCronetEngine, mCallbackExecutor, mBlockingExecutor, mPool, mUrlRewriter);
         }
     }
 }
