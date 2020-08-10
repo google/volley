@@ -18,6 +18,7 @@ package com.android.volley.cronet;
 
 import android.content.Context;
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
@@ -50,20 +51,16 @@ import org.chromium.net.UrlResponseInfo;
 public class CronetHttpStack extends AsyncHttpStack {
 
     private final CronetEngine mCronetEngine;
-    private final ExecutorService mCallbackExecutor;
-    private final ExecutorService mBlockingExecutor;
+    private ExecutorService mCallbackExecutor;
+    private ExecutorService mBlockingExecutor;
     private final ByteArrayPool mPool;
     private final UrlRewriter mUrlRewriter;
 
     private CronetHttpStack(
-            CronetEngine cronetEngine,
-            ExecutorService callbackExecutor,
-            ExecutorService blockingExecutor,
-            ByteArrayPool pool,
-            UrlRewriter urlRewriter) {
+            CronetEngine cronetEngine, ByteArrayPool pool, UrlRewriter urlRewriter) {
         mCronetEngine = cronetEngine;
-        mCallbackExecutor = callbackExecutor;
-        mBlockingExecutor = blockingExecutor;
+        mCallbackExecutor = null;
+        mBlockingExecutor = null;
         mPool = pool;
         mUrlRewriter = urlRewriter;
     }
@@ -164,6 +161,24 @@ public class CronetHttpStack extends AsyncHttpStack {
                         }
                     }
                 });
+    }
+
+    @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
+    @Override
+    public void setCallbackExecutor(ExecutorService executor) {
+        if (executor == null) {
+            throw new IllegalArgumentException("Cannot set executor to be null");
+        }
+        mCallbackExecutor = executor;
+    }
+
+    @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
+    @Override
+    public void setBlockingExecutor(ExecutorService executor) {
+        if (executor == null) {
+            throw new IllegalArgumentException("Cannot set executor to be null");
+        }
+        mBlockingExecutor = executor;
     }
 
     @VisibleForTesting
@@ -274,15 +289,11 @@ public class CronetHttpStack extends AsyncHttpStack {
         private static final int DEFAULT_POOL_SIZE = 4096;
         private CronetEngine mCronetEngine;
         private Context context;
-        private ExecutorService mCallbackExecutor;
-        private ExecutorService mBlockingExecutor;
         private ByteArrayPool mPool;
         private UrlRewriter mUrlRewriter;
 
         public Builder(Context context) {
             mCronetEngine = null;
-            mCallbackExecutor = null;
-            mBlockingExecutor = null;
             mPool = null;
             mUrlRewriter = null;
         }
@@ -305,24 +316,6 @@ public class CronetHttpStack extends AsyncHttpStack {
             return this;
         }
 
-        /**
-         * Sets the callback executor. This method must be called with a non-null value before
-         * building.
-         */
-        public Builder setCallbackExecutor(ExecutorService callbackExecutor) {
-            mCallbackExecutor = callbackExecutor;
-            return this;
-        }
-
-        /**
-         * Sets the blocking executor. This method must be called with a non-null value before
-         * building.
-         */
-        public Builder setBlockingExecutor(ExecutorService blockingExecutor) {
-            mBlockingExecutor = blockingExecutor;
-            return this;
-        }
-
         public CronetHttpStack build() {
             if (mCronetEngine == null) {
                 mCronetEngine = new CronetEngine.Builder(context).build();
@@ -339,11 +332,7 @@ public class CronetHttpStack extends AsyncHttpStack {
             if (mPool == null) {
                 mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
             }
-            if (mBlockingExecutor == null || mCallbackExecutor == null) {
-                throw new IllegalArgumentException();
-            }
-            return new CronetHttpStack(
-                    mCronetEngine, mCallbackExecutor, mBlockingExecutor, mPool, mUrlRewriter);
+            return new CronetHttpStack(mCronetEngine, mPool, mUrlRewriter);
         }
     }
 }

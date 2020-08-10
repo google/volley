@@ -17,6 +17,7 @@
 package com.android.volley.toolbox;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.VolleyLog;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** Asynchronous extension of the {@link BaseHttpStack} class. */
@@ -50,6 +52,12 @@ public abstract class AsyncHttpStack extends BaseHttpStack {
      */
     public abstract void executeRequest(
             Request<?> request, Map<String, String> additionalHeaders, OnRequestComplete callback);
+
+    @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
+    public abstract void setCallbackExecutor(ExecutorService executorService);
+
+    @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
+    public abstract void setBlockingExecutor(ExecutorService executorService);
 
     /**
      * Performs an HTTP request with the given parameters.
