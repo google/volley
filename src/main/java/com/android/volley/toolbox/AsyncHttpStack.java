@@ -53,11 +53,19 @@ public abstract class AsyncHttpStack extends BaseHttpStack {
     public abstract void executeRequest(
             Request<?> request, Map<String, String> additionalHeaders, OnRequestComplete callback);
 
+    /**
+     * This method sets the non blocking executor to be used by the stack for non-blocking tasks.
+     * This method must be called before executing any requests.
+     */
     @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
-    public abstract void setCallbackExecutor(ExecutorService executorService);
+    public abstract void setNonBlockingExecutor(ExecutorService executor);
 
+    /**
+     * This method sets the blocking executor to be used by the stack for potentially blocking
+     * tasks. This method must be called before executing any requests.
+     */
     @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
-    public abstract void setBlockingExecutor(ExecutorService executorService);
+    public abstract void setBlockingExecutor(ExecutorService executor);
 
     /**
      * Performs an HTTP request with the given parameters.

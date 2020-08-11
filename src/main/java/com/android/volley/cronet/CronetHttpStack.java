@@ -70,6 +70,9 @@ public class CronetHttpStack extends AsyncHttpStack {
             final Request<?> request,
             final Map<String, String> additionalHeaders,
             final OnRequestComplete callback) {
+        if (mBlockingExecutor == null || mCallbackExecutor == null) {
+            throw new IllegalStateException("Must set blocking / non-blocking executors");
+        }
         final Callback urlCallback =
                 new Callback() {
                     PoolingByteArrayOutputStream bytesReceived = null;
@@ -144,8 +147,8 @@ public class CronetHttpStack extends AsyncHttpStack {
                 mCronetEngine
                         .newUrlRequestBuilder(url, urlCallback, mCallbackExecutor)
                         .allowDirectExecutor()
-                        .disableCache();
-        setRequestPriority(request, builder);
+                        .disableCache()
+                        .setPriority(getPriority(request));
         // request.getHeaders() may be blocking, so submit it to the blocking executor.
         mBlockingExecutor.execute(
                 new Runnable() {
@@ -163,15 +166,23 @@ public class CronetHttpStack extends AsyncHttpStack {
                 });
     }
 
+    /**
+     * This method sets the non blocking executor to be used by the stack for non-blocking tasks.
+     * This method must be called before executing any requests.
+     */
     @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
     @Override
-    public void setCallbackExecutor(ExecutorService executor) {
+    public void setNonBlockingExecutor(ExecutorService executor) {
         if (executor == null) {
             throw new IllegalArgumentException("Cannot set executor to be null");
         }
         mCallbackExecutor = executor;
     }
 
+    /**
+     * This method sets the blocking executor to be used by the stack for potentially blocking
+     * tasks. This method must be called before executing any requests.
+     */
     @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
     @Override
     public void setBlockingExecutor(ExecutorService executor) {
@@ -268,8 +279,18 @@ public class CronetHttpStack extends AsyncHttpStack {
         }
     }
 
-    private void setRequestPriority(Request<?> request, UrlRequest.Builder builder) {
-        builder.setPriority(request.getPriority().ordinal() + 1);
+    /** Helper method that maps Volley's request priority to Cronet's */
+    private int getPriority(Request<?> request) {
+        switch (request.getPriority()) {
+            case LOW:
+                return UrlRequest.Builder.REQUEST_PRIORITY_LOW;
+            case HIGH:
+            case IMMEDIATE:
+                return UrlRequest.Builder.REQUEST_PRIORITY_HIGHEST;
+            case NORMAL:
+            default:
+                return UrlRequest.Builder.REQUEST_PRIORITY_MEDIUM;
+        }
     }
 
     private int getContentLength(UrlResponseInfo urlResponseInfo) {
