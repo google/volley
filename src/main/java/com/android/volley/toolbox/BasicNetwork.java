@@ -18,7 +18,6 @@ package com.android.volley.toolbox;
 
 import android.os.SystemClock;
 import com.android.volley.AuthFailureError;
-import com.android.volley.Cache;
 import com.android.volley.Cache.Entry;
 import com.android.volley.ClientError;
 import com.android.volley.Header;
@@ -38,7 +37,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -111,7 +109,7 @@ public class BasicNetwork implements Network {
             try {
                 // Gather headers.
                 Map<String, String> additionalRequestHeaders =
-                        getCacheHeaders(request.getCacheEntry());
+                        NetworkUtility.getCacheHeaders(request.getCacheEntry());
                 httpResponse = mBaseHttpStack.executeRequest(request, additionalRequestHeaders);
                 int statusCode = httpResponse.getStatusCode();
 
@@ -233,31 +231,6 @@ public class BasicNetwork implements Network {
             throw e;
         }
         request.addMarker(String.format("%s-retry [timeout=%s]", logPrefix, oldTimeout));
-    }
-
-    private Map<String, String> getCacheHeaders(Cache.Entry entry) {
-        // If there's no cache entry, we're done.
-        if (entry == null) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, String> headers = new HashMap<>();
-
-        if (entry.etag != null) {
-            headers.put("If-None-Match", entry.etag);
-        }
-
-        if (entry.lastModified > 0) {
-            headers.put(
-                    "If-Modified-Since", HttpHeaderParser.formatEpochAsRfc1123(entry.lastModified));
-        }
-
-        return headers;
-    }
-
-    protected void logError(String what, String url, long start) {
-        long now = SystemClock.elapsedRealtime();
-        VolleyLog.v("HTTP ERROR(%s) %d ms to fetch %s", what, (now - start), url);
     }
 
     /** Reads the contents of an InputStream into a byte[]. */

@@ -24,7 +24,6 @@ import android.os.SystemClock;
 import androidx.annotation.Nullable;
 import com.android.volley.AsyncNetwork;
 import com.android.volley.AuthFailureError;
-import com.android.volley.Cache;
 import com.android.volley.Cache.Entry;
 import com.android.volley.ClientError;
 import com.android.volley.Header;
@@ -42,8 +41,6 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -275,7 +272,8 @@ public class BasicAsyncNetwork extends AsyncNetwork {
         }
         final long requestStartMs = SystemClock.elapsedRealtime();
         // Gather headers.
-        Map<String, String> additionalRequestHeaders = getCacheHeaders(request.getCacheEntry());
+        final Map<String, String> additionalRequestHeaders =
+                NetworkUtility.getCacheHeaders(request.getCacheEntry());
         if (mBaseHttpStack instanceof AsyncHttpStack) {
             AsyncHttpStack asyncStack = (AsyncHttpStack) mBaseHttpStack;
             asyncStack.executeRequest(
@@ -299,17 +297,24 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                         }
                     });
         } else {
-            try {
-                onRequestSucceeded(
-                        request,
-                        requestStartMs,
-                        mBaseHttpStack.executeRequest(request, additionalRequestHeaders),
-                        callback);
-            } catch (AuthFailureError e) {
-                callback.onError(e);
-            } catch (IOException e) {
-                onRequestFailed(request, callback, e, requestStartMs, null, null);
-            }
+            mBlockingExecutor.execute(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                onRequestSucceeded(
+                                        request,
+                                        requestStartMs,
+                                        mBaseHttpStack.executeRequest(
+                                                request, additionalRequestHeaders),
+                                        callback);
+                            } catch (AuthFailureError e) {
+                                callback.onError(e);
+                            } catch (IOException e) {
+                                onRequestFailed(request, callback, e, requestStartMs, null, null);
+                            }
+                        }
+                    });
         }
     }
 
@@ -378,26 +383,6 @@ public class BasicAsyncNetwork extends AsyncNetwork {
         } else {
             performRequest(request, callback);
         }
-    }
-
-    private Map<String, String> getCacheHeaders(Cache.Entry entry) {
-        // If there's no cache entry, we're done.
-        if (entry == null) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, String> headers = new HashMap<>();
-
-        if (entry.etag != null) {
-            headers.put("If-None-Match", entry.etag);
-        }
-
-        if (entry.lastModified > 0) {
-            headers.put(
-                    "If-Modified-Since", HttpHeaderParser.formatEpochAsRfc1123(entry.lastModified));
-        }
-
-        return headers;
     }
 
     /* Helper method that determines what to do after byte[] is received */

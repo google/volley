@@ -21,6 +21,8 @@ import com.android.volley.Header;
 import com.android.volley.Request;
 import com.android.volley.VolleyLog;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -108,5 +110,25 @@ public class NetworkUtility {
                     statusCode,
                     request.getRetryPolicy().getCurrentRetryCount());
         }
+    }
+
+    static Map<String, String> getCacheHeaders(Cache.Entry entry) {
+        // If there's no cache entry, we're done.
+        if (entry == null) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> headers = new HashMap<>();
+
+        if (entry.etag != null) {
+            headers.put("If-None-Match", entry.etag);
+        }
+
+        if (entry.lastModified > 0) {
+            headers.put(
+                    "If-Modified-Since", HttpHeaderParser.formatEpochAsRfc1123(entry.lastModified));
+        }
+
+        return headers;
     }
 }
