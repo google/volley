@@ -37,21 +37,13 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 /** A network performing Volley requests over an {@link HttpStack}. */
 public class BasicNetwork implements Network {
-    protected static final boolean DEBUG = VolleyLog.DEBUG;
-
-    private static final int SLOW_REQUEST_THRESHOLD_MS = 3000;
-
     private static final int DEFAULT_POOL_SIZE = 4096;
 
     /**
@@ -136,7 +128,8 @@ public class BasicNetwork implements Network {
                                 responseHeaders);
                     }
                     // Combine cached and response headers so the response will be complete.
-                    List<Header> combinedHeaders = combineHeaders(responseHeaders, entry);
+                    List<Header> combinedHeaders =
+                            NetworkUtility.combineHeaders(responseHeaders, entry);
                     return new NetworkResponse(
                             HttpURLConnection.HTTP_NOT_MODIFIED,
                             entry.data,
@@ -158,7 +151,8 @@ public class BasicNetwork implements Network {
 
                 // if the request is slow, log it.
                 long requestLifetime = SystemClock.elapsedRealtime() - requestStart;
-                logSlowRequests(requestLifetime, request, responseContents, statusCode);
+                NetworkUtility.logSlowRequests(
+                        requestLifetime, request, responseContents, statusCode);
 
                 if (statusCode < 200 || statusCode > 299) {
                     throw new IOException();
@@ -217,21 +211,6 @@ public class BasicNetwork implements Network {
                     attemptRetryOnException("network", request, new NetworkError());
                 }
             }
-        }
-    }
-
-    /** Logs requests that took over SLOW_REQUEST_THRESHOLD_MS to complete. */
-    private void logSlowRequests(
-            long requestLifetime, Request<?> request, byte[] responseContents, int statusCode) {
-        if (DEBUG || requestLifetime > SLOW_REQUEST_THRESHOLD_MS) {
-            VolleyLog.d(
-                    "HTTP response for request=<%s> [lifetime=%d], [size=%s], "
-                            + "[rc=%d], [retryCount=%s]",
-                    request,
-                    requestLifetime,
-                    responseContents != null ? responseContents.length : "null",
-                    statusCode,
-                    request.getRetryPolicy().getCurrentRetryCount());
         }
     }
 
@@ -310,65 +289,5 @@ public class BasicNetwork implements Network {
             mPool.returnBuf(buffer);
             bytes.close();
         }
-    }
-
-    /**
-     * Converts Headers[] to Map&lt;String, String&gt;.
-     *
-     * @deprecated Should never have been exposed in the API. This method may be removed in a future
-     *     release of Volley.
-     */
-    @Deprecated
-    protected static Map<String, String> convertHeaders(Header[] headers) {
-        Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (int i = 0; i < headers.length; i++) {
-            result.put(headers[i].getName(), headers[i].getValue());
-        }
-        return result;
-    }
-
-    /**
-     * Combine cache headers with network response headers for an HTTP 304 response.
-     *
-     * <p>An HTTP 304 response does not have all header fields. We have to use the header fields
-     * from the cache entry plus the new ones from the response. See also:
-     * http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.5
-     *
-     * @param responseHeaders Headers from the network response.
-     * @param entry The cached response.
-     * @return The combined list of headers.
-     */
-    private static List<Header> combineHeaders(List<Header> responseHeaders, Entry entry) {
-        // First, create a case-insensitive set of header names from the network
-        // response.
-        Set<String> headerNamesFromNetworkResponse = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        if (!responseHeaders.isEmpty()) {
-            for (Header header : responseHeaders) {
-                headerNamesFromNetworkResponse.add(header.getName());
-            }
-        }
-
-        // Second, add headers from the cache entry to the network response as long as
-        // they didn't appear in the network response, which should take precedence.
-        List<Header> combinedHeaders = new ArrayList<>(responseHeaders);
-        if (entry.allResponseHeaders != null) {
-            if (!entry.allResponseHeaders.isEmpty()) {
-                for (Header header : entry.allResponseHeaders) {
-                    if (!headerNamesFromNetworkResponse.contains(header.getName())) {
-                        combinedHeaders.add(header);
-                    }
-                }
-            }
-        } else {
-            // Legacy caches only have entry.responseHeaders.
-            if (!entry.responseHeaders.isEmpty()) {
-                for (Map.Entry<String, String> header : entry.responseHeaders.entrySet()) {
-                    if (!headerNamesFromNetworkResponse.contains(header.getKey())) {
-                        combinedHeaders.add(new Header(header.getKey(), header.getValue()));
-                    }
-                }
-            }
-        }
-        return combinedHeaders;
     }
 }
