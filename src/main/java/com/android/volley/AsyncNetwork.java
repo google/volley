@@ -63,8 +63,10 @@ public abstract class AsyncNetwork implements Network {
         Response response = entry.get();
         if (response.networkResponse != null) {
             return response.networkResponse;
-        } else {
+        } else if (response.volleyError != null) {
             throw response.volleyError;
+        } else {
+            throw new VolleyError("Neither response entry was set");
         }
     }
 
@@ -74,7 +76,7 @@ public abstract class AsyncNetwork implements Network {
      * nothing. This method must be called before performing any requests if you are using an
      * AsyncHttpStack.
      */
-    @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
+    @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
     public abstract void setNonBlockingExecutorForStack(ExecutorService executor);
 
     /**
@@ -83,12 +85,12 @@ public abstract class AsyncNetwork implements Network {
      * executor for the stack if it is an instance of {@link
      * com.android.volley.toolbox.AsyncHttpStack}
      */
-    @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
+    @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
     public abstract void setBlockingExecutor(ExecutorService executor);
 
     static class Response {
-        NetworkResponse networkResponse;
-        VolleyError volleyError;
+        @Nullable NetworkResponse networkResponse;
+        @Nullable VolleyError volleyError;
 
         private Response(@Nullable NetworkResponse networkResponse, @Nullable VolleyError error) {
             this.networkResponse = networkResponse;

@@ -47,9 +47,6 @@ import java.util.concurrent.ExecutorService;
 
 /** A network performing Volley requests over an {@link HttpStack}. */
 public class BasicAsyncNetwork extends AsyncNetwork {
-    protected static final boolean DEBUG = VolleyLog.DEBUG;
-
-    private static final int SLOW_REQUEST_THRESHOLD_MS = 3000;
 
     private static final int DEFAULT_POOL_SIZE = 4096;
 
@@ -268,7 +265,8 @@ public class BasicAsyncNetwork extends AsyncNetwork {
     @Override
     public void performRequest(final Request<?> request, final OnRequestComplete callback) {
         if (mBlockingExecutor == null) {
-            throw new IllegalStateException();
+            throw new IllegalStateException(
+                    "mBlockingExecuter should be set before making a request");
         }
         final long requestStartMs = SystemClock.elapsedRealtime();
         // Gather headers.
@@ -293,7 +291,12 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                         @Override
                         public void onError(IOException ioException) {
                             onRequestFailed(
-                                    request, callback, ioException, requestStartMs, null, null);
+                                    request,
+                                    callback,
+                                    ioException,
+                                    requestStartMs,
+                                    /* httpResponse= */ null,
+                                    /* responseContents= */ null);
                         }
                     });
         } else {
@@ -311,7 +314,13 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                             } catch (AuthFailureError e) {
                                 callback.onError(e);
                             } catch (IOException e) {
-                                onRequestFailed(request, callback, e, requestStartMs, null, null);
+                                onRequestFailed(
+                                        request,
+                                        callback,
+                                        e,
+                                        requestStartMs,
+                                        /* httpResponse= */ null,
+                                        /* responseContents= */ null);
                             }
                         }
                     });
@@ -329,6 +338,8 @@ public class BasicAsyncNetwork extends AsyncNetwork {
         if (mBaseHttpStack instanceof AsyncHttpStack) {
             AsyncHttpStack stack = (AsyncHttpStack) mBaseHttpStack;
             stack.setNonBlockingExecutor(executor);
+        } else {
+            VolleyLog.d("Cannot set non-blocking executor for non-async stack");
         }
     }
 
@@ -343,7 +354,9 @@ public class BasicAsyncNetwork extends AsyncNetwork {
         mBlockingExecutor = executor;
         if (mBaseHttpStack instanceof AsyncHttpStack) {
             AsyncHttpStack stack = (AsyncHttpStack) mBaseHttpStack;
-            stack.setNonBlockingExecutor(executor);
+            stack.setBlockingExecutor(executor);
+        } else {
+            VolleyLog.d("Cannot set blocking executor for non-async stack");
         }
     }
 
