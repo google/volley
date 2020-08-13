@@ -17,28 +17,19 @@
 package com.android.volley.toolbox;
 
 import android.os.SystemClock;
-import com.android.volley.AuthFailureError;
-import com.android.volley.Cache.Entry;
-import com.android.volley.ClientError;
 import com.android.volley.Header;
 import com.android.volley.Network;
-import com.android.volley.NetworkError;
 import com.android.volley.NetworkResponse;
-import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.RetryPolicy;
-import com.android.volley.ServerError;
-import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
-import com.android.volley.VolleyLog;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.SocketTimeoutException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /** A network performing Volley requests over an {@link HttpStack}. */
 public class BasicNetwork implements Network {
@@ -116,31 +107,16 @@ public class BasicNetwork implements Network {
                 responseHeaders = httpResponse.getHeaders();
                 // Handle cache validation.
                 if (statusCode == HttpURLConnection.HTTP_NOT_MODIFIED) {
-                    Entry entry = request.getCacheEntry();
-                    if (entry == null) {
-                        return new NetworkResponse(
-                                HttpURLConnection.HTTP_NOT_MODIFIED,
-                                /* data= */ null,
-                                /* notModified= */ true,
-                                SystemClock.elapsedRealtime() - requestStart,
-                                responseHeaders);
-                    }
-                    // Combine cached and response headers so the response will be complete.
-                    List<Header> combinedHeaders =
-                            NetworkUtility.combineHeaders(responseHeaders, entry);
-                    return new NetworkResponse(
-                            HttpURLConnection.HTTP_NOT_MODIFIED,
-                            entry.data,
-                            /* notModified= */ true,
-                            SystemClock.elapsedRealtime() - requestStart,
-                            combinedHeaders);
+                    return NetworkUtility.getNetworkResponse(
+                            statusCode, request, requestStart, responseHeaders);
                 }
 
                 // Some responses such as 204s do not have content.  We must check.
                 InputStream inputStream = httpResponse.getContent();
                 if (inputStream != null) {
                     responseContents =
-                            inputStreamToBytes(inputStream, httpResponse.getContentLength());
+                            NetworkUtility.inputStreamToBytes(
+                                    inputStream, httpResponse.getContentLength(), mPool);
                 } else {
                     // Add 0 byte response as a way of honestly representing a
                     // no-content request.
@@ -161,55 +137,26 @@ public class BasicNetwork implements Network {
                         /* notModified= */ false,
                         SystemClock.elapsedRealtime() - requestStart,
                         responseHeaders);
-            } catch (SocketTimeoutException e) {
-                attemptRetryOnException("socket", request, new TimeoutError());
-            } catch (MalformedURLException e) {
-                throw new RuntimeException("Bad URL " + request.getUrl(), e);
             } catch (IOException e) {
-                int statusCode;
-                if (httpResponse != null) {
-                    statusCode = httpResponse.getStatusCode();
-                } else {
-                    if (request.shouldRetryConnectionErrors()) {
-                        attemptRetryOnException("connection", request, new NoConnectionError(e));
-                        continue;
-                    } else {
-                        throw new NoConnectionError(e);
-                    }
-                }
-                VolleyLog.e("Unexpected response code %d for %s", statusCode, request.getUrl());
-                NetworkResponse networkResponse;
-                if (responseContents != null) {
-                    networkResponse =
-                            new NetworkResponse(
-                                    statusCode,
-                                    responseContents,
-                                    /* notModified= */ false,
-                                    SystemClock.elapsedRealtime() - requestStart,
-                                    responseHeaders);
-                    if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED
-                            || statusCode == HttpURLConnection.HTTP_FORBIDDEN) {
-                        attemptRetryOnException(
-                                "auth", request, new AuthFailureError(networkResponse));
-                    } else if (statusCode >= 400 && statusCode <= 499) {
-                        // Don't retry other client errors.
-                        throw new ClientError(networkResponse);
-                    } else if (statusCode >= 500 && statusCode <= 599) {
-                        if (request.shouldRetryServerErrors()) {
-                            attemptRetryOnException(
-                                    "server", request, new ServerError(networkResponse));
-                        } else {
-                            throw new ServerError(networkResponse);
-                        }
-                    } else {
-                        // 3xx? No reason to retry.
-                        throw new ServerError(networkResponse);
-                    }
-                } else {
-                    attemptRetryOnException("network", request, new NetworkError());
-                }
+                NetworkUtility.handleException(
+                        request, null, e, requestStart, httpResponse, responseContents, this);
             }
         }
+    }
+
+    /**
+     * Converts Headers[] to Map&lt;String, String&gt;.
+     *
+     * @deprecated Should never have been exposed in the API. This method may be removed in a future
+     *     release of Volley.
+     */
+    @Deprecated
+    static Map<String, String> convertHeaders(Header[] headers) {
+        Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (int i = 0; i < headers.length; i++) {
+            result.put(headers[i].getName(), headers[i].getValue());
+        }
+        return result;
     }
 
     /**
@@ -231,36 +178,5 @@ public class BasicNetwork implements Network {
             throw e;
         }
         request.addMarker(String.format("%s-retry [timeout=%s]", logPrefix, oldTimeout));
-    }
-
-    /** Reads the contents of an InputStream into a byte[]. */
-    private byte[] inputStreamToBytes(InputStream in, int contentLength)
-            throws IOException, ServerError {
-        PoolingByteArrayOutputStream bytes = new PoolingByteArrayOutputStream(mPool, contentLength);
-        byte[] buffer = null;
-        try {
-            if (in == null) {
-                throw new ServerError();
-            }
-            buffer = mPool.getBuf(1024);
-            int count;
-            while ((count = in.read(buffer)) != -1) {
-                bytes.write(buffer, 0, count);
-            }
-            return bytes.toByteArray();
-        } finally {
-            try {
-                // Close the InputStream and release the resources by "consuming the content".
-                if (in != null) {
-                    in.close();
-                }
-            } catch (IOException e) {
-                // This can happen if there was an exception above that left the stream in
-                // an invalid state.
-                VolleyLog.v("Error occurred when closing InputStream");
-            }
-            mPool.returnBuf(buffer);
-            bytes.close();
-        }
     }
 }

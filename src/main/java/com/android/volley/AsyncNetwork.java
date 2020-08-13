@@ -16,13 +16,21 @@
 
 package com.android.volley;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import com.android.volley.toolbox.AsyncHttpStack;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
+/** An asynchronous implementation of {@link Network} to perform requests. */
 public abstract class AsyncNetwork implements Network {
+    protected AsyncHttpStack mAsyncStack;
+    protected ExecutorService mBlockingExecutor;
+    protected ExecutorService mNonBlockingExecutor;
+
+    protected AsyncNetwork(AsyncHttpStack stack) {
+        mAsyncStack = stack;
+    }
 
     public interface OnRequestComplete {
         void onSuccess(NetworkResponse networkResponse);
@@ -30,25 +38,39 @@ public abstract class AsyncNetwork implements Network {
         void onError(VolleyError volleyError);
     }
 
+    /**
+     * Non-blocking method to perform the specified request.
+     *
+     * @param request Request to process
+     * @param callback to be called once NetworkResponse is received
+     */
     public abstract void performRequest(Request<?> request, OnRequestComplete callback);
 
+    /**
+     * Blocking method to perform network request.
+     *
+     * @param request Request to process
+     * @return response retrieved from the network
+     * @throws VolleyError in the event of an error
+     */
     @Override
     public NetworkResponse performRequest(Request<?> request) throws VolleyError {
         // Is there a better way to go about this?
         final CountDownLatch latch = new CountDownLatch(1);
-        final AtomicReference<Response> entry = new AtomicReference<>();
+        final AtomicReference<NetworkResponse> response = new AtomicReference<>();
+        final AtomicReference<VolleyError> error = new AtomicReference<>();
         performRequest(
                 request,
                 new OnRequestComplete() {
                     @Override
                     public void onSuccess(NetworkResponse networkResponse) {
-                        entry.set(new Response(networkResponse, /* error= */ null));
+                        response.set(networkResponse);
                         latch.countDown();
                     }
 
                     @Override
                     public void onError(VolleyError volleyError) {
-                        entry.set(new Response(/* networkResponse= */ null, volleyError));
+                        error.set(volleyError);
                         latch.countDown();
                     }
                 });
@@ -60,11 +82,10 @@ public abstract class AsyncNetwork implements Network {
             throw new VolleyError(e);
         }
 
-        Response response = entry.get();
-        if (response.networkResponse != null) {
-            return response.networkResponse;
-        } else if (response.volleyError != null) {
-            throw response.volleyError;
+        if (response.get() != null) {
+            return response.get();
+        } else if (error.get() != null) {
+            throw error.get();
         } else {
             throw new VolleyError("Neither response entry was set");
         }
@@ -77,7 +98,10 @@ public abstract class AsyncNetwork implements Network {
      * AsyncHttpStack.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
-    public abstract void setNonBlockingExecutorForStack(ExecutorService executor);
+    public void setNonBlockingExecutorForStack(ExecutorService executor) {
+        mNonBlockingExecutor = executor;
+        mAsyncStack.setNonBlockingExecutor(executor);
+    }
 
     /**
      * This method sets the blocking executor to be used by the network and stack for potentially
@@ -86,15 +110,8 @@ public abstract class AsyncNetwork implements Network {
      * com.android.volley.toolbox.AsyncHttpStack}
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
-    public abstract void setBlockingExecutor(ExecutorService executor);
-
-    static class Response {
-        @Nullable NetworkResponse networkResponse;
-        @Nullable VolleyError volleyError;
-
-        private Response(@Nullable NetworkResponse networkResponse, @Nullable VolleyError error) {
-            this.networkResponse = networkResponse;
-            volleyError = error;
-        }
+    public void setBlockingExecutor(ExecutorService executor) {
+        mBlockingExecutor = executor;
+        mAsyncStack.setBlockingExecutor(executor);
     }
 }
