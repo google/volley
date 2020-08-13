@@ -139,7 +139,13 @@ public class BasicNetwork implements Network {
                         responseHeaders);
             } catch (IOException e) {
                 NetworkUtility.handleException(
-                        request, null, e, requestStart, httpResponse, responseContents, this);
+                        request,
+                        /* callback= */ null,
+                        e,
+                        requestStart,
+                        httpResponse,
+                        responseContents,
+                        this);
             }
         }
     }

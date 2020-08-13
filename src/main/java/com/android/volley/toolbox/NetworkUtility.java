@@ -219,6 +219,10 @@ public class NetworkUtility {
         }
     }
 
+    /*
+     * Based on the exception thrown, decides whether to attempt to retry, or to throw the error.
+     * Also handles logging.
+     */
     static void handleException(
             Request<?> request,
             @Nullable AsyncNetwork.OnRequestComplete callback,
