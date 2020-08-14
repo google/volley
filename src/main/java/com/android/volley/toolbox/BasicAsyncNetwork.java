@@ -32,11 +32,14 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 /** A network performing Volley requests over an {@link HttpStack}. */
 public class BasicAsyncNetwork extends AsyncNetwork {
 
     protected final ByteArrayPool mPool;
+
+    protected ExecutorService mBlockingExecutor;
 
     /**
      * @param httpStack HTTP stack to be used
@@ -139,6 +142,7 @@ public class BasicAsyncNetwork extends AsyncNetwork {
 
     @Override
     public void performRequest(final Request<?> request, final OnRequestComplete callback) {
+        mBlockingExecutor = getBlockingExecutor();
         if (mBlockingExecutor == null) {
             throw new IllegalStateException(
                     "mBlockingExecuter should be set before making a request");

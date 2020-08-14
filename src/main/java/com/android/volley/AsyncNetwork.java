@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
 /** An asynchronous implementation of {@link Network} to perform requests. */
 public abstract class AsyncNetwork implements Network {
     protected AsyncHttpStack mAsyncStack;
-    protected ExecutorService mBlockingExecutor;
-    protected ExecutorService mNonBlockingExecutor;
+    private ExecutorService mBlockingExecutor;
+    private ExecutorService mNonBlockingExecutor;
 
     protected AsyncNetwork(AsyncHttpStack stack) {
         mAsyncStack = stack;
@@ -113,5 +113,13 @@ public abstract class AsyncNetwork implements Network {
     public void setBlockingExecutor(ExecutorService executor) {
         mBlockingExecutor = executor;
         mAsyncStack.setBlockingExecutor(executor);
+    }
+
+    protected ExecutorService getBlockingExecutor() {
+        return mBlockingExecutor;
+    }
+
+    protected ExecutorService getNonBlockingExecutor() {
+        return mNonBlockingExecutor;
     }
 }
