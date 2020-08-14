@@ -100,7 +100,7 @@ public class BasicNetwork implements Network {
             try {
                 // Gather headers.
                 Map<String, String> additionalRequestHeaders =
-                        NetworkUtility.getCacheHeaders(request.getCacheEntry());
+                        HttpHeaderParser.getCacheHeaders(request.getCacheEntry());
                 httpResponse = mBaseHttpStack.executeRequest(request, additionalRequestHeaders);
                 int statusCode = httpResponse.getStatusCode();
 

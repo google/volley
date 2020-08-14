@@ -146,7 +146,7 @@ public class BasicAsyncNetwork extends AsyncNetwork {
         final long requestStartMs = SystemClock.elapsedRealtime();
         // Gather headers.
         final Map<String, String> additionalRequestHeaders =
-                NetworkUtility.getCacheHeaders(request.getCacheEntry());
+                HttpHeaderParser.getCacheHeaders(request.getCacheEntry());
         mAsyncStack.executeRequest(
                 request,
                 additionalRequestHeaders,

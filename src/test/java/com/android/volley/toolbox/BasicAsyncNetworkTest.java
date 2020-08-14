@@ -39,6 +39,7 @@ import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.mock.MockAsyncStack;
+import com.google.common.util.concurrent.MoreExecutors;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -58,13 +59,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.android.util.concurrent.*;
+import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
+@Config(sdk = 16)
 public class BasicAsyncNetworkTest {
 
     @Mock private RetryPolicy mMockRetryPolicy;
-    private ExecutorService executor = new RoboExecutorService();
+    private ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
     @Before
     public void setUp() throws Exception {

@@ -24,12 +24,16 @@ import com.android.volley.VolleyLog;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /** Utility methods for parsing HTTP headers. */
 public class HttpHeaderParser {
@@ -225,5 +229,70 @@ public class HttpHeaderParser {
             allHeaders.add(new Header(header.getKey(), header.getValue()));
         }
         return allHeaders;
+    }
+
+    /**
+     * Combine cache headers with network response headers for an HTTP 304 response.
+     *
+     * <p>An HTTP 304 response does not have all header fields. We have to use the header fields
+     * from the cache entry plus the new ones from the response. See also:
+     * http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.5
+     *
+     * @param responseHeaders Headers from the network response.
+     * @param entry The cached response.
+     * @return The combined list of headers.
+     */
+    static List<Header> combineHeaders(List<Header> responseHeaders, Cache.Entry entry) {
+        // First, create a case-insensitive set of header names from the network
+        // response.
+        Set<String> headerNamesFromNetworkResponse = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        if (!responseHeaders.isEmpty()) {
+            for (Header header : responseHeaders) {
+                headerNamesFromNetworkResponse.add(header.getName());
+            }
+        }
+
+        // Second, add headers from the cache entry to the network response as long as
+        // they didn't appear in the network response, which should take precedence.
+        List<Header> combinedHeaders = new ArrayList<>(responseHeaders);
+        if (entry.allResponseHeaders != null) {
+            if (!entry.allResponseHeaders.isEmpty()) {
+                for (Header header : entry.allResponseHeaders) {
+                    if (!headerNamesFromNetworkResponse.contains(header.getName())) {
+                        combinedHeaders.add(header);
+                    }
+                }
+            }
+        } else {
+            // Legacy caches only have entry.responseHeaders.
+            if (!entry.responseHeaders.isEmpty()) {
+                for (Map.Entry<String, String> header : entry.responseHeaders.entrySet()) {
+                    if (!headerNamesFromNetworkResponse.contains(header.getKey())) {
+                        combinedHeaders.add(new Header(header.getKey(), header.getValue()));
+                    }
+                }
+            }
+        }
+        return combinedHeaders;
+    }
+
+    static Map<String, String> getCacheHeaders(Cache.Entry entry) {
+        // If there's no cache entry, we're done.
+        if (entry == null) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> headers = new HashMap<>();
+
+        if (entry.etag != null) {
+            headers.put("If-None-Match", entry.etag);
+        }
+
+        if (entry.lastModified > 0) {
+            headers.put(
+                    "If-Modified-Since", HttpHeaderParser.formatEpochAsRfc1123(entry.lastModified));
+        }
+
+        return headers;
     }
 }
