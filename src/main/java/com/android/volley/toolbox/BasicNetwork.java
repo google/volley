@@ -21,7 +21,6 @@ import com.android.volley.Header;
 import com.android.volley.Network;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
-import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import java.io.IOException;
 import java.io.InputStream;
@@ -107,8 +106,9 @@ public class BasicNetwork implements Network {
                 responseHeaders = httpResponse.getHeaders();
                 // Handle cache validation.
                 if (statusCode == HttpURLConnection.HTTP_NOT_MODIFIED) {
-                    return NetworkUtility.getNetworkResponse(
-                            statusCode, request, requestStart, responseHeaders);
+                    long requestDuration = SystemClock.elapsedRealtime() - requestStart;
+                    return NetworkUtility.getNotModifiedNetworkResponse(
+                            request, requestDuration, responseHeaders);
                 }
 
                 // Some responses such as 204s do not have content.  We must check.
@@ -138,14 +138,10 @@ public class BasicNetwork implements Network {
                         SystemClock.elapsedRealtime() - requestStart,
                         responseHeaders);
             } catch (IOException e) {
+                // This will either throw an exception, breaking us from the loop, or will loop
+                // again and retry the request.
                 NetworkUtility.handleException(
-                        request,
-                        /* callback= */ null,
-                        e,
-                        requestStart,
-                        httpResponse,
-                        responseContents,
-                        this);
+                        request, e, requestStart, httpResponse, responseContents);
             }
         }
     }
@@ -157,32 +153,11 @@ public class BasicNetwork implements Network {
      *     release of Volley.
      */
     @Deprecated
-    static Map<String, String> convertHeaders(Header[] headers) {
+    protected static Map<String, String> convertHeaders(Header[] headers) {
         Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (int i = 0; i < headers.length; i++) {
             result.put(headers[i].getName(), headers[i].getValue());
         }
         return result;
-    }
-
-    /**
-     * Attempts to prepare the request for a retry. If there are no more attempts remaining in the
-     * request's retry policy, a timeout exception is thrown.
-     *
-     * @param request The request to use.
-     */
-    private static void attemptRetryOnException(
-            String logPrefix, Request<?> request, VolleyError exception) throws VolleyError {
-        RetryPolicy retryPolicy = request.getRetryPolicy();
-        int oldTimeout = request.getTimeoutMs();
-
-        try {
-            retryPolicy.retry(exception);
-        } catch (VolleyError e) {
-            request.addMarker(
-                    String.format("%s-timeout-giveup [timeout=%s]", logPrefix, oldTimeout));
-            throw e;
-        }
-        request.addMarker(String.format("%s-retry [timeout=%s]", logPrefix, oldTimeout));
     }
 }

@@ -18,12 +18,10 @@ package com.android.volley.toolbox;
 
 import android.os.SystemClock;
 import androidx.annotation.Nullable;
-import com.android.volley.AsyncNetwork;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Cache;
 import com.android.volley.ClientError;
 import com.android.volley.Header;
-import com.android.volley.Network;
 import com.android.volley.NetworkError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.NoConnectionError;
@@ -44,8 +42,10 @@ import java.util.List;
  * Utility class for methods that are shared between {@link BasicNetwork} and {@link
  * BasicAsyncNetwork}
  */
-public class NetworkUtility {
+public final class NetworkUtility {
     private static final int SLOW_REQUEST_THRESHOLD_MS = 3000;
+
+    private NetworkUtility() {}
 
     /** Logs requests that took over SLOW_REQUEST_THRESHOLD_MS to complete. */
     static void logSlowRequests(
@@ -62,15 +62,15 @@ public class NetworkUtility {
         }
     }
 
-    static NetworkResponse getNetworkResponse(
-            int statusCode, Request<?> request, long requestStart, List<Header> responseHeaders) {
+    static NetworkResponse getNotModifiedNetworkResponse(
+            Request<?> request, long requestDuration, List<Header> responseHeaders) {
         Cache.Entry entry = request.getCacheEntry();
         if (entry == null) {
             return new NetworkResponse(
                     HttpURLConnection.HTTP_NOT_MODIFIED,
                     /* data= */ null,
                     /* notModified= */ true,
-                    SystemClock.elapsedRealtime() - requestStart,
+                    requestDuration,
                     responseHeaders);
         }
         // Combine cached and response headers so the response will be complete.
@@ -79,7 +79,7 @@ public class NetworkUtility {
                 HttpURLConnection.HTTP_NOT_MODIFIED,
                 entry.data,
                 /* notModified= */ true,
-                SystemClock.elapsedRealtime() - requestStart,
+                requestDuration,
                 combinedHeaders);
     }
 
@@ -122,11 +122,7 @@ public class NetworkUtility {
      * @param request The request to use.
      */
     private static void attemptRetryOnException(
-            final String logPrefix,
-            final Request<?> request,
-            @Nullable final AsyncNetwork.OnRequestComplete callback,
-            final VolleyError exception,
-            final Network network)
+            final String logPrefix, final Request<?> request, final VolleyError exception)
             throws VolleyError {
         final RetryPolicy retryPolicy = request.getRetryPolicy();
         final int oldTimeout = request.getTimeoutMs();
@@ -138,31 +134,21 @@ public class NetworkUtility {
             throw e;
         }
         request.addMarker(String.format("%s-retry [timeout=%s]", logPrefix, oldTimeout));
-        if (network instanceof AsyncNetwork) {
-            if (callback == null) {
-                throw new VolleyError("No callback provided");
-            }
-            ((AsyncNetwork) network).performRequest(request, callback);
-        } else {
-            network.performRequest(request);
-        }
     }
 
-    /*
+    /**
      * Based on the exception thrown, decides whether to attempt to retry, or to throw the error.
      * Also handles logging.
      */
     static void handleException(
             Request<?> request,
-            @Nullable AsyncNetwork.OnRequestComplete callback,
             IOException exception,
             long requestStartMs,
             @Nullable HttpResponse httpResponse,
-            @Nullable byte[] responseContents,
-            Network network)
+            @Nullable byte[] responseContents)
             throws VolleyError {
         if (exception instanceof SocketTimeoutException) {
-            attemptRetryOnException("socket", request, callback, new TimeoutError(), network);
+            attemptRetryOnException("socket", request, new TimeoutError());
         } else if (exception instanceof MalformedURLException) {
             throw new RuntimeException("Bad URL " + request.getUrl(), exception);
         } else {
@@ -171,12 +157,11 @@ public class NetworkUtility {
                 statusCode = httpResponse.getStatusCode();
             } else {
                 if (request.shouldRetryConnectionErrors()) {
-                    attemptRetryOnException(
-                            "connection", request, callback, new NoConnectionError(), network);
+                    attemptRetryOnException("connection", request, new NoConnectionError());
+                    return;
                 } else {
                     throw new NoConnectionError(exception);
                 }
-                return;
             }
             VolleyLog.e("Unexpected response code %d for %s", statusCode, request.getUrl());
             NetworkResponse networkResponse;
@@ -192,23 +177,14 @@ public class NetworkUtility {
                                 responseHeaders);
                 if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED
                         || statusCode == HttpURLConnection.HTTP_FORBIDDEN) {
-                    attemptRetryOnException(
-                            "auth",
-                            request,
-                            callback,
-                            new AuthFailureError(networkResponse),
-                            network);
+                    attemptRetryOnException("auth", request, new AuthFailureError(networkResponse));
                 } else if (statusCode >= 400 && statusCode <= 499) {
                     // Don't retry other client errors.
                     throw new ClientError(networkResponse);
                 } else if (statusCode >= 500 && statusCode <= 599) {
                     if (request.shouldRetryServerErrors()) {
                         attemptRetryOnException(
-                                "server",
-                                request,
-                                callback,
-                                new ServerError(networkResponse),
-                                network);
+                                "server", request, new ServerError(networkResponse));
                     } else {
                         throw new ServerError(networkResponse);
                     }
@@ -217,7 +193,7 @@ public class NetworkUtility {
                     throw new ServerError(networkResponse);
                 }
             } else {
-                attemptRetryOnException("network", request, callback, new NetworkError(), network);
+                attemptRetryOnException("network", request, new NetworkError());
             }
         }
     }

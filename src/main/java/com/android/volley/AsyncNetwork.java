@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** An asynchronous implementation of {@link Network} to perform requests. */
 public abstract class AsyncNetwork implements Network {
-    protected AsyncHttpStack mAsyncStack;
+    private final AsyncHttpStack mAsyncStack;
     private ExecutorService mBlockingExecutor;
     private ExecutorService mNonBlockingExecutor;
 
@@ -55,7 +55,6 @@ public abstract class AsyncNetwork implements Network {
      */
     @Override
     public NetworkResponse performRequest(Request<?> request) throws VolleyError {
-        // Is there a better way to go about this?
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<NetworkResponse> response = new AtomicReference<>();
         final AtomicReference<VolleyError> error = new AtomicReference<>();
@@ -92,10 +91,8 @@ public abstract class AsyncNetwork implements Network {
     }
 
     /**
-     * This method sets the non blocking executor to be used by the stack for non-blocking tasks. If
-     * you are not using an {@link com.android.volley.toolbox.AsyncHttpStack}, this should do
-     * nothing. This method must be called before performing any requests if you are using an
-     * AsyncHttpStack.
+     * This method sets the non blocking executor to be used by the stack for non-blocking tasks.
+     * This method must be called before performing any requests if you are using an AsyncHttpStack.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
     public void setNonBlockingExecutorForStack(ExecutorService executor) {
@@ -105,9 +102,7 @@ public abstract class AsyncNetwork implements Network {
 
     /**
      * This method sets the blocking executor to be used by the network and stack for potentially
-     * blocking tasks. This method must be called before performing any requests. Only set the
-     * executor for the stack if it is an instance of {@link
-     * com.android.volley.toolbox.AsyncHttpStack}
+     * blocking tasks. This method must be called before performing any requests.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
     public void setBlockingExecutor(ExecutorService executor) {
@@ -121,5 +116,9 @@ public abstract class AsyncNetwork implements Network {
 
     protected ExecutorService getNonBlockingExecutor() {
         return mNonBlockingExecutor;
+    }
+
+    protected AsyncHttpStack getHttpStack() {
+        return mAsyncStack;
     }
 }

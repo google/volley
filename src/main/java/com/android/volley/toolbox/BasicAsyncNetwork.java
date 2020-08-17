@@ -19,6 +19,7 @@ package com.android.volley.toolbox;
 import static com.android.volley.toolbox.NetworkUtility.logSlowRequests;
 
 import android.os.SystemClock;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.android.volley.AsyncNetwork;
 import com.android.volley.AuthFailureError;
@@ -32,14 +33,11 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 /** A network performing Volley requests over an {@link HttpStack}. */
 public class BasicAsyncNetwork extends AsyncNetwork {
 
-    protected final ByteArrayPool mPool;
-
-    protected ExecutorService mBlockingExecutor;
+    private final ByteArrayPool mPool;
 
     /**
      * @param httpStack HTTP stack to be used
@@ -47,7 +45,6 @@ public class BasicAsyncNetwork extends AsyncNetwork {
      */
     private BasicAsyncNetwork(AsyncHttpStack httpStack, ByteArrayPool pool) {
         super(httpStack);
-        mAsyncStack = httpStack;
         mPool = pool;
     }
 
@@ -61,9 +58,11 @@ public class BasicAsyncNetwork extends AsyncNetwork {
         final List<Header> responseHeaders = httpResponse.getHeaders();
         // Handle cache validation.
         if (statusCode == HttpURLConnection.HTTP_NOT_MODIFIED) {
+            long requestDuration = SystemClock.elapsedRealtime() - requestStartMs;
             callback.onSuccess(
-                    NetworkUtility.getNetworkResponse(
-                            statusCode, request, requestStartMs, responseHeaders));
+                    NetworkUtility.getNotModifiedNetworkResponse(
+                            request, requestDuration, responseHeaders));
+            return;
         }
 
         byte[] responseContents;
@@ -87,12 +86,15 @@ public class BasicAsyncNetwork extends AsyncNetwork {
             return;
         }
 
+        // The underlying AsyncHttpStack does not support asynchronous reading of the response into
+        // a byte array, so we need to submit a blocking task to copy the response from the
+        // InputStream instead.
         final InputStream inputStream = httpResponse.getContent();
         Runnable run =
                 new Runnable() {
                     @Override
                     public void run() {
-                        byte[] finalResponseContents = new byte[0];
+                        byte[] finalResponseContents;
                         try {
                             finalResponseContents =
                                     NetworkUtility.inputStreamToBytes(
@@ -100,6 +102,7 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                         } catch (IOException e) {
                             onRequestFailed(
                                     request, callback, e, requestStartMs, httpResponse, null);
+                            return;
                         } catch (ServerError serverError) {
                             // This should never happen since we already check if inputStream is
                             // null
@@ -115,7 +118,7 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                                 finalResponseContents);
                     }
                 };
-        mBlockingExecutor.execute(run);
+        getBlockingExecutor().execute(run);
     }
 
     /* Method to be called after a failed network request */
@@ -128,54 +131,50 @@ public class BasicAsyncNetwork extends AsyncNetwork {
             @Nullable byte[] responseContents) {
         try {
             NetworkUtility.handleException(
-                    request,
-                    callback,
-                    exception,
-                    requestStartMs,
-                    httpResponse,
-                    responseContents,
-                    this);
+                    request, exception, requestStartMs, httpResponse, responseContents);
         } catch (VolleyError volleyError) {
             callback.onError(volleyError);
+            return;
         }
+        performRequest(request, callback);
     }
 
     @Override
     public void performRequest(final Request<?> request, final OnRequestComplete callback) {
-        mBlockingExecutor = getBlockingExecutor();
-        if (mBlockingExecutor == null) {
+        if (getBlockingExecutor() == null) {
             throw new IllegalStateException(
-                    "mBlockingExecuter should be set before making a request");
+                    "mBlockingExecuter must be set before making a request");
         }
         final long requestStartMs = SystemClock.elapsedRealtime();
         // Gather headers.
         final Map<String, String> additionalRequestHeaders =
                 HttpHeaderParser.getCacheHeaders(request.getCacheEntry());
-        mAsyncStack.executeRequest(
-                request,
-                additionalRequestHeaders,
-                new AsyncHttpStack.OnRequestComplete() {
-                    @Override
-                    public void onSuccess(HttpResponse httpResponse) {
-                        onRequestSucceeded(request, requestStartMs, httpResponse, callback);
-                    }
+        getHttpStack()
+                .executeRequest(
+                        request,
+                        additionalRequestHeaders,
+                        new AsyncHttpStack.OnRequestComplete() {
+                            @Override
+                            public void onSuccess(HttpResponse httpResponse) {
+                                onRequestSucceeded(request, requestStartMs, httpResponse, callback);
+                            }
 
-                    @Override
-                    public void onAuthError(AuthFailureError authFailureError) {
-                        callback.onError(authFailureError);
-                    }
+                            @Override
+                            public void onAuthError(AuthFailureError authFailureError) {
+                                callback.onError(authFailureError);
+                            }
 
-                    @Override
-                    public void onError(IOException ioException) {
-                        onRequestFailed(
-                                request,
-                                callback,
-                                ioException,
-                                requestStartMs,
-                                /* httpResponse= */ null,
-                                /* responseContents= */ null);
-                    }
-                });
+                            @Override
+                            public void onError(IOException ioException) {
+                                onRequestFailed(
+                                        request,
+                                        callback,
+                                        ioException,
+                                        requestStartMs,
+                                        /* httpResponse= */ null,
+                                        /* responseContents= */ null);
+                            }
+                        });
     }
 
     /* Helper method that determines what to do after byte[] is received */
@@ -199,6 +198,7 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                     requestStartMs,
                     httpResponse,
                     responseContents);
+            return;
         }
 
         callback.onSuccess(
@@ -210,21 +210,30 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                         responseHeaders));
     }
 
+    /**
+     * Builder is used to build an instance of {@link BasicAsyncNetwork} from values configured by
+     * the setters.
+     */
     public static class Builder {
         private static final int DEFAULT_POOL_SIZE = 4096;
-        AsyncHttpStack mAsyncStack;
-        ByteArrayPool mPool;
+        @NonNull private AsyncHttpStack mAsyncStack;
+        private ByteArrayPool mPool;
 
-        public Builder(AsyncHttpStack httpStack) {
+        public Builder(@NonNull AsyncHttpStack httpStack) {
             mAsyncStack = httpStack;
             mPool = null;
         }
 
+        /**
+         * Sets the ByteArrayPool to be used. If not set, it will default to a pool with the default
+         * pool size.
+         */
         public Builder setPool(ByteArrayPool pool) {
             mPool = pool;
             return this;
         }
 
+        /** Builds the {@link com.android.volley.toolbox.BasicAsyncNetwork} */
         public BasicAsyncNetwork build() {
             if (mPool == null) {
                 mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);

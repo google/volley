@@ -30,6 +30,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** Asynchronous extension of the {@link BaseHttpStack} class. */
 public abstract class AsyncHttpStack extends BaseHttpStack {
+    private ExecutorService mBlockingExecutor;
+    private ExecutorService mNonBlockingExecutor;
 
     public interface OnRequestComplete {
         /** Invoked when the stack successfully completes a request. */
@@ -58,14 +60,26 @@ public abstract class AsyncHttpStack extends BaseHttpStack {
      * This method must be called before executing any requests.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
-    public abstract void setNonBlockingExecutor(ExecutorService executor);
+    public void setNonBlockingExecutor(ExecutorService executor) {
+        mNonBlockingExecutor = executor;
+    }
 
     /**
      * This method sets the blocking executor to be used by the stack for potentially blocking
      * tasks. This method must be called before executing any requests.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
-    public abstract void setBlockingExecutor(ExecutorService executor);
+    public void setBlockingExecutor(ExecutorService executor) {
+        mBlockingExecutor = executor;
+    }
+
+    protected ExecutorService getBlockingExecutor() {
+        return mBlockingExecutor;
+    }
+
+    protected ExecutorService getNonBlockingExecutor() {
+        return mNonBlockingExecutor;
+    }
 
     /**
      * Performs an HTTP request with the given parameters.

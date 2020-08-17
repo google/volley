@@ -17,8 +17,9 @@
 package com.android.volley.cronet;
 
 import android.content.Context;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
@@ -36,7 +37,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import org.chromium.net.CronetEngine;
 import org.chromium.net.CronetException;
 import org.chromium.net.UploadDataProvider;
@@ -51,16 +51,12 @@ import org.chromium.net.UrlResponseInfo;
 public class CronetHttpStack extends AsyncHttpStack {
 
     private final CronetEngine mCronetEngine;
-    private ExecutorService mCallbackExecutor;
-    private ExecutorService mBlockingExecutor;
     private final ByteArrayPool mPool;
     private final UrlRewriter mUrlRewriter;
 
     private CronetHttpStack(
             CronetEngine cronetEngine, ByteArrayPool pool, UrlRewriter urlRewriter) {
         mCronetEngine = cronetEngine;
-        mCallbackExecutor = null;
-        mBlockingExecutor = null;
         mPool = pool;
         mUrlRewriter = urlRewriter;
     }
@@ -70,7 +66,7 @@ public class CronetHttpStack extends AsyncHttpStack {
             final Request<?> request,
             final Map<String, String> additionalHeaders,
             final OnRequestComplete callback) {
-        if (mBlockingExecutor == null || mCallbackExecutor == null) {
+        if (getBlockingExecutor() == null || getNonBlockingExecutor() == null) {
             throw new IllegalStateException("Must set blocking / non-blocking executors");
         }
         final Callback urlCallback =
@@ -145,51 +141,26 @@ public class CronetHttpStack extends AsyncHttpStack {
         // the callbacks are non-blocking.
         final UrlRequest.Builder builder =
                 mCronetEngine
-                        .newUrlRequestBuilder(url, urlCallback, mCallbackExecutor)
+                        .newUrlRequestBuilder(url, urlCallback, getNonBlockingExecutor())
                         .allowDirectExecutor()
                         .disableCache()
                         .setPriority(getPriority(request));
         // request.getHeaders() may be blocking, so submit it to the blocking executor.
-        mBlockingExecutor.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            setHttpMethod(request, builder);
-                            setRequestHeaders(request, additionalHeaders, builder);
-                            UrlRequest urlRequest = builder.build();
-                            urlRequest.start();
-                        } catch (AuthFailureError authFailureError) {
-                            callback.onAuthError(authFailureError);
-                        }
-                    }
-                });
-    }
-
-    /**
-     * This method sets the non blocking executor to be used by the stack for non-blocking tasks.
-     * This method must be called before executing any requests.
-     */
-    @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
-    @Override
-    public void setNonBlockingExecutor(ExecutorService executor) {
-        if (executor == null) {
-            throw new IllegalArgumentException("Cannot set executor to be null");
-        }
-        mCallbackExecutor = executor;
-    }
-
-    /**
-     * This method sets the blocking executor to be used by the stack for potentially blocking
-     * tasks. This method must be called before executing any requests.
-     */
-    @RestrictTo({RestrictTo.Scope.SUBCLASSES, RestrictTo.Scope.LIBRARY_GROUP})
-    @Override
-    public void setBlockingExecutor(ExecutorService executor) {
-        if (executor == null) {
-            throw new IllegalArgumentException("Cannot set executor to be null");
-        }
-        mBlockingExecutor = executor;
+        getBlockingExecutor()
+                .execute(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    setHttpMethod(request, builder);
+                                    setRequestHeaders(request, additionalHeaders, builder);
+                                    UrlRequest urlRequest = builder.build();
+                                    urlRequest.start();
+                                } catch (AuthFailureError authFailureError) {
+                                    callback.onAuthError(authFailureError);
+                                }
+                            }
+                        });
     }
 
     @VisibleForTesting
@@ -275,7 +246,7 @@ public class CronetHttpStack extends AsyncHttpStack {
     private void addBodyIfExists(@Nullable byte[] body, UrlRequest.Builder builder) {
         if (body != null) {
             UploadDataProvider dataProvider = UploadDataProviders.create(body);
-            builder.setUploadDataProvider(dataProvider, mCallbackExecutor);
+            builder.setUploadDataProvider(dataProvider, getNonBlockingExecutor());
         }
     }
 
@@ -314,6 +285,7 @@ public class CronetHttpStack extends AsyncHttpStack {
         private UrlRewriter mUrlRewriter;
 
         public Builder(Context context) {
+            this.context = context;
             mCronetEngine = null;
             mPool = null;
             mUrlRewriter = null;
