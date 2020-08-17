@@ -17,8 +17,6 @@
 package com.android.volley.cronet;
 
 import android.content.Context;
-
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.AuthFailureError;
@@ -280,7 +278,7 @@ public class CronetHttpStack extends AsyncHttpStack {
     public static class Builder {
         private static final int DEFAULT_POOL_SIZE = 4096;
         private CronetEngine mCronetEngine;
-        private Context context;
+        private final Context context;
         private ByteArrayPool mPool;
         private UrlRewriter mUrlRewriter;
 
