@@ -23,7 +23,6 @@ import com.android.volley.toolbox.HttpResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 public class MockAsyncStack extends AsyncHttpStack {
 
@@ -83,15 +82,5 @@ public class MockAsyncStack extends AsyncHttpStack {
             mLastPostBody = null;
         }
         callback.onSuccess(mResponseToReturn);
-    }
-
-    @Override
-    public void setNonBlockingExecutor(ExecutorService executor) {
-        // do nothing
-    }
-
-    @Override
-    public void setBlockingExecutor(ExecutorService executor) {
-        // do nothing
     }
 }

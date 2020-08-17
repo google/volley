@@ -19,6 +19,7 @@ package com.android.volley.toolbox;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -63,7 +64,9 @@ import org.robolectric.RobolectricTestRunner;
 @RunWith(RobolectricTestRunner.class)
 public class BasicAsyncNetworkTest {
 
+    CompletableFuture<NetworkResponse> future = new CompletableFuture<>();
     @Mock private RetryPolicy mMockRetryPolicy;
+    @Mock AsyncNetwork.OnRequestComplete mockCallback;
     private ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
     @Before
@@ -145,6 +148,7 @@ public class BasicAsyncNetworkTest {
         entry.allResponseHeaders.add(new Header("SHAREDCASEINSENSITIVEKEY", "CachedValueShared1"));
         entry.allResponseHeaders.add(new Header("shAREDcaSEinSENSITIVEkeY", "CachedValueShared2"));
         request.setCacheEntry(entry);
+        httpNetwork.performRequest(request, mockCallback);
         NetworkResponse response = perform(request, httpNetwork).get();
         List<Header> expectedHeaders = new ArrayList<>();
         // Should have all server headers + cache headers that didn't show up in server response.
@@ -202,9 +206,12 @@ public class BasicAsyncNetworkTest {
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
         doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-        perform(request, httpNetwork).get();
+        httpNetwork.performRequest(request, mockCallback);
+        verify(mockCallback, times(1)).onError(any(VolleyError.class));
+        verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
         // should retry socket timeouts
         verify(mMockRetryPolicy).retry(any(TimeoutError.class));
+        reset(mMockRetryPolicy, mockCallback);
     }
 
     @Test
@@ -216,9 +223,12 @@ public class BasicAsyncNetworkTest {
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
         doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-        perform(request, httpNetwork).get();
+        httpNetwork.performRequest(request, mockCallback);
+        verify(mockCallback, times(1)).onError(any(VolleyError.class));
+        verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
         // should not retry when there is no connection
         verify(mMockRetryPolicy, never()).retry(any(VolleyError.class));
+        reset(mMockRetryPolicy, mockCallback);
     }
 
     @Test
@@ -231,10 +241,12 @@ public class BasicAsyncNetworkTest {
         request.setRetryPolicy(mMockRetryPolicy);
         request.setShouldRetryConnectionErrors(true);
         doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-        perform(request, httpNetwork).get();
+        httpNetwork.performRequest(request, mockCallback);
+        verify(mockCallback, times(1)).onError(any(VolleyError.class));
+        verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
         // should retry when there is no connection
         verify(mMockRetryPolicy).retry(any(NoConnectionError.class));
-        reset(mMockRetryPolicy);
+        reset(mMockRetryPolicy, mockCallback);
     }
 
     @Test
@@ -247,9 +259,12 @@ public class BasicAsyncNetworkTest {
         request.setRetryPolicy(mMockRetryPolicy);
         request.setShouldRetryConnectionErrors(false);
         doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-        perform(request, httpNetwork).get();
+        httpNetwork.performRequest(request, mockCallback);
+        verify(mockCallback, times(1)).onError(any(VolleyError.class));
+        verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
         // should not retry when there is no connection
         verify(mMockRetryPolicy, never()).retry(any(VolleyError.class));
+        reset(mMockRetryPolicy, mockCallback);
     }
 
     @Test
@@ -262,9 +277,12 @@ public class BasicAsyncNetworkTest {
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
         doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-        perform(request, httpNetwork).get();
+        httpNetwork.performRequest(request, mockCallback);
+        verify(mockCallback, times(1)).onError(any(VolleyError.class));
+        verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
         // should retry in case it's an auth failure.
         verify(mMockRetryPolicy).retry(any(AuthFailureError.class));
+        reset(mMockRetryPolicy, mockCallback);
     }
 
     @Test(expected = RuntimeException.class)
@@ -289,9 +307,12 @@ public class BasicAsyncNetworkTest {
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
         doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-        perform(request, httpNetwork).get();
+        httpNetwork.performRequest(request, mockCallback);
+        verify(mockCallback, times(1)).onError(any(VolleyError.class));
+        verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
         // should retry in case it's an auth failure.
         verify(mMockRetryPolicy).retry(any(AuthFailureError.class));
+        reset(mMockRetryPolicy, mockCallback);
     }
 
     @Test
@@ -305,10 +326,17 @@ public class BasicAsyncNetworkTest {
             Request<String> request = buildRequest();
             request.setRetryPolicy(mMockRetryPolicy);
             doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-            perform(request, httpNetwork).get();
+            httpNetwork.performRequest(request, mockCallback);
+            if (i != 304) {
+                verify(mockCallback, times(1)).onError(any(VolleyError.class));
+                verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
+            } else {
+                verify(mockCallback, never()).onError(any(VolleyError.class));
+                verify(mockCallback, times(1)).onSuccess(any(NetworkResponse.class));
+            }
             // should not retry 300 responses.
             verify(mMockRetryPolicy, never()).retry(any(VolleyError.class));
-            reset(mMockRetryPolicy);
+            reset(mMockRetryPolicy, mockCallback);
         }
     }
 
@@ -327,10 +355,12 @@ public class BasicAsyncNetworkTest {
             Request<String> request = buildRequest();
             request.setRetryPolicy(mMockRetryPolicy);
             doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-            perform(request, httpNetwork).get();
+            httpNetwork.performRequest(request, mockCallback);
+            verify(mockCallback, times(1)).onError(any(VolleyError.class));
+            verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
             // should not retry other 400 errors.
             verify(mMockRetryPolicy, never()).retry(any(VolleyError.class));
-            reset(mMockRetryPolicy);
+            reset(mMockRetryPolicy, mockCallback);
         }
     }
 
@@ -349,10 +379,12 @@ public class BasicAsyncNetworkTest {
             request.setRetryPolicy(mMockRetryPolicy);
             request.setShouldRetryServerErrors(true);
             doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-            perform(request, httpNetwork).get();
+            httpNetwork.performRequest(request, mockCallback);
+            verify(mockCallback, times(1)).onError(any(VolleyError.class));
+            verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
             // should retry all 500 errors
             verify(mMockRetryPolicy).retry(any(ServerError.class));
-            reset(mMockRetryPolicy);
+            reset(mMockRetryPolicy, mockCallback);
         }
     }
 
@@ -367,11 +399,55 @@ public class BasicAsyncNetworkTest {
             Request<String> request = buildRequest();
             request.setRetryPolicy(mMockRetryPolicy);
             doThrow(new VolleyError()).when(mMockRetryPolicy).retry(any(VolleyError.class));
-            perform(request, httpNetwork).get();
+            httpNetwork.performRequest(request, mockCallback);
+            verify(mockCallback, times(1)).onError(any(VolleyError.class));
+            verify(mockCallback, never()).onSuccess(any(NetworkResponse.class));
             // should not retry any 500 error w/ HTTP 500 retries turned off (the default).
             verify(mMockRetryPolicy, never()).retry(any(VolleyError.class));
-            reset(mMockRetryPolicy);
+            reset(mMockRetryPolicy, mockCallback);
         }
+    }
+
+    @Test
+    public void notModifiedShortCircuit() throws Exception {
+        MockAsyncStack mockAsyncStack = new MockAsyncStack();
+        List<Header> headers = new ArrayList<>();
+        headers.add(new Header("ServerKeyA", "ServerValueA"));
+        headers.add(new Header("ServerKeyB", "ServerValueB"));
+        headers.add(new Header("SharedKey", "ServerValueShared"));
+        headers.add(new Header("sharedcaseinsensitivekey", "ServerValueShared1"));
+        headers.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
+        HttpResponse fakeResponse = new HttpResponse(HttpURLConnection.HTTP_NOT_MODIFIED, headers);
+        mockAsyncStack.setResponseToReturn(fakeResponse);
+        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        httpNetwork.setBlockingExecutor(executor);
+        Request<String> request = buildRequest();
+        httpNetwork.performRequest(request, mockCallback);
+        verify(mockCallback, times(1)).onSuccess(any(NetworkResponse.class));
+        verify(mockCallback, never()).onError(any(VolleyError.class));
+        reset(mMockRetryPolicy, mockCallback);
+    }
+
+    @Test
+    public void performRequestSuccess() throws Exception {
+        MockAsyncStack mockAsyncStack = new MockAsyncStack();
+        HttpResponse fakeResponse =
+                new HttpResponse(
+                        200,
+                        Collections.<Header>emptyList(),
+                        "foobar".getBytes(StandardCharsets.UTF_8));
+        mockAsyncStack.setResponseToReturn(fakeResponse);
+        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        httpNetwork.setBlockingExecutor(executor);
+        Request<String> request = buildRequest();
+        Entry entry = new Entry();
+        entry.etag = "foobar";
+        entry.lastModified = 1503102002000L;
+        request.setCacheEntry(entry);
+        httpNetwork.performRequest(request, mockCallback);
+        verify(mockCallback, times(1)).onSuccess(any(NetworkResponse.class));
+        verify(mockCallback, never()).onError(any(VolleyError.class));
+        reset(mMockRetryPolicy, mockCallback);
     }
 
     @Test(expected = IllegalStateException.class)
