@@ -36,7 +36,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.*;
+
 import org.chromium.net.CronetEngine;
 import org.chromium.net.CronetException;
 import org.chromium.net.UploadDataProvider;
@@ -309,11 +310,14 @@ public class CronetHttpStack extends AsyncHttpStack {
     public static class Builder {
         private static final int DEFAULT_POOL_SIZE = 4096;
         private CronetEngine mCronetEngine;
-        private Context context;
+        private final Context context;
         private ByteArrayPool mPool;
         private UrlRewriter mUrlRewriter;
+        private ExecutorService mBlockingExecutorService;
+        private ExecutorService mCallbackExecutorService;
 
         public Builder(Context context) {
+            this.context = context;
             mCronetEngine = null;
             mPool = null;
             mUrlRewriter = null;
@@ -337,6 +341,16 @@ public class CronetHttpStack extends AsyncHttpStack {
             return this;
         }
 
+        public Builder setBlockingExecutorService(ExecutorService service){
+            mBlockingExecutorService = service;
+            return this;
+        }
+
+        public Builder setCallbackExecutorService(ExecutorService service){
+            mCallbackExecutorService = service;
+            return this;
+        }
+
         public CronetHttpStack build() {
             if (mCronetEngine == null) {
                 mCronetEngine = new CronetEngine.Builder(context).build();
@@ -353,7 +367,19 @@ public class CronetHttpStack extends AsyncHttpStack {
             if (mPool == null) {
                 mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
             }
-            return new CronetHttpStack(mCronetEngine, mPool, mUrlRewriter);
+            if (mCallbackExecutorService == null){
+                int coreNumber = Runtime.getRuntime().availableProcessors();
+                mCallbackExecutorService = new ThreadPoolExecutor(coreNumber+1,coreNumber+1,
+                        1, TimeUnit.SECONDS,new SynchronousQueue<Runnable>());
+            }
+            if(mBlockingExecutorService == null){
+                mBlockingExecutorService = Executors.newSingleThreadExecutor();
+            }
+
+            CronetHttpStack cronetHttpStack = new CronetHttpStack(mCronetEngine, mPool, mUrlRewriter);
+            cronetHttpStack.mBlockingExecutor = this.mBlockingExecutorService;
+            cronetHttpStack.mCallbackExecutor = this.mCallbackExecutorService;
+            return cronetHttpStack;
         }
     }
 }
