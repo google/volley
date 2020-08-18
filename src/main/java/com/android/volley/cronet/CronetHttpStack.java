@@ -65,7 +65,7 @@ public class CronetHttpStack extends AsyncHttpStack {
             final Map<String, String> additionalHeaders,
             final OnRequestComplete callback) {
         if (getBlockingExecutor() == null || getNonBlockingExecutor() == null) {
-            throw new IllegalStateException("Must set blocking / non-blocking executors");
+            throw new IllegalStateException("Must set blocking and non-blocking executors");
         }
         final Callback urlCallback =
                 new Callback() {
