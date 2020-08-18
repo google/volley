@@ -92,7 +92,7 @@ public abstract class AsyncNetwork implements Network {
 
     /**
      * This method sets the non blocking executor to be used by the stack for non-blocking tasks.
-     * This method must be called before performing any requests if you are using an AsyncHttpStack.
+     * This method must be called before performing any requests.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
     public void setNonBlockingExecutorForStack(ExecutorService executor) {
