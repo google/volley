@@ -411,8 +411,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
      * the setters.
      */
     public static class Builder {
-        private FileSupplier rootDirectorySupplier;
-        private File rootDirectory;
+        @Nullable private FileSupplier rootDirectorySupplier;
+        @Nullable private File rootDirectory;
         private int maxCacheSizeInBytes;
 
         public Builder() {
