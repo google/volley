@@ -32,9 +32,12 @@ public abstract class AsyncNetwork implements Network {
         mAsyncStack = stack;
     }
 
+    /** Inteface for callback to be called after request is processed */
     public interface OnRequestComplete {
+        /** Method to be called after successful network request. */
         void onSuccess(NetworkResponse networkResponse);
 
+        /** Method to be called after unsuccessful network request. */
         void onError(VolleyError volleyError);
     }
 
@@ -91,11 +94,11 @@ public abstract class AsyncNetwork implements Network {
     }
 
     /**
-     * This method sets the non blocking executor to be used by the stack for non-blocking tasks.
-     * This method must be called before performing any requests.
+     * This method sets the non blocking executor to be used by the network and stack for
+     * non-blocking tasks. This method must be called before performing any requests.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
-    public void setNonBlockingExecutorForStack(ExecutorService executor) {
+    public void setNonBlockingExecutor(ExecutorService executor) {
         mNonBlockingExecutor = executor;
         mAsyncStack.setNonBlockingExecutor(executor);
     }
@@ -110,14 +113,17 @@ public abstract class AsyncNetwork implements Network {
         mAsyncStack.setBlockingExecutor(executor);
     }
 
+    /** Gets blocking executor to perform any potentially blocking tasks. */
     protected ExecutorService getBlockingExecutor() {
         return mBlockingExecutor;
     }
 
+    /** Gets non-blocking executor to perform any non-blocking tasks. */
     protected ExecutorService getNonBlockingExecutor() {
         return mNonBlockingExecutor;
     }
 
+    /** Gets the {@link AsyncHttpStack} to be used by the network. */
     protected AsyncHttpStack getHttpStack() {
         return mAsyncStack;
     }

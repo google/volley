@@ -64,9 +64,8 @@ import org.robolectric.RobolectricTestRunner;
 @RunWith(RobolectricTestRunner.class)
 public class BasicAsyncNetworkTest {
 
-    CompletableFuture<NetworkResponse> future = new CompletableFuture<>();
     @Mock private RetryPolicy mMockRetryPolicy;
-    @Mock AsyncNetwork.OnRequestComplete mockCallback;
+    @Mock private AsyncNetwork.OnRequestComplete mockCallback;
     private ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
     @Before

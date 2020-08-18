@@ -37,8 +37,6 @@ public class DiskBasedAsyncCacheTest {
 
     private DiskBasedAsyncCache cache;
 
-    private AsyncCache.OnWriteCompleteCallback futureCallback;
-
     @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Rule public ExpectedException exception = ExpectedException.none();
@@ -46,7 +44,7 @@ public class DiskBasedAsyncCacheTest {
     @Before
     public void setup() throws IOException, ExecutionException, InterruptedException {
         final CompletableFuture<Void> future = new CompletableFuture<>();
-        futureCallback =
+        AsyncCache.OnWriteCompleteCallback futureCallback =
                 new AsyncCache.OnWriteCompleteCallback() {
                     @Override
                     public void onWriteComplete() {

@@ -84,15 +84,11 @@ public final class NetworkUtility {
     }
 
     /** Reads the contents of an InputStream into a byte[]. */
-    static byte[] inputStreamToBytes(
-            @Nullable InputStream in, int contentLength, ByteArrayPool pool)
-            throws IOException, ServerError {
+    static byte[] inputStreamToBytes(InputStream in, int contentLength, ByteArrayPool pool)
+            throws IOException {
         PoolingByteArrayOutputStream bytes = new PoolingByteArrayOutputStream(pool, contentLength);
         byte[] buffer = null;
         try {
-            if (in == null) {
-                throw new ServerError();
-            }
             buffer = pool.getBuf(1024);
             int count;
             while ((count = in.read(buffer)) != -1) {

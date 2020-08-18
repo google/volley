@@ -26,7 +26,6 @@ import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
-import com.android.volley.ServerError;
 import com.android.volley.VolleyError;
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,13 +64,11 @@ public class BasicAsyncNetwork extends AsyncNetwork {
             return;
         }
 
-        byte[] responseContents;
-        if (httpResponse.getContentLength() == -1) {
+        byte[] responseContents = httpResponse.getContentBytes();
+        if (responseContents == null && httpResponse.getContent() == null) {
             // Add 0 byte response as a way of honestly representing a
             // no-content request.
             responseContents = new byte[0];
-        } else {
-            responseContents = httpResponse.getContentBytes();
         }
 
         if (responseContents != null) {
@@ -103,10 +100,6 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                             onRequestFailed(
                                     request, callback, e, requestStartMs, httpResponse, null);
                             return;
-                        } catch (ServerError serverError) {
-                            // This should never happen since we already check if inputStream is
-                            // null
-                            throw new RuntimeException(serverError);
                         }
                         onResponseRead(
                                 requestStartMs,
