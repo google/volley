@@ -32,7 +32,7 @@ public abstract class AsyncNetwork implements Network {
         mAsyncStack = stack;
     }
 
-    /** Inteface for callback to be called after request is processed */
+    /** Inteface for callback to be called after request is processed. */
     public interface OnRequestComplete {
         /** Method to be called after successful network request. */
         void onSuccess(NetworkResponse networkResponse);
