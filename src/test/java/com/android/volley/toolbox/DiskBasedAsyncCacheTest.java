@@ -68,7 +68,11 @@ public class DiskBasedAsyncCacheTest {
                     }
                 };
         // Initialize empty cache
-        cache = new DiskBasedAsyncCache(temporaryFolder.getRoot(), MAX_SIZE);
+        cache =
+                new DiskBasedAsyncCache.Builder()
+                        .setRootDirectory(temporaryFolder.getRoot())
+                        .setMaxCacheSizeInBytes(MAX_SIZE)
+                        .build();
         cache.initialize(futureCallback);
         future.get();
     }
@@ -310,7 +314,11 @@ public class DiskBasedAsyncCacheTest {
         Cache.Entry entry = CacheTestUtils.randomData(1023);
         putEntry("key", entry).get();
 
-        final AsyncCache copy = new DiskBasedAsyncCache(temporaryFolder.getRoot(), MAX_SIZE);
+        final AsyncCache copy =
+                new DiskBasedAsyncCache.Builder()
+                        .setRootDirectory(temporaryFolder.getRoot())
+                        .setMaxCacheSizeInBytes(MAX_SIZE)
+                        .build();
         final CompletableFuture<Cache.Entry> getEntry = new CompletableFuture<>();
         copy.initialize(
                 new AsyncCache.OnWriteCompleteCallback() {

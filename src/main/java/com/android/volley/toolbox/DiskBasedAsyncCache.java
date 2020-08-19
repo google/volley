@@ -59,16 +59,10 @@ public class DiskBasedAsyncCache extends AsyncCache {
     /**
      * Constructs an instance of the DiskBasedAsyncCache at the specified directory.
      *
-     * @param rootDirectory The root directory of the cache.
+     * @param rootDirectorySupplier The root directory supplier of the cache.
      */
-    public DiskBasedAsyncCache(final File rootDirectory, int maxCacheSizeInBytes) {
-        mRootDirectorySupplier =
-                new FileSupplier() {
-                    @Override
-                    public File get() {
-                        return rootDirectory;
-                    }
-                };
+    private DiskBasedAsyncCache(FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
+        mRootDirectorySupplier = rootDirectorySupplier;
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
 
@@ -410,5 +404,59 @@ public class DiskBasedAsyncCache extends AsyncCache {
         deleteFile(file);
         mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
         callback.onGetComplete(null);
+    }
+
+    /**
+     * Builder is used to build an instance of {@link DiskBasedAsyncCache} from values configured by
+     * the setters.
+     */
+    public static class Builder {
+        @Nullable private FileSupplier rootDirectorySupplier = null;
+        @Nullable private File rootDirectory = null;
+        private int maxCacheSizeInBytes = DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES;
+
+        /**
+         * Sets the root directory of the cache. Must be called if {@link
+         * Builder#setRootDirectorySupplier(FileSupplier)} is not.
+         */
+        public Builder setRootDirectory(File rootDirectory) {
+            this.rootDirectory = rootDirectory;
+            return this;
+        }
+
+        /**
+         * Sets the root directory supplier of the cache. Must be called if {@link
+         * Builder#setRootDirectory(File)} is not.
+         */
+        public Builder setRootDirectorySupplier(FileSupplier rootDirectorySupplier) {
+            this.rootDirectorySupplier = rootDirectorySupplier;
+            return this;
+        }
+
+        /**
+         * Sets the max size of the cache in bytes. Will default to {@link
+         * DiskBasedCacheUtility#DEFAULT_DISK_USAGE_BYTES} if not called.
+         */
+        public Builder setMaxCacheSizeInBytes(int maxCacheSizeInBytes) {
+            this.maxCacheSizeInBytes = maxCacheSizeInBytes;
+            return this;
+        }
+
+        /** Builds a DiskBasedAsyncCache from the provided parameters. */
+        public DiskBasedAsyncCache build() {
+            if (rootDirectory == null && rootDirectorySupplier == null) {
+                throw new IllegalArgumentException("Must set either file or supplier");
+            }
+            if (rootDirectorySupplier == null) {
+                rootDirectorySupplier =
+                        new FileSupplier() {
+                            @Override
+                            public File get() {
+                                return rootDirectory;
+                            }
+                        };
+            }
+            return new DiskBasedAsyncCache(rootDirectorySupplier, maxCacheSizeInBytes);
+        }
     }
 }
