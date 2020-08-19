@@ -413,7 +413,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
     public static class Builder {
         @Nullable private FileSupplier rootDirectorySupplier = null;
         @Nullable private File rootDirectory = null;
-        private int maxCacheSizeInBytes = DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES;;
+        private int maxCacheSizeInBytes = DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES;
 
         /**
          * Sets the root directory of the cache. Must be called if {@link
