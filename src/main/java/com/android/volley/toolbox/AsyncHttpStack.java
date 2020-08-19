@@ -73,10 +73,12 @@ public abstract class AsyncHttpStack extends BaseHttpStack {
         mBlockingExecutor = executor;
     }
 
+    /** Gets blocking executor to perform any potentially blocking tasks. */
     protected ExecutorService getBlockingExecutor() {
         return mBlockingExecutor;
     }
 
+    /** Gets non-blocking executor to perform any non-blocking tasks. */
     protected ExecutorService getNonBlockingExecutor() {
         return mNonBlockingExecutor;
     }
