@@ -61,7 +61,7 @@ public class DiskBasedAsyncCache extends AsyncCache {
      *
      * @param rootDirectorySupplier The root directory supplier of the cache.
      */
-    private DiskBasedAsyncCache(final FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
+    private DiskBasedAsyncCache(FileSupplier rootDirectorySupplier, int maxCacheSizeInBytes) {
         mRootDirectorySupplier = rootDirectorySupplier;
         mMaxCacheSizeInBytes = maxCacheSizeInBytes;
     }
@@ -411,22 +411,16 @@ public class DiskBasedAsyncCache extends AsyncCache {
      * the setters.
      */
     public static class Builder {
-        @Nullable private FileSupplier rootDirectorySupplier;
-        @Nullable private File rootDirectory;
-        private int maxCacheSizeInBytes;
-
-        public Builder() {
-            rootDirectorySupplier = null;
-            rootDirectory = null;
-            maxCacheSizeInBytes = -1;
-        }
+        @Nullable private FileSupplier rootDirectorySupplier = null;
+        @Nullable private File rootDirectory = null;
+        private int maxCacheSizeInBytes = DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES;;
 
         /**
          * Sets the root directory of the cache. Must be called if {@link
          * Builder#setRootDirectorySupplier(FileSupplier)} is not.
          */
-        public Builder setRootDirectory(File file) {
-            this.rootDirectory = file;
+        public Builder setRootDirectory(File rootDirectory) {
+            this.rootDirectory = rootDirectory;
             return this;
         }
 
@@ -434,8 +428,8 @@ public class DiskBasedAsyncCache extends AsyncCache {
          * Sets the root directory supplier of the cache. Must be called if {@link
          * Builder#setRootDirectory(File)} is not.
          */
-        public Builder setRootDirectorySupplier(FileSupplier fileSupplier) {
-            this.rootDirectorySupplier = fileSupplier;
+        public Builder setRootDirectorySupplier(FileSupplier rootDirectorySupplier) {
+            this.rootDirectorySupplier = rootDirectorySupplier;
             return this;
         }
 
@@ -452,9 +446,6 @@ public class DiskBasedAsyncCache extends AsyncCache {
         public DiskBasedAsyncCache build() {
             if (rootDirectory == null && rootDirectorySupplier == null) {
                 throw new IllegalArgumentException("Must set either file or supplier");
-            }
-            if (maxCacheSizeInBytes == -1) {
-                maxCacheSizeInBytes = DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES;
             }
             if (rootDirectorySupplier == null) {
                 rootDirectorySupplier =
