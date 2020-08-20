@@ -24,9 +24,12 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import com.android.volley.mock.ShadowSystemClock;
-import com.android.volley.toolbox.NoCache;
+import com.android.volley.toolbox.NoAsyncCache;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.utils.ImmediateResponseDelivery;
+import com.google.common.util.concurrent.MoreExecutors;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,27 +37,41 @@ import org.mockito.Mock;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-/** Unit tests for RequestQueue, with all dependencies mocked out */
+/** Unit tests for AsyncRequestQueue, with all dependencies mocked out */
 @RunWith(RobolectricTestRunner.class)
 @Config(shadows = {ShadowSystemClock.class})
 public class AsyncRequestQueueTest {
 
-    private ResponseDelivery mDelivery;
     @Mock private AsyncNetwork mMockNetwork;
+    private AsyncRequestQueue queue;
 
     @Before
     public void setUp() throws Exception {
-        mDelivery = new ImmediateResponseDelivery();
+        ResponseDelivery mDelivery = new ImmediateResponseDelivery();
         initMocks(this);
+        queue =
+                new AsyncRequestQueue.Builder(mMockNetwork)
+                        .setAsyncCache(new NoAsyncCache())
+                        .setResponseDelivery(mDelivery)
+                        .setExecutorFactory(
+                                new AsyncRequestQueue.ExecutorFactory() {
+                                    @Override
+                                    public ExecutorService createNonBlockingExecutor(
+                                            BlockingQueue<Runnable> taskQueue) {
+                                        return MoreExecutors.newDirectExecutorService();
+                                    }
+
+                                    @Override
+                                    public ExecutorService createBlockingExecutor(
+                                            BlockingQueue<Runnable> taskQueue) {
+                                        return MoreExecutors.newDirectExecutorService();
+                                    }
+                                })
+                        .build();
     }
 
     @Test
     public void cancelAll_onlyCorrectTag() throws Exception {
-        AsyncRequestQueue queue =
-                new AsyncRequestQueue.Builder(mMockNetwork)
-                        .setCache(new NoCache())
-                        .setResponseDelivery(mDelivery)
-                        .build();
         queue.start();
         Object tagA = new Object();
         Object tagB = new Object();
@@ -83,11 +100,6 @@ public class AsyncRequestQueueTest {
     @Test
     public void add_notifiesListener() throws Exception {
         RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
-        AsyncRequestQueue queue =
-                new AsyncRequestQueue.Builder(mMockNetwork)
-                        .setCache(new NoCache())
-                        .setResponseDelivery(mDelivery)
-                        .build();
         queue.start();
         queue.addRequestEventListener(listener);
         StringRequest req = mock(StringRequest.class);
@@ -102,11 +114,6 @@ public class AsyncRequestQueueTest {
     @Test
     public void finish_notifiesListener() throws Exception {
         RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
-        AsyncRequestQueue queue =
-                new AsyncRequestQueue.Builder(mMockNetwork)
-                        .setCache(new NoCache())
-                        .setResponseDelivery(mDelivery)
-                        .build();
         queue.start();
         queue.addRequestEventListener(listener);
         StringRequest req = mock(StringRequest.class);
@@ -122,11 +129,6 @@ public class AsyncRequestQueueTest {
     public void sendRequestEvent_notifiesListener() throws Exception {
         StringRequest req = mock(StringRequest.class);
         RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
-        AsyncRequestQueue queue =
-                new AsyncRequestQueue.Builder(mMockNetwork)
-                        .setCache(new NoCache())
-                        .setResponseDelivery(mDelivery)
-                        .build();
         queue.start();
         queue.addRequestEventListener(listener);
 
@@ -142,11 +144,6 @@ public class AsyncRequestQueueTest {
     public void removeRequestEventListener_removesListener() throws Exception {
         StringRequest req = mock(StringRequest.class);
         RequestQueue.RequestEventListener listener = mock(RequestQueue.RequestEventListener.class);
-        AsyncRequestQueue queue =
-                new AsyncRequestQueue.Builder(mMockNetwork)
-                        .setCache(new NoCache())
-                        .setResponseDelivery(mDelivery)
-                        .build();
         queue.start();
         queue.addRequestEventListener(listener);
         queue.removeRequestEventListener(listener);

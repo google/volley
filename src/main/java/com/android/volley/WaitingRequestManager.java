@@ -99,9 +99,12 @@ class WaitingRequestManager implements Request.NetworkRequestCompleteListener {
             Request<?> nextInLine = waitingRequests.remove(0);
             mWaitingRequests.put(cacheKey, waitingRequests);
             nextInLine.setNetworkRequestCompleteListener(this);
+            // RequestQueue will be non-null if this instance was created in AsyncRequestQueue.
             if (mRequestQueue != null) {
+                // Will send the network request from the RequestQueue.
                 mRequestQueue.sendRequestOverNetwork(nextInLine);
             } else {
+                // If we're not using the AsyncRequestQueue, then submit it to the network queue.
                 try {
                     mNetworkQueue.put(nextInLine);
                 } catch (InterruptedException iex) {

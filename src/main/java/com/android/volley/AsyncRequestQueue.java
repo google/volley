@@ -36,6 +36,12 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * An asynchronous request dispatch queue.
+ *
+ * <p>Calling {@link #add(Request)} will submit a task to the non-blocking executor. Once completed,
+ * it will deliver the response on the main thread.
+ */
 public class AsyncRequestQueue extends RequestQueue {
     /** Default number of blocking threads to start. */
     private static final int DEFAULT_BLOCKING_THREAD_POOL_SIZE = 4;
@@ -46,34 +52,8 @@ public class AsyncRequestQueue extends RequestQueue {
     /** AsyncNetwork used to perform nework requests. */
     private final AsyncNetwork mNetwork;
 
-    /**
-     * Cache used to retrieve and store responses. Only use if an AsyncCache cannot be provided due
-     * to lower API.
-     */
-    private final Cache mCache;
-
     /** Executor for non-blocking tasks. */
     private ExecutorService mNonBlockingExecutor;
-
-    /** Blocking queue to be used to created Executors */
-    private static final PriorityBlockingQueue<Runnable> mBlockingQueue =
-            new PriorityBlockingQueue<>(
-                    11,
-                    new Comparator<Runnable>() {
-                        @Override
-                        public int compare(Runnable r1, Runnable r2) {
-                            // Vanilla runnables are prioritized first, then RequestTasks are
-                            // ordered
-                            // by the underlying Request.
-                            if (r1 instanceof RequestTask) {
-                                if (r2 instanceof RequestTask) {
-                                    return ((RequestTask<?>) r1).compareTo(((RequestTask<?>) r2));
-                                }
-                                return 1;
-                            }
-                            return r2 instanceof RequestTask ? -1 : 0;
-                        }
-                    });
 
     /**
      * Executor for blocking tasks.
@@ -112,9 +92,8 @@ public class AsyncRequestQueue extends RequestQueue {
             @Nullable AsyncCache asyncCache,
             ResponseDelivery responseDelivery,
             @Nullable ExecutorFactory executorFactory) {
-        super(cache, network, 0, responseDelivery);
+        super(cache, network, /* threadPoolSize= */ 0, responseDelivery);
         mAsyncCache = asyncCache;
-        mCache = cache;
         mNetwork = network;
         mExecutorFactory = executorFactory;
         mWaitingRequestManager = new WaitingRequestManager(this);
@@ -126,8 +105,8 @@ public class AsyncRequestQueue extends RequestQueue {
         stop(); // Make sure any currently running threads are stopped
 
         // Create blocking / non-blocking executors and set them in the network and stack.
-        mNonBlockingExecutor = mExecutorFactory.createNonBlockingExecutor(mBlockingQueue);
-        mBlockingExecutor = mExecutorFactory.createBlockingExecutor(mBlockingQueue);
+        mNonBlockingExecutor = mExecutorFactory.createNonBlockingExecutor(getBlockingQueue());
+        mBlockingExecutor = mExecutorFactory.createBlockingExecutor(getBlockingQueue());
         mNetwork.setBlockingExecutor(mBlockingExecutor);
         mNetwork.setNonBlockingExecutor(mNonBlockingExecutor);
 
@@ -155,7 +134,7 @@ public class AsyncRequestQueue extends RequestQueue {
                                 throw new RuntimeException(e);
                             }
                         } else {
-                            mCache.initialize();
+                            getCache().initialize();
                         }
                     }
                 });
@@ -235,7 +214,7 @@ public class AsyncRequestQueue extends RequestQueue {
                             }
                         });
             } else {
-                Entry entry = mCache.get(mRequest.getCacheKey());
+                Entry entry = getCache().get(mRequest.getCacheKey());
                 handleEntry(entry, mRequest);
             }
         }
@@ -263,55 +242,63 @@ public class AsyncRequestQueue extends RequestQueue {
         }
 
         // We have a cache hit; parse its data for delivery back to the request.
-        mBlockingExecutor.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        mRequest.addMarker("cache-hit");
-                        Response<?> response =
-                                mRequest.parseNetworkResponse(
-                                        new NetworkResponse(
-                                                HttpURLConnection.HTTP_OK,
-                                                entry.data,
-                                                /* notModified= */ false,
-                                                /* networkTimeMs= */ 0,
-                                                entry.allResponseHeaders));
-                        mRequest.addMarker("cache-hit-parsed");
+        mBlockingExecutor.execute(new CacheParseTask<>(mRequest, entry));
+    }
 
-                        if (!entry.refreshNeeded()) {
-                            // Completely unexpired cache hit. Just deliver the response.
-                            getResponseDelivery().postResponse(mRequest, response);
-                        } else {
-                            // Soft-expired cache hit. We can deliver the cached response,
-                            // but we need to also send the request to the network for
-                            // refreshing.
-                            mRequest.addMarker("cache-hit-refresh-needed");
-                            mRequest.setCacheEntry(entry);
-                            // Mark the response as intermediate.
-                            response.intermediate = true;
+    private class CacheParseTask<T> extends RequestTask<T> {
+        Cache.Entry entry;
 
-                            if (!mWaitingRequestManager.maybeAddToWaitingRequests(mRequest)) {
-                                // Post the intermediate response back to the user and have
-                                // the delivery then forward the request along to the network.
-                                getResponseDelivery()
-                                        .postResponse(
-                                                mRequest,
-                                                response,
-                                                new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        sendRequestOverNetwork(mRequest);
-                                                    }
-                                                });
-                            } else {
-                                // request has been added to list of waiting requests
-                                // to receive the network response from the first request once it
-                                // returns.
-                                getResponseDelivery().postResponse(mRequest, response);
-                            }
-                        }
-                    }
-                });
+        CacheParseTask(Request<T> request, Cache.Entry entry) {
+            super(request);
+            this.entry = entry;
+        }
+
+        @Override
+        public void run() {
+            mRequest.addMarker("cache-hit");
+            Response<?> response =
+                    mRequest.parseNetworkResponse(
+                            new NetworkResponse(
+                                    HttpURLConnection.HTTP_OK,
+                                    entry.data,
+                                    /* notModified= */ false,
+                                    /* networkTimeMs= */ 0,
+                                    entry.allResponseHeaders));
+            mRequest.addMarker("cache-hit-parsed");
+
+            if (!entry.refreshNeeded()) {
+                // Completely unexpired cache hit. Just deliver the response.
+                getResponseDelivery().postResponse(mRequest, response);
+            } else {
+                // Soft-expired cache hit. We can deliver the cached response,
+                // but we need to also send the request to the network for
+                // refreshing.
+                mRequest.addMarker("cache-hit-refresh-needed");
+                mRequest.setCacheEntry(entry);
+                // Mark the response as intermediate.
+                response.intermediate = true;
+
+                if (!mWaitingRequestManager.maybeAddToWaitingRequests(mRequest)) {
+                    // Post the intermediate response back to the user and have
+                    // the delivery then forward the request along to the network.
+                    getResponseDelivery()
+                            .postResponse(
+                                    mRequest,
+                                    response,
+                                    new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            sendRequestOverNetwork(mRequest);
+                                        }
+                                    });
+                } else {
+                    // request has been added to list of waiting requests
+                    // to receive the network response from the first request once it
+                    // returns.
+                    getResponseDelivery().postResponse(mRequest, response);
+                }
+            }
+        }
     }
 
     /** Runnable that performs the network request */
@@ -353,7 +340,8 @@ public class AsyncRequestQueue extends RequestQueue {
                             }
 
                             // Parse the response here on the worker thread.
-                            mBlockingExecutor.execute(new ParseTask<>(mRequest, networkResponse));
+                            mBlockingExecutor.execute(
+                                    new NetworkParseTask<>(mRequest, networkResponse));
                         }
 
                         @Override
@@ -376,10 +364,10 @@ public class AsyncRequestQueue extends RequestQueue {
     }
 
     /** Runnable that parses a network response. */
-    private class ParseTask<T> extends RequestTask<T> {
+    private class NetworkParseTask<T> extends RequestTask<T> {
         NetworkResponse networkResponse;
 
-        ParseTask(Request<T> request, NetworkResponse networkResponse) {
+        NetworkParseTask(Request<T> request, NetworkResponse networkResponse) {
             super(request);
             this.networkResponse = networkResponse;
         }
@@ -394,39 +382,52 @@ public class AsyncRequestQueue extends RequestQueue {
             // record for 304s.
             if (mRequest.shouldCache() && response.cacheEntry != null) {
                 if (mAsyncCache != null) {
-                    mNonBlockingExecutor.execute(
-                            new Runnable() {
-                                @Override
-                                public void run() {
-                                    mAsyncCache.put(
-                                            mRequest.getCacheKey(),
-                                            response.cacheEntry,
-                                            new AsyncCache.OnWriteCompleteCallback() {
-                                                @Override
-                                                public void onWriteComplete() {
-                                                    finishRequest(response, true);
-                                                }
-                                            });
-                                }
-                            });
+                    mNonBlockingExecutor.execute(new CachePutTask<>(mRequest, response));
                 } else {
-                    mCache.put(mRequest.getCacheKey(), response.cacheEntry);
-                    finishRequest(response, true);
+                    mBlockingExecutor.execute(new CachePutTask<>(mRequest, response));
                 }
             } else {
-                finishRequest(response, false);
+                finishRequest(mRequest, response, false);
             }
+        }
+    }
+
+    private class CachePutTask<T> extends RequestTask<T> {
+        Response<?> response;
+
+        CachePutTask(Request<T> request, Response<?> response) {
+            super(request);
+            this.response = response;
         }
 
-        private void finishRequest(Response<?> response, boolean cached) {
-            if (cached) {
-                mRequest.addMarker("network-cache-written");
+        @Override
+        public void run() {
+            if (mAsyncCache != null) {
+                mAsyncCache.put(
+                        mRequest.getCacheKey(),
+                        response.cacheEntry,
+                        new AsyncCache.OnWriteCompleteCallback() {
+                            @Override
+                            public void onWriteComplete() {
+                                finishRequest(mRequest, response, true);
+                            }
+                        });
+            } else {
+                getCache().put(mRequest.getCacheKey(), response.cacheEntry);
+                finishRequest(mRequest, response, true);
             }
-            // Post the response back.
-            mRequest.markDelivered();
-            getResponseDelivery().postResponse(mRequest, response);
-            mRequest.notifyListenerResponseReceived(response);
         }
+    }
+
+    /** Posts response and notifies listener */
+    private void finishRequest(Request<?> mRequest, Response<?> response, boolean cached) {
+        if (cached) {
+            mRequest.addMarker("network-cache-written");
+        }
+        // Post the response back.
+        mRequest.markDelivered();
+        getResponseDelivery().postResponse(mRequest, response);
+        mRequest.notifyListenerResponseReceived(response);
     }
 
     /**
@@ -436,9 +437,30 @@ public class AsyncRequestQueue extends RequestQueue {
      * requests according to Request#getPriority.
      */
     public interface ExecutorFactory {
-        ExecutorService createNonBlockingExecutor(BlockingQueue<?> taskQueue);
+        ExecutorService createNonBlockingExecutor(BlockingQueue<Runnable> taskQueue);
 
-        ExecutorService createBlockingExecutor(BlockingQueue<?> taskQueue);
+        ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue);
+    }
+
+    /** Provides a BlockingQueue to be used to create executors. */
+    private PriorityBlockingQueue<Runnable> getBlockingQueue() {
+        return new PriorityBlockingQueue<>(
+                /* initialCapacity= */ 11,
+                new Comparator<Runnable>() {
+                    @Override
+                    public int compare(Runnable r1, Runnable r2) {
+                        // Vanilla runnables are prioritized first, then RequestTasks are
+                        // ordered
+                        // by the underlying Request.
+                        if (r1 instanceof RequestTask) {
+                            if (r2 instanceof RequestTask) {
+                                return ((RequestTask<?>) r1).compareTo(((RequestTask<?>) r2));
+                            }
+                            return 1;
+                        }
+                        return r2 instanceof RequestTask ? -1 : 0;
+                    }
+                });
     }
 
     /**
@@ -464,8 +486,8 @@ public class AsyncRequestQueue extends RequestQueue {
         }
 
         /**
-         * Sets the executor factory to be used by the AsyncRequestQueue. If this is not called, we
-         * will default to calling getDefaultExecutorFactory.
+         * Sets the executor factory to be used by the AsyncRequestQueue. If this is not called,
+         * Volley will create suitable private thread pools.
          */
         public Builder setExecutorFactory(ExecutorFactory executorFactory) {
             mExecutorFactory = executorFactory;
@@ -474,7 +496,7 @@ public class AsyncRequestQueue extends RequestQueue {
 
         /**
          * Sets the response deliver to be used by the AsyncRequestQueue. If this is not called, we
-         * will default to creating a new {@link ExecutorDelivery} with the applications main
+         * will default to creating a new {@link ExecutorDelivery} with the application's main
          * thread.
          */
         public Builder setResponseDelivery(ResponseDelivery responseDelivery) {
@@ -498,13 +520,14 @@ public class AsyncRequestQueue extends RequestQueue {
         private ExecutorFactory getDefaultExecutorFactory() {
             return new ExecutorFactory() {
                 @Override
-                public ExecutorService createNonBlockingExecutor(BlockingQueue<?> taskQueue) {
+                public ExecutorService createNonBlockingExecutor(
+                        BlockingQueue<Runnable> taskQueue) {
                     return new ThreadPoolExecutor(
                             /* corePoolSize= */ 0,
                             /* maximumPoolSize= */ 1,
                             /* keepAliveTime= */ 60,
                             /* unit= */ TimeUnit.SECONDS,
-                            mBlockingQueue,
+                            taskQueue,
                             new ThreadFactory() {
                                 @Override
                                 public Thread newThread(@NonNull Runnable runnable) {
@@ -516,13 +539,13 @@ public class AsyncRequestQueue extends RequestQueue {
                 }
 
                 @Override
-                public ExecutorService createBlockingExecutor(BlockingQueue<?> taskQueue) {
+                public ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue) {
                     return new ThreadPoolExecutor(
                             /* corePoolSize= */ 0,
                             /* maximumPoolSize= */ DEFAULT_BLOCKING_THREAD_POOL_SIZE,
                             /* keepAliveTime= */ 60,
                             /* unit= */ TimeUnit.SECONDS,
-                            mBlockingQueue,
+                            taskQueue,
                             new ThreadFactory() {
                                 @Override
                                 public Thread newThread(@NonNull Runnable runnable) {

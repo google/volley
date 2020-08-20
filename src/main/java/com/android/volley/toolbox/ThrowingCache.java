@@ -16,9 +16,11 @@
 
 package com.android.volley.toolbox;
 
+import androidx.annotation.RestrictTo;
 import com.android.volley.Cache;
 
-/** A cache that thorws an error if a method is called. */
+/** A cache that throws an error if a method is called. */
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public class ThrowingCache implements Cache {
     @Override
     public Entry get(String key) {
