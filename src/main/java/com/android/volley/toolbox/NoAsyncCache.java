@@ -3,6 +3,7 @@ package com.android.volley.toolbox;
 import com.android.volley.AsyncCache;
 import com.android.volley.Cache;
 
+/** An AsyncCache that doesn't cache anything. */
 public class NoAsyncCache extends AsyncCache {
     @Override
     public void get(String key, OnGetCompleteCallback callback) {

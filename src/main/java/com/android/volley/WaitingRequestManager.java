@@ -16,6 +16,8 @@
 
 package com.android.volley;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,12 +40,25 @@ class WaitingRequestManager implements Request.NetworkRequestCompleteListener {
 
     private final ResponseDelivery mResponseDelivery;
 
-    private final RequestQueue mRequestQueue;
+    /**
+     * RequestQueue that is passed in by the AsyncRequestQueue. This is null when this instance is
+     * initialized by the {@link CacheDispatcher}
+     */
+    @Nullable private final RequestQueue mRequestQueue;
 
-    private final CacheDispatcher mCacheDispatcher;
-    private final BlockingQueue<Request<?>> mNetworkQueue;
+    /**
+     * CacheDispacter that is passed in by the CacheDispatcher. This is null when this instance is
+     * initialized by the {@link AsyncRequestQueue}
+     */
+    @Nullable private final CacheDispatcher mCacheDispatcher;
 
-    WaitingRequestManager(RequestQueue requestQueue) {
+    /**
+     * BlockingQueue that is passed in by the CacheDispatcher. This is null when this instance is
+     * initialized by the {@link AsyncRequestQueue}
+     */
+    @Nullable private final BlockingQueue<Request<?>> mNetworkQueue;
+
+    WaitingRequestManager(@NonNull RequestQueue requestQueue) {
         mRequestQueue = requestQueue;
         mResponseDelivery = mRequestQueue.getResponseDelivery();
         mCacheDispatcher = null;
@@ -51,8 +66,8 @@ class WaitingRequestManager implements Request.NetworkRequestCompleteListener {
     }
 
     WaitingRequestManager(
-            CacheDispatcher cacheDispatcher,
-            BlockingQueue<Request<?>> networkQueue,
+            @NonNull CacheDispatcher cacheDispatcher,
+            @NonNull BlockingQueue<Request<?>> networkQueue,
             ResponseDelivery responseDelivery) {
         mRequestQueue = null;
         mResponseDelivery = responseDelivery;
@@ -103,7 +118,7 @@ class WaitingRequestManager implements Request.NetworkRequestCompleteListener {
             if (mRequestQueue != null) {
                 // Will send the network request from the RequestQueue.
                 mRequestQueue.sendRequestOverNetwork(nextInLine);
-            } else {
+            } else if (mCacheDispatcher != null && mNetworkQueue != null) {
                 // If we're not using the AsyncRequestQueue, then submit it to the network queue.
                 try {
                     mNetworkQueue.put(nextInLine);

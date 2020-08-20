@@ -39,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * An asynchronous request dispatch queue.
  *
- * <p>Calling {@link #add(Request)} will submit a task to the non-blocking executor. Once completed,
- * it will deliver the response on the main thread.
+ * <p>Add requests to the queue with {@link #add(Request)}. Once completed, responses will be
+ * delivered on the main thread (unless a custom {@link ResponseDelivery} has been provided)
  */
 public class AsyncRequestQueue extends RequestQueue {
     /** Default number of blocking threads to start. */
@@ -91,7 +91,7 @@ public class AsyncRequestQueue extends RequestQueue {
             AsyncNetwork network,
             @Nullable AsyncCache asyncCache,
             ResponseDelivery responseDelivery,
-            @Nullable ExecutorFactory executorFactory) {
+            ExecutorFactory executorFactory) {
         super(cache, network, /* threadPoolSize= */ 0, responseDelivery);
         mAsyncCache = asyncCache;
         mNetwork = network;
@@ -301,6 +301,22 @@ public class AsyncRequestQueue extends RequestQueue {
         }
     }
 
+    private class ParseErrorTask<T> extends RequestTask<T> {
+        VolleyError volleyError;
+
+        ParseErrorTask(Request<T> request, VolleyError volleyError) {
+            super(request);
+            this.volleyError = volleyError;
+        }
+
+        @Override
+        public void run() {
+            VolleyError parsedError = mRequest.parseNetworkError(volleyError);
+            getResponseDelivery().postError(mRequest, parsedError);
+            mRequest.notifyListenerResponseNotUsable();
+        }
+    }
+
     /** Runnable that performs the network request */
     private class NetworkTask<T> extends RequestTask<T> {
         NetworkTask(Request<T> request) {
@@ -348,16 +364,7 @@ public class AsyncRequestQueue extends RequestQueue {
                         public void onError(final VolleyError volleyError) {
                             volleyError.setNetworkTimeMs(
                                     SystemClock.elapsedRealtime() - startTimeMs);
-                            mBlockingExecutor.execute(
-                                    new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            VolleyError parsedError =
-                                                    mRequest.parseNetworkError(volleyError);
-                                            getResponseDelivery().postError(mRequest, parsedError);
-                                            mRequest.notifyListenerResponseNotUsable();
-                                        }
-                                    });
+                            mBlockingExecutor.execute(new ParseErrorTask<>(mRequest, volleyError));
                         }
                     });
         }
@@ -387,7 +394,7 @@ public class AsyncRequestQueue extends RequestQueue {
                     mBlockingExecutor.execute(new CachePutTask<>(mRequest, response));
                 }
             } else {
-                finishRequest(mRequest, response, false);
+                finishRequest(mRequest, response, /* cached= */ false);
             }
         }
     }
@@ -409,12 +416,12 @@ public class AsyncRequestQueue extends RequestQueue {
                         new AsyncCache.OnWriteCompleteCallback() {
                             @Override
                             public void onWriteComplete() {
-                                finishRequest(mRequest, response, true);
+                                finishRequest(mRequest, response, /* cached= */ true);
                             }
                         });
             } else {
                 getCache().put(mRequest.getCacheKey(), response.cacheEntry);
-                finishRequest(mRequest, response, true);
+                finishRequest(mRequest, response, /* cached= */ true);
             }
         }
     }
@@ -443,14 +450,13 @@ public class AsyncRequestQueue extends RequestQueue {
     }
 
     /** Provides a BlockingQueue to be used to create executors. */
-    private PriorityBlockingQueue<Runnable> getBlockingQueue() {
+    private static PriorityBlockingQueue<Runnable> getBlockingQueue() {
         return new PriorityBlockingQueue<>(
                 /* initialCapacity= */ 11,
                 new Comparator<Runnable>() {
                     @Override
                     public int compare(Runnable r1, Runnable r2) {
-                        // Vanilla runnables are prioritized first, then RequestTasks are
-                        // ordered
+                        // Vanilla runnables are prioritized first, then RequestTasks are ordered
                         // by the underlying Request.
                         if (r1 instanceof RequestTask) {
                             if (r2 instanceof RequestTask) {
@@ -480,7 +486,7 @@ public class AsyncRequestQueue extends RequestQueue {
             }
             mNetwork = asyncNetwork;
             mExecutorFactory = null;
-            mResponseDelivery = new ExecutorDelivery(new Handler(Looper.getMainLooper()));
+            mResponseDelivery = null;
             mAsyncCache = null;
             mCache = null;
         }
@@ -522,27 +528,27 @@ public class AsyncRequestQueue extends RequestQueue {
                 @Override
                 public ExecutorService createNonBlockingExecutor(
                         BlockingQueue<Runnable> taskQueue) {
-                    return new ThreadPoolExecutor(
-                            /* corePoolSize= */ 0,
+                    return getNewThreadPoolExecutor(
                             /* maximumPoolSize= */ 1,
-                            /* keepAliveTime= */ 60,
-                            /* unit= */ TimeUnit.SECONDS,
-                            taskQueue,
-                            new ThreadFactory() {
-                                @Override
-                                public Thread newThread(@NonNull Runnable runnable) {
-                                    Thread t = Executors.defaultThreadFactory().newThread(runnable);
-                                    t.setName("Volley-NonBlockingExecutor");
-                                    return t;
-                                }
-                            });
+                            /* threadNameSuffix= */ "Non-BlockingExecutor",
+                            taskQueue);
                 }
 
                 @Override
                 public ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue) {
+                    return getNewThreadPoolExecutor(
+                            /* maximumPoolSize= */ DEFAULT_BLOCKING_THREAD_POOL_SIZE,
+                            /* threadNameSuffix= */ "BlockingExecutor",
+                            taskQueue);
+                }
+
+                private ThreadPoolExecutor getNewThreadPoolExecutor(
+                        int maximumPoolSize,
+                        final String threadNameSuffix,
+                        BlockingQueue<Runnable> taskQueue) {
                     return new ThreadPoolExecutor(
                             /* corePoolSize= */ 0,
-                            /* maximumPoolSize= */ DEFAULT_BLOCKING_THREAD_POOL_SIZE,
+                            /* maximumPoolSize= */ maximumPoolSize,
                             /* keepAliveTime= */ 60,
                             /* unit= */ TimeUnit.SECONDS,
                             taskQueue,
@@ -550,7 +556,7 @@ public class AsyncRequestQueue extends RequestQueue {
                                 @Override
                                 public Thread newThread(@NonNull Runnable runnable) {
                                     Thread t = Executors.defaultThreadFactory().newThread(runnable);
-                                    t.setName("Volley-BlockingExecutor");
+                                    t.setName("Volley-" + threadNameSuffix);
                                     return t;
                                 }
                             });
