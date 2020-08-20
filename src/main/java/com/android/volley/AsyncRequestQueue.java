@@ -173,20 +173,6 @@ public class AsyncRequestQueue extends RequestQueue {
         mNonBlockingExecutor.execute(new NetworkTask<>(request));
     }
 
-    /** Abstract runnable that's a task to be completed by the RequestQueue. */
-    private abstract static class RequestTask<T> implements Runnable {
-        final Request<T> mRequest;
-
-        RequestTask(Request<T> request) {
-            mRequest = request;
-        }
-
-        @SuppressWarnings("unchecked")
-        public int compareTo(RequestTask<?> other) {
-            return mRequest.compareTo((Request<T>) other.mRequest);
-        }
-    }
-
     /** Runnable that gets an entry from the cache. */
     private class CacheTask<T> extends RequestTask<T> {
         CacheTask(Request<T> request) {

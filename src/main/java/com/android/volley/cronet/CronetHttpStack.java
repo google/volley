@@ -22,6 +22,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.Request;
+import com.android.volley.RequestTask;
 import com.android.volley.toolbox.AsyncHttpStack;
 import com.android.volley.toolbox.ByteArrayPool;
 import com.android.volley.toolbox.HttpResponse;
@@ -145,20 +146,38 @@ public class CronetHttpStack extends AsyncHttpStack {
                         .setPriority(getPriority(request));
         // request.getHeaders() may be blocking, so submit it to the blocking executor.
         getBlockingExecutor()
-                .execute(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    setHttpMethod(request, builder);
-                                    setRequestHeaders(request, additionalHeaders, builder);
-                                    UrlRequest urlRequest = builder.build();
-                                    urlRequest.start();
-                                } catch (AuthFailureError authFailureError) {
-                                    callback.onAuthError(authFailureError);
-                                }
-                            }
-                        });
+                .execute(new SetUpRequestTask<>(request, builder, additionalHeaders, callback));
+    }
+
+    private class SetUpRequestTask<T> extends RequestTask<T> {
+        UrlRequest.Builder builder;
+        Map<String, String> additionalHeaders;
+        OnRequestComplete callback;
+        Request<T> request;
+
+        SetUpRequestTask(
+                Request<T> request,
+                UrlRequest.Builder builder,
+                Map<String, String> additionalHeaders,
+                OnRequestComplete callback) {
+            super(request);
+            this.builder = builder;
+            this.additionalHeaders = additionalHeaders;
+            this.callback = callback;
+            this.request = request;
+        }
+
+        @Override
+        public void run() {
+            try {
+                setHttpMethod(request, builder);
+                setRequestHeaders(request, additionalHeaders, builder);
+                UrlRequest urlRequest = builder.build();
+                urlRequest.start();
+            } catch (AuthFailureError authFailureError) {
+                callback.onAuthError(authFailureError);
+            }
+        }
     }
 
     @VisibleForTesting
