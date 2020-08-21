@@ -24,6 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
+/**
+ * Callback to notify the caller when the network request returns. Valid responses can be used by
+ * all duplicate requests.
+ */
 class WaitingRequestManager implements Request.NetworkRequestCompleteListener {
 
     /**

@@ -46,7 +46,11 @@ public class AsyncRequestQueue extends RequestQueue {
     /** Default number of blocking threads to start. */
     private static final int DEFAULT_BLOCKING_THREAD_POOL_SIZE = 4;
 
-    /** AsyncCache used to retrieve and store responses. Null indicates use of blocking Cache. */
+    /**
+     * AsyncCache used to retrieve and store responses.
+     *
+     * <p>{@code null} indicates use of blocking Cache.
+     */
     @Nullable private final AsyncCache mAsyncCache;
 
     /** AsyncNetwork used to perform nework requests. */
@@ -72,7 +76,7 @@ public class AsyncRequestQueue extends RequestQueue {
     private ExecutorFactory mExecutorFactory;
 
     /** Manage list of waiting requests and de-duplicate requests with same cache key. */
-    private final WaitingRequestManager mWaitingRequestManager;
+    private final WaitingRequestManager mWaitingRequestManager = new WaitingRequestManager(this);;
 
     /**
      * Sets all the variables, but processing does not begin until {@link #start()} is called.
@@ -96,7 +100,6 @@ public class AsyncRequestQueue extends RequestQueue {
         mAsyncCache = asyncCache;
         mNetwork = network;
         mExecutorFactory = executorFactory;
-        mWaitingRequestManager = new WaitingRequestManager(this);
     }
 
     /** Sets the executors and initializes the cache. */
@@ -311,8 +314,7 @@ public class AsyncRequestQueue extends RequestQueue {
 
         @Override
         public void run() {
-            // If the request was cancelled already, do not perform the
-            // network request.
+            // If the request was cancelled already, do not perform the network request.
             if (mRequest.isCanceled()) {
                 mRequest.finish("network-discard-cancelled");
                 mRequest.notifyListenerResponseNotUsable();
@@ -460,21 +462,17 @@ public class AsyncRequestQueue extends RequestQueue {
      * the setters.
      */
     public static class Builder {
-        private AsyncCache mAsyncCache;
+        @Nullable private AsyncCache mAsyncCache = null;
         private final AsyncNetwork mNetwork;
-        private Cache mCache;
-        private ExecutorFactory mExecutorFactory;
-        private ResponseDelivery mResponseDelivery;
+        @Nullable private Cache mCache = null;
+        @Nullable private ExecutorFactory mExecutorFactory = null;
+        @Nullable private ResponseDelivery mResponseDelivery = null;
 
         public Builder(AsyncNetwork asyncNetwork) {
             if (asyncNetwork == null) {
                 throw new IllegalArgumentException("Network cannot be null");
             }
             mNetwork = asyncNetwork;
-            mExecutorFactory = null;
-            mResponseDelivery = null;
-            mAsyncCache = null;
-            mCache = null;
         }
 
         /**
