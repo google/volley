@@ -32,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +67,19 @@ public class AsyncRequestQueue extends RequestQueue {
      * as reading or parsing the response data. This executor is used to run these tasks.
      */
     private ExecutorService mBlockingExecutor;
+
+    /** Executor to be used for tasks that need to be scheduled. */
+    private ScheduledThreadPoolExecutor mScheduledExecutor =
+            new ScheduledThreadPoolExecutor(
+                    /* corePoolSize= */ 0,
+                    new ThreadFactory() {
+                        @Override
+                        public Thread newThread(@NonNull Runnable runnable) {
+                            Thread t = Executors.defaultThreadFactory().newThread(runnable);
+                            t.setName("Volley-ScheduledExecutor");
+                            return t;
+                        }
+                    });
 
     /**
      * This interface may be used by advanced applications to provide custom executors according to
@@ -112,6 +126,7 @@ public class AsyncRequestQueue extends RequestQueue {
         mBlockingExecutor = mExecutorFactory.createBlockingExecutor(getBlockingQueue());
         mNetwork.setBlockingExecutor(mBlockingExecutor);
         mNetwork.setNonBlockingExecutor(mNonBlockingExecutor);
+        mNetwork.setScheduledExecutor(mScheduledExecutor);
 
         mNonBlockingExecutor.execute(
                 new Runnable() {

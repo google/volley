@@ -27,12 +27,16 @@ import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestTask;
+import com.android.volley.RetryPolicy;
+import com.android.volley.TimeoutRetryPolicy;
 import com.android.volley.VolleyError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /** A network performing Volley requests over an {@link HttpStack}. */
 public class BasicAsyncNetwork extends AsyncNetwork {
@@ -102,8 +106,8 @@ public class BasicAsyncNetwork extends AsyncNetwork {
 
     /* Method to be called after a failed network request */
     private void onRequestFailed(
-            Request<?> request,
-            OnRequestComplete callback,
+            final Request<?> request,
+            final OnRequestComplete callback,
             IOException exception,
             long requestStartMs,
             @Nullable HttpResponse httpResponse,
@@ -115,7 +119,26 @@ public class BasicAsyncNetwork extends AsyncNetwork {
             callback.onError(volleyError);
             return;
         }
-        performRequest(request, callback);
+
+        RetryPolicy policy = request.getRetryPolicy();
+        // If the retry policy is not an instance of TimeoutRetryPolicy OR no scheduling executor
+        // was set, then just perform the request immediately.
+        if (!(policy instanceof TimeoutRetryPolicy) || getScheduledExecutor() == null) {
+            performRequest(request, callback);
+        } else {
+            // Otherwise. schedule the request on the ScheduledExecutor for the appropriate time.
+            ScheduledFuture<?> retry =
+                    getScheduledExecutor()
+                            .schedule(
+                                    new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            performRequest(request, callback);
+                                        }
+                                    },
+                                    ((TimeoutRetryPolicy) policy).getTimeoutBeforeRetryMs(),
+                                    TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override
