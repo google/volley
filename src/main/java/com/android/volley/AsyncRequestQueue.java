@@ -76,7 +76,7 @@ public class AsyncRequestQueue extends RequestQueue {
     private ExecutorFactory mExecutorFactory;
 
     /** Manage list of waiting requests and de-duplicate requests with same cache key. */
-    private final WaitingRequestManager mWaitingRequestManager = new WaitingRequestManager(this);;
+    private final WaitingRequestManager mWaitingRequestManager = new WaitingRequestManager(this);
 
     /**
      * Sets all the variables, but processing does not begin until {@link #start()} is called.
