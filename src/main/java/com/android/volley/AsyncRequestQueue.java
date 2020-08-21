@@ -71,7 +71,7 @@ public class AsyncRequestQueue extends RequestQueue {
     /** Executor to be used for tasks that need to be scheduled. */
     private ScheduledThreadPoolExecutor mScheduledExecutor =
             new ScheduledThreadPoolExecutor(
-                    0,
+                    /* corePoolSize= */ 0,
                     new ThreadFactory() {
                         @Override
                         public Thread newThread(@NonNull Runnable runnable) {
