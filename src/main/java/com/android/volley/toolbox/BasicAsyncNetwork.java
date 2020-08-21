@@ -26,6 +26,7 @@ import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
+import com.android.volley.RequestTask;
 import com.android.volley.VolleyError;
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,31 +88,16 @@ public class BasicAsyncNetwork extends AsyncNetwork {
         // a byte array, so we need to submit a blocking task to copy the response from the
         // InputStream instead.
         final InputStream inputStream = httpResponse.getContent();
-        Runnable run =
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        byte[] finalResponseContents;
-                        try {
-                            finalResponseContents =
-                                    NetworkUtility.inputStreamToBytes(
-                                            inputStream, httpResponse.getContentLength(), mPool);
-                        } catch (IOException e) {
-                            onRequestFailed(
-                                    request, callback, e, requestStartMs, httpResponse, null);
-                            return;
-                        }
-                        onResponseRead(
-                                requestStartMs,
-                                statusCode,
+        getBlockingExecutor()
+                .execute(
+                        new ResponseParsingTask<>(
+                                inputStream,
                                 httpResponse,
                                 request,
                                 callback,
+                                requestStartMs,
                                 responseHeaders,
-                                finalResponseContents);
-                    }
-                };
-        getBlockingExecutor().execute(run);
+                                statusCode));
     }
 
     /* Method to be called after a failed network request */
@@ -201,6 +187,55 @@ public class BasicAsyncNetwork extends AsyncNetwork {
                         /* notModified= */ false,
                         SystemClock.elapsedRealtime() - requestStartMs,
                         responseHeaders));
+    }
+
+    private class ResponseParsingTask<T> extends RequestTask<T> {
+        InputStream inputStream;
+        HttpResponse httpResponse;
+        Request<T> request;
+        OnRequestComplete callback;
+        long requestStartMs;
+        List<Header> responseHeaders;
+        int statusCode;
+
+        ResponseParsingTask(
+                InputStream inputStream,
+                HttpResponse httpResponse,
+                Request<T> request,
+                OnRequestComplete callback,
+                long requestStartMs,
+                List<Header> responseHeaders,
+                int statusCode) {
+            super(request);
+            this.inputStream = inputStream;
+            this.httpResponse = httpResponse;
+            this.request = request;
+            this.callback = callback;
+            this.requestStartMs = requestStartMs;
+            this.responseHeaders = responseHeaders;
+            this.statusCode = statusCode;
+        }
+
+        @Override
+        public void run() {
+            byte[] finalResponseContents;
+            try {
+                finalResponseContents =
+                        NetworkUtility.inputStreamToBytes(
+                                inputStream, httpResponse.getContentLength(), mPool);
+            } catch (IOException e) {
+                onRequestFailed(request, callback, e, requestStartMs, httpResponse, null);
+                return;
+            }
+            onResponseRead(
+                    requestStartMs,
+                    statusCode,
+                    httpResponse,
+                    request,
+                    callback,
+                    responseHeaders,
+                    finalResponseContents);
+        }
     }
 
     /**
