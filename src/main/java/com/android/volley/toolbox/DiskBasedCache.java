@@ -16,13 +16,16 @@
 
 package com.android.volley.toolbox;
 
+import android.os.SystemClock;
 import android.text.TextUtils;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.Cache;
+import com.android.volley.Header;
 import com.android.volley.VolleyLog;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -31,7 +34,11 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -53,6 +60,15 @@ public class DiskBasedCache implements Cache {
 
     /** The maximum size of the cache in bytes. */
     private final int mMaxCacheSizeInBytes;
+
+    /** Default maximum disk usage in bytes. */
+    private static final int DEFAULT_DISK_USAGE_BYTES = 5 * 1024 * 1024;
+
+    /** High water mark percentage for the cache */
+    @VisibleForTesting static final float HYSTERESIS_FACTOR = 0.9f;
+
+    /** Magic number for current version of cache file format. */
+    private static final int CACHE_MAGIC = 0x20150306;
 
     /**
      * Constructs an instance of the DiskBasedCache at the specified directory.
@@ -93,7 +109,7 @@ public class DiskBasedCache implements Cache {
      * @param rootDirectory The root directory of the cache.
      */
     public DiskBasedCache(File rootDirectory) {
-        this(rootDirectory, DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES);
+        this(rootDirectory, DEFAULT_DISK_USAGE_BYTES);
     }
 
     /**
@@ -103,7 +119,7 @@ public class DiskBasedCache implements Cache {
      * @param rootDirectorySupplier The supplier for the root directory of the cache.
      */
     public DiskBasedCache(FileSupplier rootDirectorySupplier) {
-        this(rootDirectorySupplier, DiskBasedCacheUtility.DEFAULT_DISK_USAGE_BYTES);
+        this(rootDirectorySupplier, DEFAULT_DISK_USAGE_BYTES);
     }
 
     /** Clears the cache. Deletes all cached files from disk. */
@@ -128,7 +144,7 @@ public class DiskBasedCache implements Cache {
         if (entry == null) {
             return null;
         }
-        File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
+        File file = getFileForKey(key);
         try {
             CountingInputStream cis =
                     new CountingInputStream(
@@ -140,7 +156,7 @@ public class DiskBasedCache implements Cache {
                     VolleyLog.d(
                             "%s: key=%s, found=%s", file.getAbsolutePath(), key, entryOnDisk.key);
                     // Remove key whose contents on disk have been replaced.
-                    mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
+                    removeEntry(key);
                     return null;
                 }
                 byte[] data = streamToBytes(cis, cis.bytesRemaining());
@@ -183,8 +199,7 @@ public class DiskBasedCache implements Cache {
                 try {
                     CacheHeader entry = CacheHeader.readHeader(cis);
                     entry.size = entrySize;
-                    mTotalSize =
-                            DiskBasedCacheUtility.putEntry(entry.key, entry, mTotalSize, mEntries);
+                    putEntry(entry.key, entry);
                 } finally {
                     // Any IOException thrown here is handled by the below catch block by design.
                     //noinspection ThrowFromFinallyBlock
@@ -218,12 +233,15 @@ public class DiskBasedCache implements Cache {
     /** Puts the entry with the specified key into the cache. */
     @Override
     public synchronized void put(String key, Entry entry) {
-        if (DiskBasedCacheUtility.wouldBePruned(
-                mTotalSize, entry.data.length, mMaxCacheSizeInBytes)) {
+        // If adding this entry would trigger a prune, but pruning would cause the new entry to be
+        // deleted, then skip writing the entry in the first place, as this is just churn.
+        // Note that we don't include the cache header overhead in this calculation for simplicity,
+        // so putting entries which are just below the threshold may still cause this churn.
+        if (mTotalSize + entry.data.length > mMaxCacheSizeInBytes
+                && entry.data.length > mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
             return;
         }
-
-        File file = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier);
+        File file = getFileForKey(key);
         try {
             BufferedOutputStream fos = new BufferedOutputStream(createOutputStream(file));
             CacheHeader e = new CacheHeader(key, entry);
@@ -236,10 +254,8 @@ public class DiskBasedCache implements Cache {
             fos.write(entry.data);
             fos.close();
             e.size = file.length();
-            mTotalSize = DiskBasedCacheUtility.putEntry(key, e, mTotalSize, mEntries);
-            mTotalSize =
-                    DiskBasedCacheUtility.pruneIfNeeded(
-                            mTotalSize, mMaxCacheSizeInBytes, mEntries, mRootDirectorySupplier);
+            putEntry(key, e);
+            pruneIfNeeded();
         } catch (IOException e) {
             boolean deleted = file.delete();
             if (!deleted) {
@@ -252,21 +268,31 @@ public class DiskBasedCache implements Cache {
     /** Removes the specified key from the cache if it exists. */
     @Override
     public synchronized void remove(String key) {
-        boolean deleted = DiskBasedCacheUtility.getFileForKey(key, mRootDirectorySupplier).delete();
-        mTotalSize = DiskBasedCacheUtility.removeEntry(key, mTotalSize, mEntries);
+        boolean deleted = getFileForKey(key).delete();
+        removeEntry(key);
         if (!deleted) {
             VolleyLog.d(
                     "Could not delete cache entry for key=%s, filename=%s",
-                    key, DiskBasedCacheUtility.getFilenameForKey(key));
+                    key, getFilenameForKey(key));
         }
     }
 
-    /** Represents a supplier for {@link File}s. */
-    public interface FileSupplier extends com.android.volley.toolbox.FileSupplier {}
+    /**
+     * Creates a pseudo-unique filename for the specified cache key.
+     *
+     * @param key The key to generate a file name for.
+     * @return A pseudo-unique filename.
+     */
+    private String getFilenameForKey(String key) {
+        int firstHalfLength = key.length() / 2;
+        String localFilename = String.valueOf(key.substring(0, firstHalfLength).hashCode());
+        localFilename += String.valueOf(key.substring(firstHalfLength).hashCode());
+        return localFilename;
+    }
 
     /** Returns a file object for the given cache key. */
     public File getFileForKey(String key) {
-        return new File(mRootDirectorySupplier.get(), DiskBasedCacheUtility.getFilenameForKey(key));
+        return new File(mRootDirectorySupplier.get(), getFilenameForKey(key));
     }
 
     /** Re-initialize the cache if the directory was deleted. */
@@ -279,6 +305,75 @@ public class DiskBasedCache implements Cache {
         }
     }
 
+    /** Represents a supplier for {@link File}s. */
+    public interface FileSupplier {
+        File get();
+    }
+
+    /** Prunes the cache to fit the maximum size. */
+    private void pruneIfNeeded() {
+        if (mTotalSize < mMaxCacheSizeInBytes) {
+            return;
+        }
+        if (VolleyLog.DEBUG) {
+            VolleyLog.v("Pruning old cache entries.");
+        }
+
+        long before = mTotalSize;
+        int prunedFiles = 0;
+        long startTime = SystemClock.elapsedRealtime();
+
+        Iterator<Map.Entry<String, CacheHeader>> iterator = mEntries.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, CacheHeader> entry = iterator.next();
+            CacheHeader e = entry.getValue();
+            boolean deleted = getFileForKey(e.key).delete();
+            if (deleted) {
+                mTotalSize -= e.size;
+            } else {
+                VolleyLog.d(
+                        "Could not delete cache entry for key=%s, filename=%s",
+                        e.key, getFilenameForKey(e.key));
+            }
+            iterator.remove();
+            prunedFiles++;
+
+            if (mTotalSize < mMaxCacheSizeInBytes * HYSTERESIS_FACTOR) {
+                break;
+            }
+        }
+
+        if (VolleyLog.DEBUG) {
+            VolleyLog.v(
+                    "pruned %d files, %d bytes, %d ms",
+                    prunedFiles, (mTotalSize - before), SystemClock.elapsedRealtime() - startTime);
+        }
+    }
+
+    /**
+     * Puts the entry with the specified key into the cache.
+     *
+     * @param key The key to identify the entry by.
+     * @param entry The entry to cache.
+     */
+    private void putEntry(String key, CacheHeader entry) {
+        if (!mEntries.containsKey(key)) {
+            mTotalSize += entry.size;
+        } else {
+            CacheHeader oldEntry = mEntries.get(key);
+            mTotalSize += (entry.size - oldEntry.size);
+        }
+        mEntries.put(key, entry);
+    }
+
+    /** Removes the entry identified by 'key' from the cache. */
+    private void removeEntry(String key) {
+        CacheHeader removed = mEntries.remove(key);
+        if (removed != null) {
+            mTotalSize -= removed.size;
+        }
+    }
+
     /**
      * Reads length bytes from CountingInputStream into byte array.
      *
@@ -286,6 +381,7 @@ public class DiskBasedCache implements Cache {
      * @param length number of bytes to read
      * @throws IOException if fails to read all bytes
      */
+    @VisibleForTesting
     static byte[] streamToBytes(CountingInputStream cis, long length) throws IOException {
         long maxLength = cis.bytesRemaining();
         // Length cannot be negative or greater than bytes remaining, and must not overflow int.
@@ -305,6 +401,140 @@ public class DiskBasedCache implements Cache {
     @VisibleForTesting
     OutputStream createOutputStream(File file) throws FileNotFoundException {
         return new FileOutputStream(file);
+    }
+
+    /** Handles holding onto the cache headers for an entry. */
+    @VisibleForTesting
+    static class CacheHeader {
+        /**
+         * The size of the data identified by this CacheHeader on disk (both header and data).
+         *
+         * <p>Must be set by the caller after it has been calculated.
+         *
+         * <p>This is not serialized to disk.
+         */
+        long size;
+
+        /** The key that identifies the cache entry. */
+        final String key;
+
+        /** ETag for cache coherence. */
+        final String etag;
+
+        /** Date of this response as reported by the server. */
+        final long serverDate;
+
+        /** The last modified date for the requested object. */
+        final long lastModified;
+
+        /** TTL for this record. */
+        final long ttl;
+
+        /** Soft TTL for this record. */
+        final long softTtl;
+
+        /** Headers from the response resulting in this cache entry. */
+        final List<Header> allResponseHeaders;
+
+        private CacheHeader(
+                String key,
+                String etag,
+                long serverDate,
+                long lastModified,
+                long ttl,
+                long softTtl,
+                List<Header> allResponseHeaders) {
+            this.key = key;
+            this.etag = "".equals(etag) ? null : etag;
+            this.serverDate = serverDate;
+            this.lastModified = lastModified;
+            this.ttl = ttl;
+            this.softTtl = softTtl;
+            this.allResponseHeaders = allResponseHeaders;
+        }
+
+        /**
+         * Instantiates a new CacheHeader object.
+         *
+         * @param key The key that identifies the cache entry
+         * @param entry The cache entry.
+         */
+        CacheHeader(String key, Entry entry) {
+            this(
+                    key,
+                    entry.etag,
+                    entry.serverDate,
+                    entry.lastModified,
+                    entry.ttl,
+                    entry.softTtl,
+                    getAllResponseHeaders(entry));
+        }
+
+        private static List<Header> getAllResponseHeaders(Entry entry) {
+            // If the entry contains all the response headers, use that field directly.
+            if (entry.allResponseHeaders != null) {
+                return entry.allResponseHeaders;
+            }
+
+            // Legacy fallback - copy headers from the map.
+            return HttpHeaderParser.toAllHeaderList(entry.responseHeaders);
+        }
+
+        /**
+         * Reads the header from a CountingInputStream and returns a CacheHeader object.
+         *
+         * @param is The InputStream to read from.
+         * @throws IOException if fails to read header
+         */
+        static CacheHeader readHeader(CountingInputStream is) throws IOException {
+            int magic = readInt(is);
+            if (magic != CACHE_MAGIC) {
+                // don't bother deleting, it'll get pruned eventually
+                throw new IOException();
+            }
+            String key = readString(is);
+            String etag = readString(is);
+            long serverDate = readLong(is);
+            long lastModified = readLong(is);
+            long ttl = readLong(is);
+            long softTtl = readLong(is);
+            List<Header> allResponseHeaders = readHeaderList(is);
+            return new CacheHeader(
+                    key, etag, serverDate, lastModified, ttl, softTtl, allResponseHeaders);
+        }
+
+        /** Creates a cache entry for the specified data. */
+        Entry toCacheEntry(byte[] data) {
+            Entry e = new Entry();
+            e.data = data;
+            e.etag = etag;
+            e.serverDate = serverDate;
+            e.lastModified = lastModified;
+            e.ttl = ttl;
+            e.softTtl = softTtl;
+            e.responseHeaders = HttpHeaderParser.toHeaderMap(allResponseHeaders);
+            e.allResponseHeaders = Collections.unmodifiableList(allResponseHeaders);
+            return e;
+        }
+
+        /** Writes the contents of this CacheHeader to the specified OutputStream. */
+        boolean writeHeader(OutputStream os) {
+            try {
+                writeInt(os, CACHE_MAGIC);
+                writeString(os, key);
+                writeString(os, etag == null ? "" : etag);
+                writeLong(os, serverDate);
+                writeLong(os, lastModified);
+                writeLong(os, ttl);
+                writeLong(os, softTtl);
+                writeHeaderList(allResponseHeaders, os);
+                os.flush();
+                return true;
+            } catch (IOException e) {
+                VolleyLog.d("%s", e.toString());
+                return false;
+            }
+        }
     }
 
     @VisibleForTesting
@@ -343,5 +573,105 @@ public class DiskBasedCache implements Cache {
         long bytesRemaining() {
             return length - bytesRead;
         }
+    }
+
+    /*
+     * Homebrewed simple serialization system used for reading and writing cache
+     * headers on disk. Once upon a time, this used the standard Java
+     * Object{Input,Output}Stream, but the default implementation relies heavily
+     * on reflection (even for standard types) and generates a ton of garbage.
+     *
+     * TODO: Replace by standard DataInput and DataOutput in next cache version.
+     */
+
+    /**
+     * Simple wrapper around {@link InputStream#read()} that throws EOFException instead of
+     * returning -1.
+     */
+    private static int read(InputStream is) throws IOException {
+        int b = is.read();
+        if (b == -1) {
+            throw new EOFException();
+        }
+        return b;
+    }
+
+    static void writeInt(OutputStream os, int n) throws IOException {
+        os.write((n >> 0) & 0xff);
+        os.write((n >> 8) & 0xff);
+        os.write((n >> 16) & 0xff);
+        os.write((n >> 24) & 0xff);
+    }
+
+    static int readInt(InputStream is) throws IOException {
+        int n = 0;
+        n |= (read(is) << 0);
+        n |= (read(is) << 8);
+        n |= (read(is) << 16);
+        n |= (read(is) << 24);
+        return n;
+    }
+
+    static void writeLong(OutputStream os, long n) throws IOException {
+        os.write((byte) (n >>> 0));
+        os.write((byte) (n >>> 8));
+        os.write((byte) (n >>> 16));
+        os.write((byte) (n >>> 24));
+        os.write((byte) (n >>> 32));
+        os.write((byte) (n >>> 40));
+        os.write((byte) (n >>> 48));
+        os.write((byte) (n >>> 56));
+    }
+
+    static long readLong(InputStream is) throws IOException {
+        long n = 0;
+        n |= ((read(is) & 0xFFL) << 0);
+        n |= ((read(is) & 0xFFL) << 8);
+        n |= ((read(is) & 0xFFL) << 16);
+        n |= ((read(is) & 0xFFL) << 24);
+        n |= ((read(is) & 0xFFL) << 32);
+        n |= ((read(is) & 0xFFL) << 40);
+        n |= ((read(is) & 0xFFL) << 48);
+        n |= ((read(is) & 0xFFL) << 56);
+        return n;
+    }
+
+    static void writeString(OutputStream os, String s) throws IOException {
+        byte[] b = s.getBytes("UTF-8");
+        writeLong(os, b.length);
+        os.write(b, 0, b.length);
+    }
+
+    static String readString(CountingInputStream cis) throws IOException {
+        long n = readLong(cis);
+        byte[] b = streamToBytes(cis, n);
+        return new String(b, "UTF-8");
+    }
+
+    static void writeHeaderList(List<Header> headers, OutputStream os) throws IOException {
+        if (headers != null) {
+            writeInt(os, headers.size());
+            for (Header header : headers) {
+                writeString(os, header.getName());
+                writeString(os, header.getValue());
+            }
+        } else {
+            writeInt(os, 0);
+        }
+    }
+
+    static List<Header> readHeaderList(CountingInputStream cis) throws IOException {
+        int size = readInt(cis);
+        if (size < 0) {
+            throw new IOException("readHeaderList size=" + size);
+        }
+        List<Header> result =
+                (size == 0) ? Collections.<Header>emptyList() : new ArrayList<Header>();
+        for (int i = 0; i < size; i++) {
+            String name = readString(cis).intern();
+            String value = readString(cis).intern();
+            result.add(new Header(name, value));
+        }
+        return result;
     }
 }
