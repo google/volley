@@ -24,7 +24,6 @@ import androidx.annotation.Nullable;
 import com.android.volley.AsyncCache.OnGetCompleteCallback;
 import com.android.volley.AsyncNetwork.OnRequestComplete;
 import com.android.volley.Cache.Entry;
-import com.android.volley.toolbox.ThrowingCache;
 import java.net.HttpURLConnection;
 import java.util.Comparator;
 import java.util.concurrent.BlockingQueue;
@@ -589,6 +588,39 @@ public class AsyncRequestQueue extends RequestQueue {
             }
             return new AsyncRequestQueue(
                     mCache, mNetwork, mAsyncCache, mResponseDelivery, mExecutorFactory);
+        }
+    }
+
+    /** A cache that throws an error if a method is called. */
+    private static class ThrowingCache implements Cache {
+        @Override
+        public Entry get(String key) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void put(String key, Entry entry) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void initialize() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void invalidate(String key, boolean fullExpire) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void remove(String key) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void clear() {
+            throw new UnsupportedOperationException();
         }
     }
 }
