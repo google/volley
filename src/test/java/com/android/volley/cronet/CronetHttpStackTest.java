@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package com.android.volley.toolbox;
+package com.android.volley.cronet;
 
 import static org.junit.Assert.assertEquals;
 
 import com.android.volley.Header;
-import com.android.volley.cronet.*;
-import com.android.volley.cronet.CronetHttpStack;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;
 
-public class CronetStackTest {
+public class CronetHttpStackTest {
     @Test
     public void getHeadersEmptyTest() {
         List<Map.Entry<String, String>> list = new ArrayList<>();
