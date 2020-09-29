@@ -30,6 +30,7 @@ import com.android.volley.utils.ImmediateResponseDelivery;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,6 +44,7 @@ import org.robolectric.annotation.Config;
 public class AsyncRequestQueueTest {
 
     @Mock private AsyncNetwork mMockNetwork;
+    @Mock private ScheduledExecutorService mMockScheduledExecutor;
     private AsyncRequestQueue queue;
 
     @Before
@@ -65,6 +67,12 @@ public class AsyncRequestQueueTest {
                                     public ExecutorService createBlockingExecutor(
                                             BlockingQueue<Runnable> taskQueue) {
                                         return MoreExecutors.newDirectExecutorService();
+                                    }
+
+                                    @Override
+                                    public ScheduledExecutorService
+                                            createNonBlockingScheduledExecutor() {
+                                        return mMockScheduledExecutor;
                                     }
                                 })
                         .build();

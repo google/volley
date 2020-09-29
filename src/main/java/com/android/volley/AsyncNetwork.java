@@ -20,6 +20,7 @@ import androidx.annotation.RestrictTo;
 import com.android.volley.toolbox.AsyncHttpStack;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** An asynchronous implementation of {@link Network} to perform requests. */
@@ -27,6 +28,7 @@ public abstract class AsyncNetwork implements Network {
     private final AsyncHttpStack mAsyncStack;
     private ExecutorService mBlockingExecutor;
     private ExecutorService mNonBlockingExecutor;
+    private ScheduledExecutorService mNonBlockingScheduledExecutor;
 
     protected AsyncNetwork(AsyncHttpStack stack) {
         mAsyncStack = stack;
@@ -113,6 +115,15 @@ public abstract class AsyncNetwork implements Network {
         mAsyncStack.setBlockingExecutor(executor);
     }
 
+    /**
+     * This method sets the scheduled executor to be used by the network and stack for non-blocking
+     * tasks to be scheduled. This method must be called before performing any requests.
+     */
+    @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
+    public void setNonBlockingScheduledExecutor(ScheduledExecutorService executor) {
+        mNonBlockingScheduledExecutor = executor;
+    }
+
     /** Gets blocking executor to perform any potentially blocking tasks. */
     protected ExecutorService getBlockingExecutor() {
         return mBlockingExecutor;
@@ -121,6 +132,11 @@ public abstract class AsyncNetwork implements Network {
     /** Gets non-blocking executor to perform any non-blocking tasks. */
     protected ExecutorService getNonBlockingExecutor() {
         return mNonBlockingExecutor;
+    }
+
+    /** Gets scheduled executor to perform any non-blocking tasks that need to be scheduled. */
+    protected ScheduledExecutorService getNonBlockingScheduledExecutor() {
+        return mNonBlockingScheduledExecutor;
     }
 
     /** Gets the {@link AsyncHttpStack} to be used by the network. */

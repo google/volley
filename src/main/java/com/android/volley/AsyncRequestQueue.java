@@ -32,6 +32,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -58,6 +60,9 @@ public class AsyncRequestQueue extends RequestQueue {
 
     /** Executor for non-blocking tasks. */
     private ExecutorService mNonBlockingExecutor;
+
+    /** Executor to be used for non-blocking tasks that need to be scheduled. */
+    private ScheduledExecutorService mNonBlockingScheduledExecutor;
 
     /**
      * Executor for blocking tasks.
@@ -110,8 +115,10 @@ public class AsyncRequestQueue extends RequestQueue {
         // Create blocking / non-blocking executors and set them in the network and stack.
         mNonBlockingExecutor = mExecutorFactory.createNonBlockingExecutor(getBlockingQueue());
         mBlockingExecutor = mExecutorFactory.createBlockingExecutor(getBlockingQueue());
+        mNonBlockingScheduledExecutor = mExecutorFactory.createNonBlockingScheduledExecutor();
         mNetwork.setBlockingExecutor(mBlockingExecutor);
         mNetwork.setNonBlockingExecutor(mNonBlockingExecutor);
+        mNetwork.setNonBlockingScheduledExecutor(mNonBlockingScheduledExecutor);
 
         mNonBlockingExecutor.execute(
                 new Runnable() {
@@ -153,6 +160,10 @@ public class AsyncRequestQueue extends RequestQueue {
         if (mBlockingExecutor != null) {
             mBlockingExecutor.shutdownNow();
             mBlockingExecutor = null;
+        }
+        if (mNonBlockingScheduledExecutor != null) {
+            mNonBlockingScheduledExecutor.shutdownNow();
+            mNonBlockingScheduledExecutor = null;
         }
     }
 
@@ -426,15 +437,17 @@ public class AsyncRequestQueue extends RequestQueue {
     }
 
     /**
-     * This interface may be used by advanced applications to provide custom executors according to
+     * This class may be used by advanced applications to provide custom executors according to
      * their needs. Apps must create ExecutorServices dynamically given a blocking queue rather than
      * providing them directly so that Volley can provide a PriorityQueue which will prioritize
      * requests according to Request#getPriority.
      */
-    public interface ExecutorFactory {
-        ExecutorService createNonBlockingExecutor(BlockingQueue<Runnable> taskQueue);
+    public abstract static class ExecutorFactory {
+        abstract ExecutorService createNonBlockingExecutor(BlockingQueue<Runnable> taskQueue);
 
-        ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue);
+        abstract ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue);
+
+        abstract ScheduledExecutorService createNonBlockingScheduledExecutor();
     }
 
     /** Provides a BlockingQueue to be used to create executors. */
@@ -526,6 +539,12 @@ public class AsyncRequestQueue extends RequestQueue {
                             taskQueue);
                 }
 
+                @Override
+                public ScheduledExecutorService createNonBlockingScheduledExecutor() {
+                    return new ScheduledThreadPoolExecutor(
+                            /* corePoolSize= */ 0, getThreadFactory("ScheduledExecutor"));
+                }
+
                 private ThreadPoolExecutor getNewThreadPoolExecutor(
                         int maximumPoolSize,
                         final String threadNameSuffix,
@@ -536,14 +555,18 @@ public class AsyncRequestQueue extends RequestQueue {
                             /* keepAliveTime= */ 60,
                             /* unit= */ TimeUnit.SECONDS,
                             taskQueue,
-                            new ThreadFactory() {
-                                @Override
-                                public Thread newThread(@NonNull Runnable runnable) {
-                                    Thread t = Executors.defaultThreadFactory().newThread(runnable);
-                                    t.setName("Volley-" + threadNameSuffix);
-                                    return t;
-                                }
-                            });
+                            getThreadFactory(threadNameSuffix));
+                }
+
+                private ThreadFactory getThreadFactory(final String threadNameSuffix) {
+                    return new ThreadFactory() {
+                        @Override
+                        public Thread newThread(@NonNull Runnable runnable) {
+                            Thread t = Executors.defaultThreadFactory().newThread(runnable);
+                            t.setName("Volley-" + threadNameSuffix);
+                            return t;
+                        }
+                    };
                 }
             };
         }
