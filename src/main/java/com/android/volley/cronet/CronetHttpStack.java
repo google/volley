@@ -28,6 +28,7 @@ import com.android.volley.RequestTask;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.AsyncHttpStack;
 import com.android.volley.toolbox.ByteArrayPool;
+import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.HttpResponse;
 import com.android.volley.toolbox.PoolingByteArrayOutputStream;
 import com.android.volley.toolbox.UrlRewriter;
@@ -228,7 +229,7 @@ public class CronetHttpStack extends AsyncHttpStack {
                 byte[] postBody = request.getPostBody();
                 if (postBody != null) {
                     requestParameters.setHttpMethod("POST");
-                    addBodyIfExists(requestParameters, postBody);
+                    addBodyIfExists(requestParameters, request.getPostBodyContentType(), postBody);
                 } else {
                     requestParameters.setHttpMethod("GET");
                 }
@@ -243,11 +244,11 @@ public class CronetHttpStack extends AsyncHttpStack {
                 break;
             case Request.Method.POST:
                 requestParameters.setHttpMethod("POST");
-                addBodyIfExists(requestParameters, request.getBody());
+                addBodyIfExists(requestParameters, request.getBodyContentType(), request.getBody());
                 break;
             case Request.Method.PUT:
                 requestParameters.setHttpMethod("PUT");
-                addBodyIfExists(requestParameters, request.getBody());
+                addBodyIfExists(requestParameters, request.getBodyContentType(), request.getBody());
                 break;
             case Request.Method.HEAD:
                 requestParameters.setHttpMethod("HEAD");
@@ -260,7 +261,7 @@ public class CronetHttpStack extends AsyncHttpStack {
                 break;
             case Request.Method.PATCH:
                 requestParameters.setHttpMethod("PATCH");
-                addBodyIfExists(requestParameters, request.getBody());
+                addBodyIfExists(requestParameters, request.getBodyContentType(), request.getBody());
                 break;
             default:
                 throw new IllegalStateException("Unknown method type.");
@@ -287,8 +288,10 @@ public class CronetHttpStack extends AsyncHttpStack {
 
     /** Sets the UploadDataProvider of the UrlRequest.Builder */
     private void addBodyIfExists(
-            CurlLoggedRequestParameters requestParameters, @Nullable byte[] body) {
-        requestParameters.setBody(body);
+            CurlLoggedRequestParameters requestParameters,
+            String contentType,
+            @Nullable byte[] body) {
+        requestParameters.setBody(contentType, body);
     }
 
     /** Helper method that maps Volley's request priority to Cronet's */
@@ -561,8 +564,12 @@ public class CronetHttpStack extends AsyncHttpStack {
             return mBody;
         }
 
-        void setBody(byte[] body) {
+        void setBody(String contentType, @Nullable byte[] body) {
             mBody = body;
+            if (body != null && !mHeaders.containsKey(HttpHeaderParser.HEADER_CONTENT_TYPE)) {
+                // Set the content-type unless it was already set (by Request#getHeaders).
+                mHeaders.put(HttpHeaderParser.HEADER_CONTENT_TYPE, contentType);
+            }
         }
 
         void applyToRequest(UrlRequest.Builder builder, ExecutorService nonBlockingExecutor) {

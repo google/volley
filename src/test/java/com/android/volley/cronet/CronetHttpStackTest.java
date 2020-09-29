@@ -218,11 +218,10 @@ public class CronetHttpStackTest {
 
         ArgumentCaptor<String> curlCommandCaptor = ArgumentCaptor.forClass(String.class);
         verify(mMockCurlCommandLogger).logCurlCommand(curlCommandCaptor.capture());
-        // TODO: This output is unexpected because it is using the binary format and missing the
-        // Content-Type header. Fix the test along with the bug in CronetHttpStack.
         assertEquals(
-                "echo 'aGVsbG8=' | base64 -d > /tmp/$$.bin; curl -X POST \"http://foo.com\" "
-                        + "--data-binary @/tmp/$$.bin",
+                "curl -X POST "
+                        + "--header \"Content-Type: text/plain; charset=UTF-8\" \"http://foo.com\" "
+                        + "--data-ascii \"hello\"",
                 curlCommandCaptor.getValue());
     }
 
@@ -259,11 +258,10 @@ public class CronetHttpStackTest {
 
         ArgumentCaptor<String> curlCommandCaptor = ArgumentCaptor.forClass(String.class);
         verify(mMockCurlCommandLogger).logCurlCommand(curlCommandCaptor.capture());
-        // TODO: This output is unexpected because it is missing the Content-Type header. Fix the
-        // test along with the bug in CronetHttpStack.
         assertEquals(
                 "echo 'AQIDBAU=' | base64 -d > /tmp/$$.bin; curl -X POST "
-                        + "--header \"Content-Encoding: gzip, identity\" \"http://foo.com\" "
+                        + "--header \"Content-Encoding: gzip, identity\" "
+                        + "--header \"Content-Type: text/plain\" \"http://foo.com\" "
                         + "--data-binary @/tmp/$$.bin",
                 curlCommandCaptor.getValue());
     }
@@ -296,10 +294,9 @@ public class CronetHttpStackTest {
 
         ArgumentCaptor<String> curlCommandCaptor = ArgumentCaptor.forClass(String.class);
         verify(mMockCurlCommandLogger).logCurlCommand(curlCommandCaptor.capture());
-        // TODO: This output is unexpected because it is missing the Content-Type header. Fix the
-        // test along with the bug in CronetHttpStack.
         assertEquals(
-                "echo 'AQIDBAU=' | base64 -d > /tmp/$$.bin; curl -X POST \"http://foo.com\" "
+                "echo 'AQIDBAU=' | base64 -d > /tmp/$$.bin; curl -X POST "
+                        + "--header \"Content-Type: application/octet-stream\" \"http://foo.com\" "
                         + "--data-binary @/tmp/$$.bin",
                 curlCommandCaptor.getValue());
     }
@@ -332,10 +329,10 @@ public class CronetHttpStackTest {
 
         ArgumentCaptor<String> curlCommandCaptor = ArgumentCaptor.forClass(String.class);
         verify(mMockCurlCommandLogger).logCurlCommand(curlCommandCaptor.capture());
-        // TODO: This output is unexpected because it is missing the Content-Type header. Fix the
-        // test along with the bug in CronetHttpStack.
         assertEquals(
-                "curl -X POST \"http://foo.com\" [REQUEST BODY TOO LARGE TO INCLUDE]",
+                "curl -X POST "
+                        + "--header \"Content-Type: application/octet-stream\" \"http://foo.com\" "
+                        + "[REQUEST BODY TOO LARGE TO INCLUDE]",
                 curlCommandCaptor.getValue());
     }
 

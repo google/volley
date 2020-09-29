@@ -17,6 +17,8 @@
 package com.android.volley.toolbox;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
+import androidx.annotation.RestrictTo.Scope;
 import com.android.volley.Cache;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
@@ -38,7 +40,8 @@ import java.util.TreeSet;
 /** Utility methods for parsing HTTP headers. */
 public class HttpHeaderParser {
 
-    static final String HEADER_CONTENT_TYPE = "Content-Type";
+    @RestrictTo({Scope.LIBRARY_GROUP})
+    public static final String HEADER_CONTENT_TYPE = "Content-Type";
 
     private static final String DEFAULT_CONTENT_CHARSET = "ISO-8859-1";
 
