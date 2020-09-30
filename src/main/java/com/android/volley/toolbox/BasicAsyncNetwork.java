@@ -21,6 +21,7 @@ import static com.android.volley.toolbox.NetworkUtility.logSlowRequests;
 import android.os.SystemClock;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import com.android.volley.AsyncNetwork;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
@@ -33,10 +34,12 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 /** A network performing Volley requests over an {@link HttpStack}. */
 public class BasicAsyncNetwork extends AsyncNetwork {
 
+    private final AsyncHttpStack mAsyncStack;
     private final ByteArrayPool mPool;
 
     /**
@@ -44,8 +47,22 @@ public class BasicAsyncNetwork extends AsyncNetwork {
      * @param pool a buffer pool that improves GC performance in copy operations
      */
     private BasicAsyncNetwork(AsyncHttpStack httpStack, ByteArrayPool pool) {
-        super(httpStack);
+        mAsyncStack = httpStack;
         mPool = pool;
+    }
+
+    @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
+    @Override
+    public void setBlockingExecutor(ExecutorService executor) {
+        super.setBlockingExecutor(executor);
+        mAsyncStack.setBlockingExecutor(executor);
+    }
+
+    @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
+    @Override
+    public void setNonBlockingExecutor(ExecutorService executor) {
+        super.setNonBlockingExecutor(executor);
+        mAsyncStack.setNonBlockingExecutor(executor);
     }
 
     /* Method to be called after a successful network request */
@@ -128,32 +145,31 @@ public class BasicAsyncNetwork extends AsyncNetwork {
         // Gather headers.
         final Map<String, String> additionalRequestHeaders =
                 HttpHeaderParser.getCacheHeaders(request.getCacheEntry());
-        getHttpStack()
-                .executeRequest(
-                        request,
-                        additionalRequestHeaders,
-                        new AsyncHttpStack.OnRequestComplete() {
-                            @Override
-                            public void onSuccess(HttpResponse httpResponse) {
-                                onRequestSucceeded(request, requestStartMs, httpResponse, callback);
-                            }
+        mAsyncStack.executeRequest(
+                request,
+                additionalRequestHeaders,
+                new AsyncHttpStack.OnRequestComplete() {
+                    @Override
+                    public void onSuccess(HttpResponse httpResponse) {
+                        onRequestSucceeded(request, requestStartMs, httpResponse, callback);
+                    }
 
-                            @Override
-                            public void onAuthError(AuthFailureError authFailureError) {
-                                callback.onError(authFailureError);
-                            }
+                    @Override
+                    public void onAuthError(AuthFailureError authFailureError) {
+                        callback.onError(authFailureError);
+                    }
 
-                            @Override
-                            public void onError(IOException ioException) {
-                                onRequestFailed(
-                                        request,
-                                        callback,
-                                        ioException,
-                                        requestStartMs,
-                                        /* httpResponse= */ null,
-                                        /* responseContents= */ null);
-                            }
-                        });
+                    @Override
+                    public void onError(IOException ioException) {
+                        onRequestFailed(
+                                request,
+                                callback,
+                                ioException,
+                                requestStartMs,
+                                /* httpResponse= */ null,
+                                /* responseContents= */ null);
+                    }
+                });
     }
 
     /* Helper method that determines what to do after byte[] is received */

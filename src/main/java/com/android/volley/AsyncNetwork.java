@@ -17,7 +17,6 @@
 package com.android.volley;
 
 import androidx.annotation.RestrictTo;
-import com.android.volley.toolbox.AsyncHttpStack;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -25,14 +24,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** An asynchronous implementation of {@link Network} to perform requests. */
 public abstract class AsyncNetwork implements Network {
-    private final AsyncHttpStack mAsyncStack;
     private ExecutorService mBlockingExecutor;
     private ExecutorService mNonBlockingExecutor;
     private ScheduledExecutorService mNonBlockingScheduledExecutor;
 
-    protected AsyncNetwork(AsyncHttpStack stack) {
-        mAsyncStack = stack;
-    }
+    protected AsyncNetwork() {}
 
     /** Interface for callback to be called after request is processed. */
     public interface OnRequestComplete {
@@ -96,28 +92,31 @@ public abstract class AsyncNetwork implements Network {
     }
 
     /**
-     * This method sets the non blocking executor to be used by the network and stack for
-     * non-blocking tasks. This method must be called before performing any requests.
+     * This method sets the non blocking executor to be used by the network for non-blocking tasks.
+     *
+     * <p>This method must be called before performing any requests.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
     public void setNonBlockingExecutor(ExecutorService executor) {
         mNonBlockingExecutor = executor;
-        mAsyncStack.setNonBlockingExecutor(executor);
     }
 
     /**
-     * This method sets the blocking executor to be used by the network and stack for potentially
-     * blocking tasks. This method must be called before performing any requests.
+     * This method sets the blocking executor to be used by the network for potentially blocking
+     * tasks.
+     *
+     * <p>This method must be called before performing any requests.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
     public void setBlockingExecutor(ExecutorService executor) {
         mBlockingExecutor = executor;
-        mAsyncStack.setBlockingExecutor(executor);
     }
 
     /**
-     * This method sets the scheduled executor to be used by the network and stack for non-blocking
-     * tasks to be scheduled. This method must be called before performing any requests.
+     * This method sets the scheduled executor to be used by the network for non-blocking tasks to
+     * be scheduled.
+     *
+     * <p>This method must be called before performing any requests.
      */
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
     public void setNonBlockingScheduledExecutor(ScheduledExecutorService executor) {
@@ -137,10 +136,5 @@ public abstract class AsyncNetwork implements Network {
     /** Gets scheduled executor to perform any non-blocking tasks that need to be scheduled. */
     protected ScheduledExecutorService getNonBlockingScheduledExecutor() {
         return mNonBlockingScheduledExecutor;
-    }
-
-    /** Gets the {@link AsyncHttpStack} to be used by the network. */
-    protected AsyncHttpStack getHttpStack() {
-        return mAsyncStack;
     }
 }
