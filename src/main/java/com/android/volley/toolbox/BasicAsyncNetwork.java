@@ -36,19 +36,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-/** A network performing Volley requests over an {@link HttpStack}. */
+/**
+ * A network performing Volley requests over an {@link HttpStack}.
+ *
+ * <p>Obtain an instance with {@link #builder}.
+ */
 public class BasicAsyncNetwork extends AsyncNetwork {
+
+    private static final int DEFAULT_POOL_SIZE = 4096;
 
     private final AsyncHttpStack mAsyncStack;
     private final ByteArrayPool mPool;
 
-    /**
-     * @param httpStack HTTP stack to be used
-     * @param pool a buffer pool that improves GC performance in copy operations
-     */
-    private BasicAsyncNetwork(AsyncHttpStack httpStack, ByteArrayPool pool) {
-        mAsyncStack = httpStack;
-        mPool = pool;
+    protected BasicAsyncNetwork(Builder<?> builder) {
+        if (builder.mPool == null) {
+            mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
+        } else {
+            mPool = builder.mPool;
+        }
+
+        mAsyncStack = builder.mAsyncStack;
     }
 
     @RestrictTo({RestrictTo.Scope.LIBRARY_GROUP})
@@ -257,32 +264,48 @@ public class BasicAsyncNetwork extends AsyncNetwork {
     /**
      * Builder is used to build an instance of {@link BasicAsyncNetwork} from values configured by
      * the setters.
+     *
+     * <p>Obtain an instance with {@link #builder}.
      */
-    public static class Builder {
-        private static final int DEFAULT_POOL_SIZE = 4096;
-        @NonNull private AsyncHttpStack mAsyncStack;
-        private ByteArrayPool mPool;
+    public abstract static class Builder<T extends Builder<T>> {
+        @NonNull final AsyncHttpStack mAsyncStack;
+        ByteArrayPool mPool;
 
-        public Builder(@NonNull AsyncHttpStack httpStack) {
+        protected Builder(@NonNull AsyncHttpStack httpStack) {
             mAsyncStack = httpStack;
-            mPool = null;
         }
+
+        /** Subclasses must override to return "this". */
+        protected abstract T self();
 
         /**
          * Sets the ByteArrayPool to be used. If not set, it will default to a pool with the default
          * pool size.
          */
-        public Builder setPool(ByteArrayPool pool) {
+        public T setPool(ByteArrayPool pool) {
             mPool = pool;
-            return this;
+            return self();
         }
 
         /** Builds the {@link com.android.volley.toolbox.BasicAsyncNetwork} */
         public BasicAsyncNetwork build() {
-            if (mPool == null) {
-                mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
-            }
-            return new BasicAsyncNetwork(mAsyncStack, mPool);
+            return new BasicAsyncNetwork(this);
         }
+    }
+
+    private static class InternalBuilder extends Builder<InternalBuilder> {
+        InternalBuilder(@NonNull AsyncHttpStack httpStack) {
+            super(httpStack);
+        }
+
+        @Override
+        protected InternalBuilder self() {
+            return this;
+        }
+    }
+
+    /** Create a new {@link Builder}. */
+    public static Builder<?> builder(@NonNull AsyncHttpStack httpStack) {
+        return new InternalBuilder(httpStack);
     }
 }

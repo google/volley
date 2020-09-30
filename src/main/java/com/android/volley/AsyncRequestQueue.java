@@ -41,7 +41,9 @@ import java.util.concurrent.TimeUnit;
  * An asynchronous request dispatch queue.
  *
  * <p>Add requests to the queue with {@link #add(Request)}. Once completed, responses will be
- * delivered on the main thread (unless a custom {@link ResponseDelivery} has been provided)
+ * delivered on the main thread (unless a custom {@link ResponseDelivery} has been provided).
+ *
+ * <p>Obtain an instance with {@link #builder}.
  */
 public class AsyncRequestQueue extends RequestQueue {
     /** Default number of blocking threads to start. */
@@ -77,33 +79,27 @@ public class AsyncRequestQueue extends RequestQueue {
      * providing them directly so that Volley can provide a PriorityQueue which will prioritize
      * requests according to Request#getPriority.
      */
-    private ExecutorFactory mExecutorFactory;
+    private final ExecutorFactory mExecutorFactory;
 
     /** Manage list of waiting requests and de-duplicate requests with same cache key. */
     private final WaitingRequestManager mWaitingRequestManager = new WaitingRequestManager(this);
 
-    /**
-     * Sets all the variables, but processing does not begin until {@link #start()} is called.
-     *
-     * @param cache to use for persisting responses to disk. If an AsyncCache was provided, then
-     *     this will be a {@link ThrowingCache}
-     * @param network to perform HTTP requests
-     * @param asyncCache to use for persisting responses to disk. May be null to indicate use of
-     *     blocking cache
-     * @param responseDelivery interface for posting responses and errors
-     * @param executorFactory Interface to be used to provide custom executors according to the
-     *     users needs.
-     */
-    private AsyncRequestQueue(
-            Cache cache,
-            AsyncNetwork network,
-            @Nullable AsyncCache asyncCache,
-            ResponseDelivery responseDelivery,
-            ExecutorFactory executorFactory) {
-        super(cache, network, /* threadPoolSize= */ 0, responseDelivery);
-        mAsyncCache = asyncCache;
-        mNetwork = network;
-        mExecutorFactory = executorFactory;
+    protected AsyncRequestQueue(Builder<?> builder) {
+        super(builder.mCache, builder.mNetwork, /* threadPoolSize= */ 0, builder.mResponseDelivery);
+
+        // If neither cache was set by the caller, throw an illegal argument exception.
+        if (builder.mCache instanceof ThrowingCache && builder.mAsyncCache == null) {
+            throw new IllegalArgumentException("You must set one of the cache objects");
+        }
+
+        if (builder.mExecutorFactory == null) {
+            mExecutorFactory = getDefaultExecutorFactory();
+        } else {
+            mExecutorFactory = builder.mExecutorFactory;
+        }
+
+        mAsyncCache = builder.mAsyncCache;
+        mNetwork = builder.mNetwork;
     }
 
     /** Sets the executors and initializes the cache. */
@@ -472,28 +468,36 @@ public class AsyncRequestQueue extends RequestQueue {
     /**
      * Builder is used to build an instance of {@link AsyncRequestQueue} from values configured by
      * the setters.
+     *
+     * <p>Obtain an instance with {@link #builder}.
      */
-    public static class Builder {
-        @Nullable private AsyncCache mAsyncCache = null;
-        private final AsyncNetwork mNetwork;
-        @Nullable private Cache mCache = null;
-        @Nullable private ExecutorFactory mExecutorFactory = null;
-        @Nullable private ResponseDelivery mResponseDelivery = null;
+    public abstract static class Builder<T extends Builder<T>> {
+        @Nullable AsyncCache mAsyncCache = null;
+        final AsyncNetwork mNetwork;
+        @Nullable Cache mCache = new ThrowingCache();
+        @Nullable ExecutorFactory mExecutorFactory = null;
 
-        public Builder(AsyncNetwork asyncNetwork) {
+        @Nullable
+        ResponseDelivery mResponseDelivery =
+                new ExecutorDelivery(new Handler(Looper.getMainLooper()));
+
+        protected Builder(AsyncNetwork asyncNetwork) {
             if (asyncNetwork == null) {
                 throw new IllegalArgumentException("Network cannot be null");
             }
             mNetwork = asyncNetwork;
         }
 
+        /** Subclasses must override to return "this". */
+        protected abstract T self();
+
         /**
          * Sets the executor factory to be used by the AsyncRequestQueue. If this is not called,
          * Volley will create suitable private thread pools.
          */
-        public Builder setExecutorFactory(ExecutorFactory executorFactory) {
+        public T setExecutorFactory(ExecutorFactory executorFactory) {
             mExecutorFactory = executorFactory;
-            return this;
+            return self();
         }
 
         /**
@@ -501,94 +505,96 @@ public class AsyncRequestQueue extends RequestQueue {
          * will default to creating a new {@link ExecutorDelivery} with the application's main
          * thread.
          */
-        public Builder setResponseDelivery(ResponseDelivery responseDelivery) {
+        public T setResponseDelivery(ResponseDelivery responseDelivery) {
             mResponseDelivery = responseDelivery;
-            return this;
+            return self();
         }
 
         /** Sets the AsyncCache to be used by the AsyncRequestQueue. */
-        public Builder setAsyncCache(AsyncCache asyncCache) {
+        public T setAsyncCache(AsyncCache asyncCache) {
             mAsyncCache = asyncCache;
-            return this;
+            return self();
         }
 
         /** Sets the Cache to be used by the AsyncRequestQueue. */
-        public Builder setCache(Cache cache) {
+        public T setCache(Cache cache) {
+            if (cache == null) {
+                throw new IllegalArgumentException("Cache must be non-null if provided");
+            }
             mCache = cache;
-            return this;
-        }
-
-        /** Provides a default ExecutorFactory to use, if one is never set. */
-        private ExecutorFactory getDefaultExecutorFactory() {
-            return new ExecutorFactory() {
-                @Override
-                public ExecutorService createNonBlockingExecutor(
-                        BlockingQueue<Runnable> taskQueue) {
-                    return getNewThreadPoolExecutor(
-                            /* maximumPoolSize= */ 1,
-                            /* threadNameSuffix= */ "Non-BlockingExecutor",
-                            taskQueue);
-                }
-
-                @Override
-                public ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue) {
-                    return getNewThreadPoolExecutor(
-                            /* maximumPoolSize= */ DEFAULT_BLOCKING_THREAD_POOL_SIZE,
-                            /* threadNameSuffix= */ "BlockingExecutor",
-                            taskQueue);
-                }
-
-                @Override
-                public ScheduledExecutorService createNonBlockingScheduledExecutor() {
-                    return new ScheduledThreadPoolExecutor(
-                            /* corePoolSize= */ 0, getThreadFactory("ScheduledExecutor"));
-                }
-
-                private ThreadPoolExecutor getNewThreadPoolExecutor(
-                        int maximumPoolSize,
-                        final String threadNameSuffix,
-                        BlockingQueue<Runnable> taskQueue) {
-                    return new ThreadPoolExecutor(
-                            /* corePoolSize= */ 0,
-                            /* maximumPoolSize= */ maximumPoolSize,
-                            /* keepAliveTime= */ 60,
-                            /* unit= */ TimeUnit.SECONDS,
-                            taskQueue,
-                            getThreadFactory(threadNameSuffix));
-                }
-
-                private ThreadFactory getThreadFactory(final String threadNameSuffix) {
-                    return new ThreadFactory() {
-                        @Override
-                        public Thread newThread(@NonNull Runnable runnable) {
-                            Thread t = Executors.defaultThreadFactory().newThread(runnable);
-                            t.setName("Volley-" + threadNameSuffix);
-                            return t;
-                        }
-                    };
-                }
-            };
+            return self();
         }
 
         public AsyncRequestQueue build() {
-            // If neither cache is set by the caller, throw an illegal argument exception.
-            if (mCache == null && mAsyncCache == null) {
-                throw new IllegalArgumentException("You must set one of the cache objects");
-            }
-            if (mCache == null) {
-                // if no cache is provided, we will provide one that throws
-                // UnsupportedOperationExceptions to pass into the parent class.
-                mCache = new ThrowingCache();
-            }
-            if (mResponseDelivery == null) {
-                mResponseDelivery = new ExecutorDelivery(new Handler(Looper.getMainLooper()));
-            }
-            if (mExecutorFactory == null) {
-                mExecutorFactory = getDefaultExecutorFactory();
-            }
-            return new AsyncRequestQueue(
-                    mCache, mNetwork, mAsyncCache, mResponseDelivery, mExecutorFactory);
+            return new AsyncRequestQueue(this);
         }
+    }
+
+    private static class InternalBuilder extends Builder<InternalBuilder> {
+        InternalBuilder(AsyncNetwork network) {
+            super(network);
+        }
+
+        @Override
+        protected InternalBuilder self() {
+            return this;
+        }
+    }
+
+    /** Create a new {@link Builder}. */
+    public static Builder<?> builder(AsyncNetwork network) {
+        return new InternalBuilder(network);
+    }
+
+    /** Provides a default ExecutorFactory to use, if one is never set. */
+    private static ExecutorFactory getDefaultExecutorFactory() {
+        return new ExecutorFactory() {
+            @Override
+            public ExecutorService createNonBlockingExecutor(BlockingQueue<Runnable> taskQueue) {
+                return getNewThreadPoolExecutor(
+                        /* maximumPoolSize= */ 1,
+                        /* threadNameSuffix= */ "Non-BlockingExecutor",
+                        taskQueue);
+            }
+
+            @Override
+            public ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue) {
+                return getNewThreadPoolExecutor(
+                        /* maximumPoolSize= */ DEFAULT_BLOCKING_THREAD_POOL_SIZE,
+                        /* threadNameSuffix= */ "BlockingExecutor",
+                        taskQueue);
+            }
+
+            @Override
+            public ScheduledExecutorService createNonBlockingScheduledExecutor() {
+                return new ScheduledThreadPoolExecutor(
+                        /* corePoolSize= */ 0, getThreadFactory("ScheduledExecutor"));
+            }
+
+            private ThreadPoolExecutor getNewThreadPoolExecutor(
+                    int maximumPoolSize,
+                    final String threadNameSuffix,
+                    BlockingQueue<Runnable> taskQueue) {
+                return new ThreadPoolExecutor(
+                        /* corePoolSize= */ 0,
+                        /* maximumPoolSize= */ maximumPoolSize,
+                        /* keepAliveTime= */ 60,
+                        /* unit= */ TimeUnit.SECONDS,
+                        taskQueue,
+                        getThreadFactory(threadNameSuffix));
+            }
+
+            private ThreadFactory getThreadFactory(final String threadNameSuffix) {
+                return new ThreadFactory() {
+                    @Override
+                    public Thread newThread(@NonNull Runnable runnable) {
+                        Thread t = Executors.defaultThreadFactory().newThread(runnable);
+                        t.setName("Volley-" + threadNameSuffix);
+                        return t;
+                    }
+                };
+            }
+        };
     }
 
     /** A cache that throws an error if a method is called. */

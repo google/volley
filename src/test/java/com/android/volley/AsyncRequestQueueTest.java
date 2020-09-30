@@ -52,7 +52,7 @@ public class AsyncRequestQueueTest {
         ResponseDelivery mDelivery = new ImmediateResponseDelivery();
         initMocks(this);
         queue =
-                new AsyncRequestQueue.Builder(mMockNetwork)
+                AsyncRequestQueue.builder(mMockNetwork)
                         .setAsyncCache(new NoAsyncCache())
                         .setResponseDelivery(mDelivery)
                         .setExecutorFactory(

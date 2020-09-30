@@ -51,8 +51,12 @@ import org.chromium.net.UrlResponseInfo;
 
 /**
  * A {@link AsyncHttpStack} that's based on Cronet's fully asynchronous API for network requests.
+ *
+ * <p>Obtain an instance with {@link #builder}.
  */
 public class CronetHttpStack extends AsyncHttpStack {
+
+    private static final int DEFAULT_POOL_SIZE = 4096;
 
     private final CronetEngine mCronetEngine;
     private final ByteArrayPool mPool;
@@ -63,19 +67,45 @@ public class CronetHttpStack extends AsyncHttpStack {
     private final CurlCommandLogger mCurlCommandLogger;
     private final boolean mLogAuthTokensInCurlCommands;
 
-    private CronetHttpStack(
-            CronetEngine cronetEngine,
-            ByteArrayPool pool,
-            UrlRewriter urlRewriter,
-            boolean curlLoggingEnabled,
-            CurlCommandLogger curlCommandLogger,
-            boolean logAuthTokensInCurlCommands) {
-        mCronetEngine = cronetEngine;
-        mPool = pool;
-        mUrlRewriter = urlRewriter;
-        mCurlLoggingEnabled = curlLoggingEnabled;
-        mCurlCommandLogger = curlCommandLogger;
-        mLogAuthTokensInCurlCommands = logAuthTokensInCurlCommands;
+    protected CronetHttpStack(Builder<?> builder) {
+        if (builder.mCronetEngine == null) {
+            mCronetEngine = new CronetEngine.Builder(builder.context).build();
+        } else {
+            mCronetEngine = builder.mCronetEngine;
+        }
+
+        if (builder.mUrlRewriter == null) {
+            mUrlRewriter =
+                    new UrlRewriter() {
+                        @Override
+                        public String rewriteUrl(String originalUrl) {
+                            return originalUrl;
+                        }
+                    };
+        } else {
+            mUrlRewriter = builder.mUrlRewriter;
+        }
+
+        if (builder.mPool == null) {
+            mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
+        } else {
+            mPool = builder.mPool;
+        }
+
+        if (builder.mCurlCommandLogger == null) {
+            mCurlCommandLogger =
+                    new CurlCommandLogger() {
+                        @Override
+                        public void logCurlCommand(String curlCommand) {
+                            VolleyLog.v(curlCommand);
+                        }
+                    };
+        } else {
+            mCurlCommandLogger = builder.mCurlCommandLogger;
+        }
+
+        mCurlLoggingEnabled = builder.mCurlLoggingEnabled;
+        mLogAuthTokensInCurlCommands = builder.mLogAuthTokensInCurlCommands;
     }
 
     @Override
@@ -388,37 +418,41 @@ public class CronetHttpStack extends AsyncHttpStack {
     /**
      * Builder is used to build an instance of {@link CronetHttpStack} from values configured by the
      * setters.
+     *
+     * <p>Obtain an instance with {@link #builder}.
      */
-    public static class Builder {
-        private static final int DEFAULT_POOL_SIZE = 4096;
-        private CronetEngine mCronetEngine;
-        private final Context context;
-        private ByteArrayPool mPool;
-        private UrlRewriter mUrlRewriter;
-        private boolean mCurlLoggingEnabled;
-        private CurlCommandLogger mCurlCommandLogger;
-        private boolean mLogAuthTokensInCurlCommands;
+    public abstract static class Builder<T extends Builder<T>> {
+        CronetEngine mCronetEngine;
+        final Context context;
+        ByteArrayPool mPool;
+        UrlRewriter mUrlRewriter;
+        boolean mCurlLoggingEnabled;
+        CurlCommandLogger mCurlCommandLogger;
+        boolean mLogAuthTokensInCurlCommands;
 
-        public Builder(Context context) {
+        protected Builder(Context context) {
             this.context = context;
         }
 
-        /** Sets the CronetEngine to be used. Defaults to a vanialla CronetEngine. */
-        public Builder setCronetEngine(CronetEngine engine) {
+        /** Subclasses must override to return "this". */
+        protected abstract T self();
+
+        /** Sets the CronetEngine to be used. Defaults to a vanilla CronetEngine. */
+        public T setCronetEngine(CronetEngine engine) {
             mCronetEngine = engine;
-            return this;
+            return self();
         }
 
         /** Sets the ByteArrayPool to be used. Defaults to a new pool with 4096 bytes. */
-        public Builder setPool(ByteArrayPool pool) {
+        public T setPool(ByteArrayPool pool) {
             mPool = pool;
-            return this;
+            return self();
         }
 
         /** Sets the UrlRewriter to be used. Default is to return the original string. */
-        public Builder setUrlRewriter(UrlRewriter urlRewriter) {
+        public T setUrlRewriter(UrlRewriter urlRewriter) {
             mUrlRewriter = urlRewriter;
-            return this;
+            return self();
         }
 
         /**
@@ -437,9 +471,9 @@ public class CronetHttpStack extends AsyncHttpStack {
          * @see #setCurlCommandLogger(CurlCommandLogger)
          * @see #setLogAuthTokensInCurlCommands(boolean)
          */
-        public Builder setCurlLoggingEnabled(boolean curlLoggingEnabled) {
+        public T setCurlLoggingEnabled(boolean curlLoggingEnabled) {
             mCurlLoggingEnabled = curlLoggingEnabled;
-            return this;
+            return self();
         }
 
         /**
@@ -453,9 +487,9 @@ public class CronetHttpStack extends AsyncHttpStack {
          *
          * @see #setCurlLoggingEnabled(boolean)
          */
-        public Builder setCurlCommandLogger(CurlCommandLogger curlCommandLogger) {
+        public T setCurlCommandLogger(CurlCommandLogger curlCommandLogger) {
             mCurlCommandLogger = curlCommandLogger;
-            return this;
+            return self();
         }
 
         /**
@@ -470,44 +504,30 @@ public class CronetHttpStack extends AsyncHttpStack {
          *
          * @see #setCurlLoggingEnabled(boolean)
          */
-        public Builder setLogAuthTokensInCurlCommands(boolean logAuthTokensInCurlCommands) {
+        public T setLogAuthTokensInCurlCommands(boolean logAuthTokensInCurlCommands) {
             mLogAuthTokensInCurlCommands = logAuthTokensInCurlCommands;
-            return this;
+            return self();
         }
 
         public CronetHttpStack build() {
-            if (mCronetEngine == null) {
-                mCronetEngine = new CronetEngine.Builder(context).build();
-            }
-            if (mUrlRewriter == null) {
-                mUrlRewriter =
-                        new UrlRewriter() {
-                            @Override
-                            public String rewriteUrl(String originalUrl) {
-                                return originalUrl;
-                            }
-                        };
-            }
-            if (mPool == null) {
-                mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
-            }
-            if (mCurlCommandLogger == null) {
-                mCurlCommandLogger =
-                        new CurlCommandLogger() {
-                            @Override
-                            public void logCurlCommand(String curlCommand) {
-                                VolleyLog.v(curlCommand);
-                            }
-                        };
-            }
-            return new CronetHttpStack(
-                    mCronetEngine,
-                    mPool,
-                    mUrlRewriter,
-                    mCurlLoggingEnabled,
-                    mCurlCommandLogger,
-                    mLogAuthTokensInCurlCommands);
+            return new CronetHttpStack(this);
         }
+    }
+
+    private static class InternalBuilder extends Builder<InternalBuilder> {
+        InternalBuilder(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected InternalBuilder self() {
+            return this;
+        }
+    }
+
+    /** Create a new {@link Builder}. */
+    public static Builder<?> builder(Context context) {
+        return new InternalBuilder(context);
     }
 
     /**

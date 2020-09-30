@@ -19,11 +19,11 @@ package com.android.volley.toolbox;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -82,7 +82,7 @@ public class BasicAsyncNetworkTest {
                         Collections.<Header>emptyList(),
                         "foobar".getBytes(StandardCharsets.UTF_8));
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         Entry entry = new Entry();
@@ -107,7 +107,7 @@ public class BasicAsyncNetworkTest {
         HttpResponse fakeResponse =
                 new HttpResponse(200, Collections.<Header>emptyList(), 6, stream);
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         Entry entry = new Entry();
@@ -136,7 +136,7 @@ public class BasicAsyncNetworkTest {
         headers.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
         HttpResponse fakeResponse = new HttpResponse(HttpURLConnection.HTTP_NOT_MODIFIED, headers);
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         Entry entry = new Entry();
@@ -172,7 +172,7 @@ public class BasicAsyncNetworkTest {
         headers.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
         HttpResponse fakeResponse = new HttpResponse(HttpURLConnection.HTTP_NOT_MODIFIED, headers);
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         Entry entry = new Entry();
@@ -200,7 +200,7 @@ public class BasicAsyncNetworkTest {
     public void socketTimeout() throws Exception {
         MockAsyncStack mockAsyncStack = new MockAsyncStack();
         mockAsyncStack.setExceptionToThrow(new SocketTimeoutException());
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
@@ -217,7 +217,7 @@ public class BasicAsyncNetworkTest {
     public void noConnectionDefault() throws Exception {
         MockAsyncStack mockAsyncStack = new MockAsyncStack();
         mockAsyncStack.setExceptionToThrow(new IOException());
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
@@ -234,7 +234,7 @@ public class BasicAsyncNetworkTest {
     public void noConnectionRetry() throws Exception {
         MockAsyncStack mockAsyncStack = new MockAsyncStack();
         mockAsyncStack.setExceptionToThrow(new IOException());
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
@@ -252,7 +252,7 @@ public class BasicAsyncNetworkTest {
     public void noConnectionNoRetry() throws Exception {
         MockAsyncStack mockAsyncStack = new MockAsyncStack();
         mockAsyncStack.setExceptionToThrow(new IOException());
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
@@ -271,7 +271,7 @@ public class BasicAsyncNetworkTest {
         MockAsyncStack mockAsyncStack = new MockAsyncStack();
         HttpResponse fakeResponse = new HttpResponse(401, Collections.<Header>emptyList());
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
@@ -288,7 +288,7 @@ public class BasicAsyncNetworkTest {
     public void malformedUrlRequest() throws VolleyError, ExecutionException, InterruptedException {
         MockAsyncStack mockAsyncStack = new MockAsyncStack();
         mockAsyncStack.setExceptionToThrow(new MalformedURLException());
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
@@ -301,7 +301,7 @@ public class BasicAsyncNetworkTest {
         MockAsyncStack mockAsyncStack = new MockAsyncStack();
         HttpResponse fakeResponse = new HttpResponse(403, Collections.<Header>emptyList());
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         request.setRetryPolicy(mMockRetryPolicy);
@@ -320,7 +320,7 @@ public class BasicAsyncNetworkTest {
             MockAsyncStack mockAsyncStack = new MockAsyncStack();
             HttpResponse fakeResponse = new HttpResponse(i, Collections.<Header>emptyList());
             mockAsyncStack.setResponseToReturn(fakeResponse);
-            BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+            BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
             httpNetwork.setBlockingExecutor(executor);
             Request<String> request = buildRequest();
             request.setRetryPolicy(mMockRetryPolicy);
@@ -349,7 +349,7 @@ public class BasicAsyncNetworkTest {
             MockAsyncStack mockAsyncStack = new MockAsyncStack();
             HttpResponse fakeResponse = new HttpResponse(i, Collections.<Header>emptyList());
             mockAsyncStack.setResponseToReturn(fakeResponse);
-            BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+            BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
             httpNetwork.setBlockingExecutor(executor);
             Request<String> request = buildRequest();
             request.setRetryPolicy(mMockRetryPolicy);
@@ -370,7 +370,7 @@ public class BasicAsyncNetworkTest {
             HttpResponse fakeResponse = new HttpResponse(i, Collections.<Header>emptyList());
             mockAsyncStack.setResponseToReturn(fakeResponse);
             BasicAsyncNetwork httpNetwork =
-                    new BasicAsyncNetwork.Builder(mockAsyncStack)
+                    BasicAsyncNetwork.builder(mockAsyncStack)
                             .setPool(new ByteArrayPool(4096))
                             .build();
             httpNetwork.setBlockingExecutor(executor);
@@ -393,7 +393,7 @@ public class BasicAsyncNetworkTest {
             MockAsyncStack mockAsyncStack = new MockAsyncStack();
             HttpResponse fakeResponse = new HttpResponse(i, Collections.<Header>emptyList());
             mockAsyncStack.setResponseToReturn(fakeResponse);
-            BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+            BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
             httpNetwork.setBlockingExecutor(executor);
             Request<String> request = buildRequest();
             request.setRetryPolicy(mMockRetryPolicy);
@@ -418,7 +418,7 @@ public class BasicAsyncNetworkTest {
         headers.add(new Header("SharedCaseInsensitiveKey", "ServerValueShared2"));
         HttpResponse fakeResponse = new HttpResponse(HttpURLConnection.HTTP_NOT_MODIFIED, headers);
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         httpNetwork.performRequest(request, mockCallback);
@@ -436,7 +436,7 @@ public class BasicAsyncNetworkTest {
                         Collections.<Header>emptyList(),
                         "foobar".getBytes(StandardCharsets.UTF_8));
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         httpNetwork.setBlockingExecutor(executor);
         Request<String> request = buildRequest();
         Entry entry = new Entry();
@@ -454,7 +454,7 @@ public class BasicAsyncNetworkTest {
         MockAsyncStack mockAsyncStack = new MockAsyncStack();
         HttpResponse fakeResponse = new HttpResponse(200, Collections.<Header>emptyList());
         mockAsyncStack.setResponseToReturn(fakeResponse);
-        BasicAsyncNetwork httpNetwork = new BasicAsyncNetwork.Builder(mockAsyncStack).build();
+        BasicAsyncNetwork httpNetwork = BasicAsyncNetwork.builder(mockAsyncStack).build();
         Request<String> request = buildRequest();
         perform(request, httpNetwork).get();
     }

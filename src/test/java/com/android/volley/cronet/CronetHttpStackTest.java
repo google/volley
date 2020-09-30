@@ -372,7 +372,7 @@ public class CronetHttpStackTest {
 
     private CronetHttpStack createStack(Consumer<CronetHttpStack.Builder> stackEditor) {
         CronetHttpStack.Builder builder =
-                new CronetHttpStack.Builder(RuntimeEnvironment.application)
+                CronetHttpStack.builder(RuntimeEnvironment.application)
                         .setCronetEngine(mMockCronetEngine)
                         .setCurlCommandLogger(mMockCurlCommandLogger);
         stackEditor.accept(builder);
