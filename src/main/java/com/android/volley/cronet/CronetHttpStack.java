@@ -17,25 +17,30 @@
 package com.android.volley.cronet;
 
 import android.content.Context;
+import android.text.TextUtils;
+import android.util.Base64;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.Request;
 import com.android.volley.RequestTask;
+import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.AsyncHttpStack;
 import com.android.volley.toolbox.ByteArrayPool;
 import com.android.volley.toolbox.HttpResponse;
 import com.android.volley.toolbox.PoolingByteArrayOutputStream;
 import com.android.volley.toolbox.UrlRewriter;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
 import org.chromium.net.CronetEngine;
 import org.chromium.net.CronetException;
 import org.chromium.net.UploadDataProvider;
@@ -53,11 +58,24 @@ public class CronetHttpStack extends AsyncHttpStack {
     private final ByteArrayPool mPool;
     private final UrlRewriter mUrlRewriter;
 
+    // cURL logging support
+    private final boolean mCurlLoggingEnabled;
+    private final CurlCommandLogger mCurlCommandLogger;
+    private final boolean mLogAuthTokensInCurlCommands;
+
     private CronetHttpStack(
-            CronetEngine cronetEngine, ByteArrayPool pool, UrlRewriter urlRewriter) {
+            CronetEngine cronetEngine,
+            ByteArrayPool pool,
+            UrlRewriter urlRewriter,
+            boolean curlLoggingEnabled,
+            CurlCommandLogger curlCommandLogger,
+            boolean logAuthTokensInCurlCommands) {
         mCronetEngine = cronetEngine;
         mPool = pool;
         mUrlRewriter = urlRewriter;
+        mCurlLoggingEnabled = curlLoggingEnabled;
+        mCurlCommandLogger = curlCommandLogger;
+        mLogAuthTokensInCurlCommands = logAuthTokensInCurlCommands;
     }
 
     @Override
@@ -146,21 +164,26 @@ public class CronetHttpStack extends AsyncHttpStack {
                         .setPriority(getPriority(request));
         // request.getHeaders() may be blocking, so submit it to the blocking executor.
         getBlockingExecutor()
-                .execute(new SetUpRequestTask<>(request, builder, additionalHeaders, callback));
+                .execute(
+                        new SetUpRequestTask<>(request, url, builder, additionalHeaders, callback));
     }
 
     private class SetUpRequestTask<T> extends RequestTask<T> {
         UrlRequest.Builder builder;
+        String url;
         Map<String, String> additionalHeaders;
         OnRequestComplete callback;
         Request<T> request;
 
         SetUpRequestTask(
                 Request<T> request,
+                String url,
                 UrlRequest.Builder builder,
                 Map<String, String> additionalHeaders,
                 OnRequestComplete callback) {
             super(request);
+            // Note that this URL may be different from Request#getUrl() due to the UrlRewriter.
+            this.url = url;
             this.builder = builder;
             this.additionalHeaders = additionalHeaders;
             this.callback = callback;
@@ -170,9 +193,14 @@ public class CronetHttpStack extends AsyncHttpStack {
         @Override
         public void run() {
             try {
-                setHttpMethod(request, builder);
-                setRequestHeaders(request, additionalHeaders, builder);
+                CurlLoggedRequestParameters requestParameters = new CurlLoggedRequestParameters();
+                setHttpMethod(requestParameters, request);
+                setRequestHeaders(requestParameters, request, additionalHeaders);
+                requestParameters.applyToRequest(builder, getNonBlockingExecutor());
                 UrlRequest urlRequest = builder.build();
+                if (mCurlLoggingEnabled) {
+                    mCurlCommandLogger.logCurlCommand(generateCurlCommand(url, requestParameters));
+                }
                 urlRequest.start();
             } catch (AuthFailureError authFailureError) {
                 callback.onAuthError(authFailureError);
@@ -190,7 +218,7 @@ public class CronetHttpStack extends AsyncHttpStack {
     }
 
     /** Sets the connection parameters for the UrlRequest */
-    private void setHttpMethod(Request<?> request, UrlRequest.Builder builder)
+    private void setHttpMethod(CurlLoggedRequestParameters requestParameters, Request<?> request)
             throws AuthFailureError {
         switch (request.getMethod()) {
             case Request.Method.DEPRECATED_GET_OR_POST:
@@ -199,40 +227,40 @@ public class CronetHttpStack extends AsyncHttpStack {
                 // GET.  Otherwise, it is assumed that the request is a POST.
                 byte[] postBody = request.getPostBody();
                 if (postBody != null) {
-                    builder.setHttpMethod("POST");
-                    addBodyIfExists(postBody, builder);
+                    requestParameters.setHttpMethod("POST");
+                    addBodyIfExists(requestParameters, postBody);
                 } else {
-                    builder.setHttpMethod("GET");
+                    requestParameters.setHttpMethod("GET");
                 }
                 break;
             case Request.Method.GET:
                 // Not necessary to set the request method because connection defaults to GET but
                 // being explicit here.
-                builder.setHttpMethod("GET");
+                requestParameters.setHttpMethod("GET");
                 break;
             case Request.Method.DELETE:
-                builder.setHttpMethod("DELETE");
+                requestParameters.setHttpMethod("DELETE");
                 break;
             case Request.Method.POST:
-                builder.setHttpMethod("POST");
-                addBodyIfExists(request.getBody(), builder);
+                requestParameters.setHttpMethod("POST");
+                addBodyIfExists(requestParameters, request.getBody());
                 break;
             case Request.Method.PUT:
-                builder.setHttpMethod("PUT");
-                addBodyIfExists(request.getBody(), builder);
+                requestParameters.setHttpMethod("PUT");
+                addBodyIfExists(requestParameters, request.getBody());
                 break;
             case Request.Method.HEAD:
-                builder.setHttpMethod("HEAD");
+                requestParameters.setHttpMethod("HEAD");
                 break;
             case Request.Method.OPTIONS:
-                builder.setHttpMethod("OPTIONS");
+                requestParameters.setHttpMethod("OPTIONS");
                 break;
             case Request.Method.TRACE:
-                builder.setHttpMethod("TRACE");
+                requestParameters.setHttpMethod("TRACE");
                 break;
             case Request.Method.PATCH:
-                builder.setHttpMethod("PATCH");
-                addBodyIfExists(request.getBody(), builder);
+                requestParameters.setHttpMethod("PATCH");
+                addBodyIfExists(requestParameters, request.getBody());
                 break;
             default:
                 throw new IllegalStateException("Unknown method type.");
@@ -242,29 +270,25 @@ public class CronetHttpStack extends AsyncHttpStack {
     /**
      * Sets the request headers for the UrlRequest.
      *
+     * @param requestParameters parameters that we are adding the request headers to
      * @param request to get the headers from
      * @param additionalHeaders for the UrlRequest
-     * @param builder that we are adding the request headers to
      * @throws AuthFailureError is thrown if Request#getHeaders throws ones
      */
     private void setRequestHeaders(
-            Request<?> request, Map<String, String> additionalHeaders, UrlRequest.Builder builder)
+            CurlLoggedRequestParameters requestParameters,
+            Request<?> request,
+            Map<String, String> additionalHeaders)
             throws AuthFailureError {
-        HashMap<String, String> map = new HashMap<>();
-        map.putAll(additionalHeaders);
+        requestParameters.putAllHeaders(additionalHeaders);
         // Request.getHeaders() takes precedence over the given additional (cache) headers).
-        map.putAll(request.getHeaders());
-        for (Map.Entry<String, String> header : map.entrySet()) {
-            builder.addHeader(header.getKey(), header.getValue());
-        }
+        requestParameters.putAllHeaders(request.getHeaders());
     }
 
     /** Sets the UploadDataProvider of the UrlRequest.Builder */
-    private void addBodyIfExists(@Nullable byte[] body, UrlRequest.Builder builder) {
-        if (body != null) {
-            UploadDataProvider dataProvider = UploadDataProviders.create(body);
-            builder.setUploadDataProvider(dataProvider, getNonBlockingExecutor());
-        }
+    private void addBodyIfExists(
+            CurlLoggedRequestParameters requestParameters, @Nullable byte[] body) {
+        requestParameters.setBody(body);
     }
 
     /** Helper method that maps Volley's request priority to Cronet's */
@@ -290,6 +314,77 @@ public class CronetHttpStack extends AsyncHttpStack {
         }
     }
 
+    private String generateCurlCommand(String url, CurlLoggedRequestParameters requestParameters) {
+        StringBuilder builder = new StringBuilder("curl ");
+
+        // HTTP method
+        builder.append("-X ").append(requestParameters.getHttpMethod()).append(" ");
+
+        // Request headers
+        for (Map.Entry<String, String> header : requestParameters.getHeaders().entrySet()) {
+            builder.append("--header \"").append(header.getKey()).append(": ");
+            if (!mLogAuthTokensInCurlCommands
+                    && ("Authorization".equals(header.getKey())
+                            || "Cookie".equals(header.getKey()))) {
+                builder.append("[REDACTED]");
+            } else {
+                builder.append(header.getValue());
+            }
+            builder.append("\" ");
+        }
+
+        // URL
+        builder.append("\"").append(url).append("\"");
+
+        // Request body (if any)
+        if (requestParameters.getBody() != null) {
+            if (requestParameters.getBody().length >= 1024) {
+                builder.append(" [REQUEST BODY TOO LARGE TO INCLUDE]");
+            } else if (isBinaryContentForLogging(requestParameters)) {
+                String base64 = Base64.encodeToString(requestParameters.getBody(), Base64.NO_WRAP);
+                builder.insert(0, "echo '" + base64 + "' | base64 -d > /tmp/$$.bin; ")
+                        .append(" --data-binary @/tmp/$$.bin");
+            } else {
+                // Just assume the request body is UTF-8 since this is for debugging.
+                try {
+                    builder.append(" --data-ascii \"")
+                            .append(new String(requestParameters.getBody(), "UTF-8"))
+                            .append("\"");
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException("Could not encode to UTF-8", e);
+                }
+            }
+        }
+
+        return builder.toString();
+    }
+
+    /** Rough heuristic to determine whether the request body is binary, for logging purposes. */
+    private boolean isBinaryContentForLogging(CurlLoggedRequestParameters requestParameters) {
+        // Check to see if the content is gzip compressed - this means it should be treated as
+        // binary content regardless of the content type.
+        String contentEncoding = requestParameters.getHeaders().get("Content-Encoding");
+        if (contentEncoding != null) {
+            String[] encodings = TextUtils.split(contentEncoding, ",");
+            for (String encoding : encodings) {
+                if ("gzip".equals(encoding.trim())) {
+                    return true;
+                }
+            }
+        }
+
+        // If the content type is a known text type, treat it as text content.
+        String contentType = requestParameters.getHeaders().get("Content-Type");
+        if (contentType != null) {
+            return !contentType.startsWith("text/")
+                    && !contentType.startsWith("application/xml")
+                    && !contentType.startsWith("application/json");
+        }
+
+        // Otherwise, assume it is binary content.
+        return true;
+    }
+
     /**
      * Builder is used to build an instance of {@link CronetHttpStack} from values configured by the
      * setters.
@@ -300,12 +395,12 @@ public class CronetHttpStack extends AsyncHttpStack {
         private final Context context;
         private ByteArrayPool mPool;
         private UrlRewriter mUrlRewriter;
+        private boolean mCurlLoggingEnabled;
+        private CurlCommandLogger mCurlCommandLogger;
+        private boolean mLogAuthTokensInCurlCommands;
 
         public Builder(Context context) {
             this.context = context;
-            mCronetEngine = null;
-            mPool = null;
-            mUrlRewriter = null;
         }
 
         /** Sets the CronetEngine to be used. Defaults to a vanialla CronetEngine. */
@@ -326,6 +421,60 @@ public class CronetHttpStack extends AsyncHttpStack {
             return this;
         }
 
+        /**
+         * Sets whether cURL logging should be enabled for debugging purposes.
+         *
+         * <p>When enabled, for each request dispatched to the network, a roughly-equivalent cURL
+         * command will be logged to logcat.
+         *
+         * <p>The command may be missing some headers that are added by Cronet automatically, and
+         * the full request body may not be included if it is too large. To inspect the full
+         * requests and responses, see {@code CronetEngine#startNetLogToFile}.
+         *
+         * <p>WARNING: This is only intended for debugging purposes and should never be enabled on
+         * production devices.
+         *
+         * @see #setCurlCommandLogger(CurlCommandLogger)
+         * @see #setLogAuthTokensInCurlCommands(boolean)
+         */
+        public Builder setCurlLoggingEnabled(boolean curlLoggingEnabled) {
+            mCurlLoggingEnabled = curlLoggingEnabled;
+            return this;
+        }
+
+        /**
+         * Sets the function used to log cURL commands.
+         *
+         * <p>Allows customization of the logging performed when cURL logging is enabled.
+         *
+         * <p>By default, when cURL logging is enabled, cURL commands are logged using {@link
+         * VolleyLog#v}, e.g. at the verbose log level with the same log tag used by the rest of
+         * Volley. This function may optionally be invoked to provide a custom logger.
+         *
+         * @see #setCurlLoggingEnabled(boolean)
+         */
+        public Builder setCurlCommandLogger(CurlCommandLogger curlCommandLogger) {
+            mCurlCommandLogger = curlCommandLogger;
+            return this;
+        }
+
+        /**
+         * Sets whether to log known auth tokens in cURL commands, or redact them.
+         *
+         * <p>By default, headers which may contain auth tokens (e.g. Authorization or Cookie) will
+         * have their values redacted. Passing true to this method will disable this redaction and
+         * log the values of these headers.
+         *
+         * <p>This heuristic is not perfect; tokens that are logged in unknown headers, or in the
+         * request body itself, will not be redacted as they cannot be detected generically.
+         *
+         * @see #setCurlLoggingEnabled(boolean)
+         */
+        public Builder setLogAuthTokensInCurlCommands(boolean logAuthTokensInCurlCommands) {
+            mLogAuthTokensInCurlCommands = logAuthTokensInCurlCommands;
+            return this;
+        }
+
         public CronetHttpStack build() {
             if (mCronetEngine == null) {
                 mCronetEngine = new CronetEngine.Builder(context).build();
@@ -342,7 +491,89 @@ public class CronetHttpStack extends AsyncHttpStack {
             if (mPool == null) {
                 mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
             }
-            return new CronetHttpStack(mCronetEngine, mPool, mUrlRewriter);
+            if (mCurlCommandLogger == null) {
+                mCurlCommandLogger =
+                        new CurlCommandLogger() {
+                            @Override
+                            public void logCurlCommand(String curlCommand) {
+                                VolleyLog.v(curlCommand);
+                            }
+                        };
+            }
+            return new CronetHttpStack(
+                    mCronetEngine,
+                    mPool,
+                    mUrlRewriter,
+                    mCurlLoggingEnabled,
+                    mCurlCommandLogger,
+                    mLogAuthTokensInCurlCommands);
+        }
+    }
+
+    /**
+     * Interface for logging cURL commands for requests.
+     *
+     * @see Builder#setCurlCommandLogger(CurlCommandLogger)
+     */
+    public interface CurlCommandLogger {
+        /** Log the given cURL command. */
+        void logCurlCommand(String curlCommand);
+    }
+
+    /**
+     * Internal container class for request parameters that impact logged cURL commands.
+     *
+     * <p>When cURL logging is enabled, an equivalent cURL command to a given request must be
+     * generated and logged. However, the Cronet UrlRequest object is write-only. So, we write any
+     * relevant parameters into this read-write container so they can be referenced when generating
+     * the cURL command (if needed) and then merged into the UrlRequest.
+     */
+    private static class CurlLoggedRequestParameters {
+        private final TreeMap<String, String> mHeaders =
+                new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        private String mHttpMethod;
+        @Nullable private byte[] mBody;
+
+        /**
+         * Return the headers to be used for the request.
+         *
+         * <p>The returned map is case-insensitive.
+         */
+        TreeMap<String, String> getHeaders() {
+            return mHeaders;
+        }
+
+        /** Apply all the headers in the given map to the request. */
+        void putAllHeaders(Map<String, String> headers) {
+            mHeaders.putAll(headers);
+        }
+
+        String getHttpMethod() {
+            return mHttpMethod;
+        }
+
+        void setHttpMethod(String httpMethod) {
+            mHttpMethod = httpMethod;
+        }
+
+        @Nullable
+        byte[] getBody() {
+            return mBody;
+        }
+
+        void setBody(byte[] body) {
+            mBody = body;
+        }
+
+        void applyToRequest(UrlRequest.Builder builder, ExecutorService nonBlockingExecutor) {
+            for (Map.Entry<String, String> header : mHeaders.entrySet()) {
+                builder.addHeader(header.getKey(), header.getValue());
+            }
+            builder.setHttpMethod(mHttpMethod);
+            if (mBody != null) {
+                UploadDataProvider dataProvider = UploadDataProviders.create(mBody);
+                builder.setUploadDataProvider(dataProvider, nonBlockingExecutor);
+            }
         }
     }
 }
