@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import org.chromium.net.CronetEngine;
 import org.chromium.net.CronetException;
@@ -58,6 +59,7 @@ public class CronetHttpStack extends AsyncHttpStack {
     private final CronetEngine mCronetEngine;
     private final ByteArrayPool mPool;
     private final UrlRewriter mUrlRewriter;
+    private final RequestListener mRequestListener;
 
     // cURL logging support
     private final boolean mCurlLoggingEnabled;
@@ -68,15 +70,19 @@ public class CronetHttpStack extends AsyncHttpStack {
             CronetEngine cronetEngine,
             ByteArrayPool pool,
             UrlRewriter urlRewriter,
+            RequestListener requestListener,
             boolean curlLoggingEnabled,
             CurlCommandLogger curlCommandLogger,
             boolean logAuthTokensInCurlCommands) {
         mCronetEngine = cronetEngine;
         mPool = pool;
         mUrlRewriter = urlRewriter;
+        mRequestListener = requestListener;
         mCurlLoggingEnabled = curlLoggingEnabled;
         mCurlCommandLogger = curlCommandLogger;
         mLogAuthTokensInCurlCommands = logAuthTokensInCurlCommands;
+
+        mRequestListener.initialize(this);
     }
 
     @Override
@@ -194,6 +200,7 @@ public class CronetHttpStack extends AsyncHttpStack {
         @Override
         public void run() {
             try {
+                mRequestListener.onRequestPrepared(request, builder);
                 CurlLoggedRequestParameters requestParameters = new CurlLoggedRequestParameters();
                 setHttpMethod(requestParameters, request);
                 setRequestHeaders(requestParameters, request, additionalHeaders);
@@ -398,6 +405,7 @@ public class CronetHttpStack extends AsyncHttpStack {
         private final Context context;
         private ByteArrayPool mPool;
         private UrlRewriter mUrlRewriter;
+        private RequestListener mRequestListener;
         private boolean mCurlLoggingEnabled;
         private CurlCommandLogger mCurlCommandLogger;
         private boolean mLogAuthTokensInCurlCommands;
@@ -421,6 +429,12 @@ public class CronetHttpStack extends AsyncHttpStack {
         /** Sets the UrlRewriter to be used. Default is to return the original string. */
         public Builder setUrlRewriter(UrlRewriter urlRewriter) {
             mUrlRewriter = urlRewriter;
+            return this;
+        }
+
+        /** Set the optional RequestListener to be used. */
+        public Builder setRequestListener(RequestListener requestListener) {
+            mRequestListener = requestListener;
             return this;
         }
 
@@ -491,6 +505,9 @@ public class CronetHttpStack extends AsyncHttpStack {
                             }
                         };
             }
+            if (mRequestListener == null) {
+                mRequestListener = new RequestListener() {};
+            }
             if (mPool == null) {
                 mPool = new ByteArrayPool(DEFAULT_POOL_SIZE);
             }
@@ -507,9 +524,37 @@ public class CronetHttpStack extends AsyncHttpStack {
                     mCronetEngine,
                     mPool,
                     mUrlRewriter,
+                    mRequestListener,
                     mCurlLoggingEnabled,
                     mCurlCommandLogger,
                     mLogAuthTokensInCurlCommands);
+        }
+    }
+
+    /** Callback interface allowing clients to intercept different parts of the request flow. */
+    public abstract static class RequestListener {
+        private CronetHttpStack mStack;
+
+        void initialize(CronetHttpStack stack) {
+            mStack = stack;
+        }
+
+        /**
+         * Called when a request is prepared and about to be sent over the network.
+         *
+         * <p>Clients may use this callback to customize UrlRequests before they are dispatched,
+         * e.g. to enable socket tagging or request finished listeners.
+         */
+        public void onRequestPrepared(Request<?> request, UrlRequest.Builder requestBuilder) {}
+
+        /** @see AsyncHttpStack#getNonBlockingExecutor() */
+        protected Executor getNonBlockingExecutor() {
+            return mStack.getNonBlockingExecutor();
+        }
+
+        /** @see AsyncHttpStack#getBlockingExecutor() */
+        protected Executor getBlockingExecutor() {
+            return mStack.getBlockingExecutor();
         }
     }
 
