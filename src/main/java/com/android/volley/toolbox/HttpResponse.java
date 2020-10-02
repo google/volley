@@ -107,13 +107,12 @@ public final class HttpResponse {
      */
     @Nullable
     public final InputStream getContent() {
-        if (mContentLength == -1) {
-            return null;
-        }
         if (mContent != null) {
             return mContent;
-        } else {
+        } else if (mContentBytes != null) {
             return new ByteArrayInputStream(mContentBytes);
+        } else {
+            return null;
         }
     }
 }
