@@ -436,17 +436,24 @@ public class AsyncRequestQueue extends RequestQueue {
     }
 
     /**
-     * This class may be used by advanced applications to provide custom executors according to
-     * their needs. Apps must create ExecutorServices dynamically given a blocking queue rather than
-     * providing them directly so that Volley can provide a PriorityQueue which will prioritize
-     * requests according to Request#getPriority.
+     * Factory to create/provide the executors which Volley will use.
+     *
+     * <p>This class may be used by advanced applications to provide custom executors according to
+     * their needs.
+     *
+     * <p>For applications which rely on setting request priority via {@link Request#getPriority}, a
+     * task queue is provided which will prioritize requests of higher priority should the thread
+     * pool itself be exhausted. If a shared pool is provided which does not make use of the given
+     * queue, then lower-priority requests may have tasks executed before higher-priority requests
+     * when enough tasks are in flight to fully saturate the shared pool.
      */
     public abstract static class ExecutorFactory {
-        abstract ExecutorService createNonBlockingExecutor(BlockingQueue<Runnable> taskQueue);
+        public abstract ExecutorService createNonBlockingExecutor(
+                BlockingQueue<Runnable> taskQueue);
 
-        abstract ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue);
+        public abstract ExecutorService createBlockingExecutor(BlockingQueue<Runnable> taskQueue);
 
-        abstract ScheduledExecutorService createNonBlockingScheduledExecutor();
+        public abstract ScheduledExecutorService createNonBlockingScheduledExecutor();
     }
 
     /** Provides a BlockingQueue to be used to create executors. */
