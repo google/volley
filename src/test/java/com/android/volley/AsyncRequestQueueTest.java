@@ -16,6 +16,9 @@
 
 package com.android.volley;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,6 +26,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import com.android.volley.AsyncCache.OnGetCompleteCallback;
+import com.android.volley.AsyncCache.OnWriteCompleteCallback;
 import com.android.volley.mock.ShadowSystemClock;
 import com.android.volley.toolbox.NoAsyncCache;
 import com.android.volley.toolbox.StringRequest;
@@ -34,6 +39,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
@@ -45,37 +51,13 @@ public class AsyncRequestQueueTest {
 
     @Mock private AsyncNetwork mMockNetwork;
     @Mock private ScheduledExecutorService mMockScheduledExecutor;
+    private final ResponseDelivery mDelivery = new ImmediateResponseDelivery();
     private AsyncRequestQueue queue;
 
     @Before
     public void setUp() throws Exception {
-        ResponseDelivery mDelivery = new ImmediateResponseDelivery();
         initMocks(this);
-        queue =
-                new AsyncRequestQueue.Builder(mMockNetwork)
-                        .setAsyncCache(new NoAsyncCache())
-                        .setResponseDelivery(mDelivery)
-                        .setExecutorFactory(
-                                new AsyncRequestQueue.ExecutorFactory() {
-                                    @Override
-                                    public ExecutorService createNonBlockingExecutor(
-                                            BlockingQueue<Runnable> taskQueue) {
-                                        return MoreExecutors.newDirectExecutorService();
-                                    }
-
-                                    @Override
-                                    public ExecutorService createBlockingExecutor(
-                                            BlockingQueue<Runnable> taskQueue) {
-                                        return MoreExecutors.newDirectExecutorService();
-                                    }
-
-                                    @Override
-                                    public ScheduledExecutorService
-                                            createNonBlockingScheduledExecutor() {
-                                        return mMockScheduledExecutor;
-                                    }
-                                })
-                        .build();
+        queue = createRequestQueue(new NoAsyncCache());
     }
 
     @Test
@@ -160,5 +142,58 @@ public class AsyncRequestQueueTest {
 
         verifyNoMoreInteractions(listener);
         queue.stop();
+    }
+
+    @Test
+    public void requestsQueuedBeforeCacheInitialization_asyncCache() {
+        AsyncCache mockAsyncCache = mock(AsyncCache.class);
+        queue = createRequestQueue(mockAsyncCache);
+        queue.start();
+
+        ArgumentCaptor<OnWriteCompleteCallback> callbackCaptor =
+                ArgumentCaptor.forClass(OnWriteCompleteCallback.class);
+        verify(mockAsyncCache).initialize(callbackCaptor.capture());
+
+        StringRequest req = mock(StringRequest.class);
+        req.setShouldCache(true);
+        when(req.getCacheKey()).thenReturn("cache-key");
+        queue.add(req);
+
+        // Cache should not be read before initialization completes.
+        verify(mockAsyncCache, never()).get(anyString(), any(OnGetCompleteCallback.class));
+
+        callbackCaptor.getValue().onWriteComplete();
+
+        // Once the write completes, the request should be kicked off (in the form of a cache
+        // lookup).
+        verify(mockAsyncCache).get(eq("cache-key"), any(OnGetCompleteCallback.class));
+
+        queue.stop();
+    }
+
+    private AsyncRequestQueue createRequestQueue(AsyncCache asyncCache) {
+        return new AsyncRequestQueue.Builder(mMockNetwork)
+                .setResponseDelivery(mDelivery)
+                .setAsyncCache(asyncCache)
+                .setExecutorFactory(
+                        new AsyncRequestQueue.ExecutorFactory() {
+                            @Override
+                            public ExecutorService createNonBlockingExecutor(
+                                    BlockingQueue<Runnable> taskQueue) {
+                                return MoreExecutors.newDirectExecutorService();
+                            }
+
+                            @Override
+                            public ExecutorService createBlockingExecutor(
+                                    BlockingQueue<Runnable> taskQueue) {
+                                return MoreExecutors.newDirectExecutorService();
+                            }
+
+                            @Override
+                            public ScheduledExecutorService createNonBlockingScheduledExecutor() {
+                                return mMockScheduledExecutor;
+                            }
+                        })
+                .build();
     }
 }

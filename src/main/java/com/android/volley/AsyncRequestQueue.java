@@ -25,9 +25,10 @@ import com.android.volley.AsyncCache.OnGetCompleteCallback;
 import com.android.volley.AsyncNetwork.OnRequestComplete;
 import com.android.volley.Cache.Entry;
 import java.net.HttpURLConnection;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -83,6 +84,17 @@ public class AsyncRequestQueue extends RequestQueue {
     private final WaitingRequestManager mWaitingRequestManager = new WaitingRequestManager(this);
 
     /**
+     * Requests which have been queued before cache initialization has completed.
+     *
+     * <p>These requests are kicked off once cache initialization finishes. We avoid enqueuing them
+     * sooner as the cache may not yet be ready.
+     */
+    private final List<Request<?>> mRequestsAwaitingCacheInitialization = new ArrayList<>();
+
+    private volatile boolean mIsCacheInitialized = false;
+    private final Object mCacheInitializationLock = new Object[0];
+
+    /**
      * Sets all the variables, but processing does not begin until {@link #start()} is called.
      *
      * @param cache to use for persisting responses to disk. If an AsyncCache was provided, then
@@ -119,34 +131,37 @@ public class AsyncRequestQueue extends RequestQueue {
         mNetwork.setNonBlockingExecutor(mNonBlockingExecutor);
         mNetwork.setNonBlockingScheduledExecutor(mNonBlockingScheduledExecutor);
 
-        mNonBlockingExecutor.execute(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        // This is intentionally blocking, because we don't want to process any
-                        // requests until the cache is initialized.
-                        if (mAsyncCache != null) {
-                            final CountDownLatch latch = new CountDownLatch(1);
+        // Kick off cache initialization, which must complete before any requests can be processed.
+        if (mAsyncCache != null) {
+            mNonBlockingExecutor.execute(
+                    new Runnable() {
+                        @Override
+                        public void run() {
                             mAsyncCache.initialize(
                                     new AsyncCache.OnWriteCompleteCallback() {
                                         @Override
                                         public void onWriteComplete() {
-                                            latch.countDown();
+                                            onCacheInitializationComplete();
                                         }
                                     });
-                            try {
-                                latch.await();
-                            } catch (InterruptedException e) {
-                                VolleyLog.e(
-                                        e, "Thread was interrupted while initializing the cache.");
-                                Thread.currentThread().interrupt();
-                                throw new RuntimeException(e);
-                            }
-                        } else {
-                            getCache().initialize();
                         }
-                    }
-                });
+                    });
+        } else {
+            mBlockingExecutor.execute(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            getCache().initialize();
+                            mNonBlockingExecutor.execute(
+                                    new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            onCacheInitializationComplete();
+                                        }
+                                    });
+                        }
+                    });
+        }
     }
 
     /** Shuts down and nullifies both executors */
@@ -169,6 +184,17 @@ public class AsyncRequestQueue extends RequestQueue {
     /** Begins the request by sending it to the Cache or Network. */
     @Override
     <T> void beginRequest(Request<T> request) {
+        // If the cache hasn't been initialized yet, add the request to a temporary queue to be
+        // flushed once initialization completes.
+        if (!mIsCacheInitialized) {
+            synchronized (mCacheInitializationLock) {
+                if (!mIsCacheInitialized) {
+                    mRequestsAwaitingCacheInitialization.add(request);
+                    return;
+                }
+            }
+        }
+
         // If the request is uncacheable, send it over the network.
         if (request.shouldCache()) {
             if (mAsyncCache != null) {
@@ -178,6 +204,20 @@ public class AsyncRequestQueue extends RequestQueue {
             }
         } else {
             sendRequestOverNetwork(request);
+        }
+    }
+
+    private void onCacheInitializationComplete() {
+        List<Request<?>> requestsToDispatch;
+        synchronized (mCacheInitializationLock) {
+            requestsToDispatch = new ArrayList<>(mRequestsAwaitingCacheInitialization);
+            mRequestsAwaitingCacheInitialization.clear();
+            mIsCacheInitialized = true;
+        }
+
+        // Kick off any requests that were queued while waiting for cache initialization.
+        for (Request<?> request : requestsToDispatch) {
+            beginRequest(request);
         }
     }
 
