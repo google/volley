@@ -146,8 +146,9 @@ public class AsyncRequestQueueTest {
 
     @Test
     public void requestsQueuedBeforeCacheInitialization_asyncCache() {
+        // Create a new queue with a mock cache in order to verify the initialization.
         AsyncCache mockAsyncCache = mock(AsyncCache.class);
-        queue = createRequestQueue(mockAsyncCache);
+        AsyncRequestQueue queue = createRequestQueue(mockAsyncCache);
         queue.start();
 
         ArgumentCaptor<OnWriteCompleteCallback> callbackCaptor =
