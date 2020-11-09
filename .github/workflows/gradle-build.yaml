@@ -20,7 +20,8 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
       - name: Build with Gradle
         run: ./gradlew --continue verifyGoogleJavaFormat build connectedCheck
-      - name: Publish snapshot
+      - if: github.event_name == 'push'
+        name: Publish snapshot
         env:
           CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
           CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
