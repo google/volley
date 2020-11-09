@@ -19,7 +19,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
       - name: Build with Gradle
-        run: ./gradlew --continue verifyGoogleJavaFormat build connectedCheck
+        run: ./gradlew --continue vGJF build connectedCheck
       - name: Publish snapshot
         if: github.event_name == 'push'
         env:
