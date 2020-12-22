@@ -217,6 +217,7 @@ public class HurlStack extends BaseHttpStack {
         int timeoutMs = request.getTimeoutMs();
         connection.setConnectTimeout(timeoutMs);
         connection.setReadTimeout(timeoutMs);
+        connection.setChunkedStreamingMode(0);
         connection.setUseCaches(false);
         connection.setDoInput(true);
 
