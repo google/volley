@@ -270,8 +270,14 @@ public class AsyncRequestQueue extends RequestQueue {
             return;
         }
 
+        // Use a single instant to evaluate cache expiration. Otherwise, a cache entry with
+        // identical soft and hard TTL times may appear to be valid when checking isExpired but
+        // invalid upon checking refreshNeeded(), triggering a soft TTL refresh which should be
+        // impossible.
+        long currentTimeMillis = System.currentTimeMillis();
+
         // If it is completely expired, just send it to the network.
-        if (entry.isExpired()) {
+        if (entry.isExpired(currentTimeMillis)) {
             mRequest.addMarker("cache-hit-expired");
             mRequest.setCacheEntry(entry);
             if (!mWaitingRequestManager.maybeAddToWaitingRequests(mRequest)) {
@@ -281,15 +287,17 @@ public class AsyncRequestQueue extends RequestQueue {
         }
 
         // We have a cache hit; parse its data for delivery back to the request.
-        mBlockingExecutor.execute(new CacheParseTask<>(mRequest, entry));
+        mBlockingExecutor.execute(new CacheParseTask<>(mRequest, entry, currentTimeMillis));
     }
 
     private class CacheParseTask<T> extends RequestTask<T> {
         Cache.Entry entry;
+        long startTimeMillis;
 
-        CacheParseTask(Request<T> request, Cache.Entry entry) {
+        CacheParseTask(Request<T> request, Cache.Entry entry, long startTimeMillis) {
             super(request);
             this.entry = entry;
+            this.startTimeMillis = startTimeMillis;
         }
 
         @Override
@@ -305,7 +313,7 @@ public class AsyncRequestQueue extends RequestQueue {
                                     entry.allResponseHeaders));
             mRequest.addMarker("cache-hit-parsed");
 
-            if (!entry.refreshNeeded()) {
+            if (!entry.refreshNeeded(startTimeMillis)) {
                 // Completely unexpired cache hit. Just deliver the response.
                 getResponseDelivery().postResponse(mRequest, response);
             } else {
