@@ -102,12 +102,20 @@ public interface Cache {
 
         /** True if the entry is expired. */
         public boolean isExpired() {
-            return this.ttl < System.currentTimeMillis();
+            return isExpired(System.currentTimeMillis());
+        }
+
+        boolean isExpired(long currentTimeMillis) {
+            return this.ttl < currentTimeMillis;
         }
 
         /** True if a refresh is needed from the original data source. */
         public boolean refreshNeeded() {
-            return this.softTtl < System.currentTimeMillis();
+            return refreshNeeded(System.currentTimeMillis());
+        }
+
+        boolean refreshNeeded(long currentTimeMillis) {
+            return this.softTtl < currentTimeMillis;
         }
     }
 }

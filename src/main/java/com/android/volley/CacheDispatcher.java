@@ -138,8 +138,14 @@ public class CacheDispatcher extends Thread {
                 return;
             }
 
+            // Use a single instant to evaluate cache expiration. Otherwise, a cache entry with
+            // identical soft and hard TTL times may appear to be valid when checking isExpired but
+            // invalid upon checking refreshNeeded(), triggering a soft TTL refresh which should be
+            // impossible.
+            long currentTimeMillis = System.currentTimeMillis();
+
             // If it is completely expired, just send it to the network.
-            if (entry.isExpired()) {
+            if (entry.isExpired(currentTimeMillis)) {
                 request.addMarker("cache-hit-expired");
                 request.setCacheEntry(entry);
                 if (!mWaitingRequestManager.maybeAddToWaitingRequests(request)) {
@@ -164,7 +170,7 @@ public class CacheDispatcher extends Thread {
                 }
                 return;
             }
-            if (!entry.refreshNeeded()) {
+            if (!entry.refreshNeeded(currentTimeMillis)) {
                 // Completely unexpired cache hit. Just deliver the response.
                 mDelivery.postResponse(request, response);
             } else {
