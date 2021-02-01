@@ -113,30 +113,45 @@ public final class NetworkUtility {
 
     /**
      * Attempts to prepare the request for a retry. If there are no more attempts remaining in the
-     * request's retry policy, a timeout exception is thrown.
+     * request's retry policy, the provided exception is thrown.
+     *
+     * <p>Must be invoked from a background thread, as client implementations of RetryPolicy#retry
+     * may make blocking calls.
      *
      * @param request The request to use.
      */
-    private static void attemptRetryOnException(
-            final String logPrefix, final Request<?> request, final VolleyError exception)
+    static void attemptRetryOnException(final Request<?> request, final RetryInfo retryInfo)
             throws VolleyError {
         final RetryPolicy retryPolicy = request.getRetryPolicy();
         final int oldTimeout = request.getTimeoutMs();
         try {
-            retryPolicy.retry(exception);
+            retryPolicy.retry(retryInfo.errorToRetry);
         } catch (VolleyError e) {
             request.addMarker(
-                    String.format("%s-timeout-giveup [timeout=%s]", logPrefix, oldTimeout));
+                    String.format(
+                            "%s-timeout-giveup [timeout=%s]", retryInfo.logPrefix, oldTimeout));
             throw e;
         }
-        request.addMarker(String.format("%s-retry [timeout=%s]", logPrefix, oldTimeout));
+        request.addMarker(String.format("%s-retry [timeout=%s]", retryInfo.logPrefix, oldTimeout));
+    }
+
+    static class RetryInfo {
+        private final String logPrefix;
+        private final VolleyError errorToRetry;
+
+        private RetryInfo(String logPrefix, VolleyError errorToRetry) {
+            this.logPrefix = logPrefix;
+            this.errorToRetry = errorToRetry;
+        }
     }
 
     /**
      * Based on the exception thrown, decides whether to attempt to retry, or to throw the error.
-     * Also handles logging.
+     *
+     * <p>If this method returns without throwing, {@link #attemptRetryOnException} should be called
+     * with the provided {@link RetryInfo} to consult the client's retry policy.
      */
-    static void handleException(
+    static RetryInfo shouldRetryException(
             Request<?> request,
             IOException exception,
             long requestStartMs,
@@ -144,7 +159,7 @@ public final class NetworkUtility {
             @Nullable byte[] responseContents)
             throws VolleyError {
         if (exception instanceof SocketTimeoutException) {
-            attemptRetryOnException("socket", request, new TimeoutError());
+            return new RetryInfo("socket", new TimeoutError());
         } else if (exception instanceof MalformedURLException) {
             throw new RuntimeException("Bad URL " + request.getUrl(), exception);
         } else {
@@ -153,11 +168,9 @@ public final class NetworkUtility {
                 statusCode = httpResponse.getStatusCode();
             } else {
                 if (request.shouldRetryConnectionErrors()) {
-                    attemptRetryOnException("connection", request, new NoConnectionError());
-                    return;
-                } else {
-                    throw new NoConnectionError(exception);
+                    return new RetryInfo("connection", new NoConnectionError());
                 }
+                throw new NoConnectionError(exception);
             }
             VolleyLog.e("Unexpected response code %d for %s", statusCode, request.getUrl());
             NetworkResponse networkResponse;
@@ -173,24 +186,22 @@ public final class NetworkUtility {
                                 responseHeaders);
                 if (statusCode == HttpURLConnection.HTTP_UNAUTHORIZED
                         || statusCode == HttpURLConnection.HTTP_FORBIDDEN) {
-                    attemptRetryOnException("auth", request, new AuthFailureError(networkResponse));
-                } else if (statusCode >= 400 && statusCode <= 499) {
+                    return new RetryInfo("auth", new AuthFailureError(networkResponse));
+                }
+                if (statusCode >= 400 && statusCode <= 499) {
                     // Don't retry other client errors.
                     throw new ClientError(networkResponse);
-                } else if (statusCode >= 500 && statusCode <= 599) {
+                }
+                if (statusCode >= 500 && statusCode <= 599) {
                     if (request.shouldRetryServerErrors()) {
-                        attemptRetryOnException(
-                                "server", request, new ServerError(networkResponse));
-                    } else {
-                        throw new ServerError(networkResponse);
+                        return new RetryInfo("server", new ServerError(networkResponse));
                     }
-                } else {
-                    // 3xx? No reason to retry.
                     throw new ServerError(networkResponse);
                 }
-            } else {
-                attemptRetryOnException("network", request, new NetworkError());
+                // 3xx? No reason to retry.
+                throw new ServerError(networkResponse);
             }
+            return new RetryInfo("network", new NetworkError());
         }
     }
 }

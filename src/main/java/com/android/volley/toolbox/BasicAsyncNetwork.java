@@ -29,6 +29,7 @@ import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestTask;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.NetworkUtility.RetryInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -126,13 +127,39 @@ public class BasicAsyncNetwork extends AsyncNetwork {
             @Nullable HttpResponse httpResponse,
             @Nullable byte[] responseContents) {
         try {
-            NetworkUtility.handleException(
-                    request, exception, requestStartMs, httpResponse, responseContents);
+            RetryInfo retryInfo =
+                    NetworkUtility.shouldRetryException(
+                            request, exception, requestStartMs, httpResponse, responseContents);
+            // RetryPolicy#retry may need a background thread, so invoke in the blocking executor.
+            getBlockingExecutor()
+                    .execute(new InvokeRetryPolicyTask<>(request, retryInfo, callback));
         } catch (VolleyError volleyError) {
             callback.onError(volleyError);
-            return;
         }
-        performRequest(request, callback);
+    }
+
+    private class InvokeRetryPolicyTask<T> extends RequestTask<T> {
+        final Request<T> request;
+        final RetryInfo retryInfo;
+        final OnRequestComplete callback;
+
+        InvokeRetryPolicyTask(Request<T> request, RetryInfo retryInfo, OnRequestComplete callback) {
+            super(request);
+            this.request = request;
+            this.retryInfo = retryInfo;
+            this.callback = callback;
+        }
+
+        @Override
+        public void run() {
+            try {
+                NetworkUtility.attemptRetryOnException(request, retryInfo);
+                // attemptRetryOnException didn't throw, so proceed with the next attempt.
+                performRequest(request, callback);
+            } catch (VolleyError e) {
+                callback.onError(e);
+            }
+        }
     }
 
     @Override
