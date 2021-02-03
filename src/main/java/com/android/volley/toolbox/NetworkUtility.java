@@ -196,9 +196,8 @@ public final class NetworkUtility {
                     if (request.shouldRetryServerErrors()) {
                         return new RetryInfo("server", new ServerError(networkResponse));
                     }
-                    throw new ServerError(networkResponse);
                 }
-                // 3xx? No reason to retry.
+                // Server error and client has opted out of retries, or 3xx. No reason to retry.
                 throw new ServerError(networkResponse);
             }
             return new RetryInfo("network", new NetworkError());
