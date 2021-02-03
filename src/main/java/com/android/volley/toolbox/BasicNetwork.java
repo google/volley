@@ -22,6 +22,7 @@ import com.android.volley.Network;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.NetworkUtility.RetryInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -140,8 +141,11 @@ public class BasicNetwork implements Network {
             } catch (IOException e) {
                 // This will either throw an exception, breaking us from the loop, or will loop
                 // again and retry the request.
-                NetworkUtility.handleException(
-                        request, e, requestStart, httpResponse, responseContents);
+                RetryInfo retryInfo =
+                        NetworkUtility.shouldRetryException(
+                                request, e, requestStart, httpResponse, responseContents);
+                // We should already be on a background thread, so we can invoke the retry inline.
+                NetworkUtility.attemptRetryOnException(request, retryInfo);
             }
         }
     }
