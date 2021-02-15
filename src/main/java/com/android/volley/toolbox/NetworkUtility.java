@@ -42,7 +42,7 @@ import java.util.List;
  * Utility class for methods that are shared between {@link BasicNetwork} and {@link
  * BasicAsyncNetwork}
  */
-public final class NetworkUtility {
+final class NetworkUtility {
     private static final int SLOW_REQUEST_THRESHOLD_MS = 3000;
 
     private NetworkUtility() {}

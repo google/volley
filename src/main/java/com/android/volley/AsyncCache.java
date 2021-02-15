@@ -18,7 +18,12 @@ package com.android.volley;
 
 import androidx.annotation.Nullable;
 
-/** Asynchronous equivalent to the {@link Cache} interface. */
+/**
+ * Asynchronous equivalent to the {@link Cache} interface.
+ *
+ * <p><b>WARNING</b>: This API is experimental and subject to breaking changes. Please see
+ * https://github.com/google/volley/wiki/Asynchronous-Volley for more details.
+ */
 public abstract class AsyncCache {
 
     public interface OnGetCompleteCallback {
