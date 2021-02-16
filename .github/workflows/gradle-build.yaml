@@ -23,6 +23,6 @@ jobs:
       - name: Publish snapshot
         if: github.event_name == 'push'
         env:
-          CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
-          CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
+          OSSRH_DEPLOY_USERNAME: ${{ secrets.OSSRH_DEPLOY_USERNAME }}
+          OSSRH_DEPLOY_PASSWORD: ${{ secrets.OSSRH_DEPLOY_PASSWORD }}
         run: ./publish-snapshot-on-commit.sh
