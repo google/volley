@@ -1,18 +1,3 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.8.1"
-    }
-}
-
-// apply the plugin with its class name rather than its Id to work around gradle limitation of
-// not being able to find the plugin by Id despite the dependencies being added right above. Gradle
-// is currently not capable of loading plugins by Id if the dependency is anywhere else than
-// in the main project build.gradle. This file is "imported" into the project's build.gradle
-// through a "apply from:".
-apply plugin: org.jfrog.gradle.plugin.artifactory.ArtifactoryPlugin
 apply plugin: 'maven-publish'
 
 task sourcesJar(type: Jar) {
@@ -42,12 +27,20 @@ publishing {
             artifactId 'volley'
             version project.version
             pom {
+                name = 'Volley'
+                description = 'An HTTP library that makes networking for Android apps easier and, most importantly, faster.'
+                url = 'https://github.com/google/volley'
                 packaging 'aar'
                 licenses {
                     license {
                       name = "The Apache License, Version 2.0"
                       url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
                     }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/google/volley.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/google/volley.git'
+                    url = 'https://github.com/google/volley'
                 }
             }
 
@@ -57,22 +50,14 @@ publishing {
             artifact javadocJar
         }
     }
-}
 
-artifactory {
-    contextUrl = "https://oss.jfrog.org"
-    publish {
-        repository {
-            repoKey = 'oss-snapshot-local'
-            username = System.env.CI_DEPLOY_USERNAME
-            password = System.env.CI_DEPLOY_PASSWORD
+    repositories {
+        maven {
+            url = "https://oss.sonatype.org/content/repositories/snapshots/"
+            credentials {
+                username = System.env.OSSRH_DEPLOY_USERNAME
+                password = System.env.OSSRH_DEPLOY_PASSWORD
+            }
         }
-        defaults {
-            publications('library')
-            publishArtifacts = true
-        }
-    }
-    resolve {
-        repoKey = 'jcenter'
     }
 }
