@@ -1,6 +1,11 @@
 package com.android.volley;
 
-/** Abstract runnable that's a task to be completed by the RequestQueue. */
+/**
+ * Abstract runnable that's a task to be completed by the RequestQueue.
+ *
+ * <p><b>WARNING</b>: This API is experimental and subject to breaking changes. Please see
+ * https://github.com/google/volley/wiki/Asynchronous-Volley for more details.
+ */
 public abstract class RequestTask<T> implements Runnable {
     final Request<T> mRequest;
 

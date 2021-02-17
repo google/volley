@@ -53,6 +53,9 @@ import org.chromium.net.UrlResponseInfo;
 
 /**
  * A {@link AsyncHttpStack} that's based on Cronet's fully asynchronous API for network requests.
+ *
+ * <p><b>WARNING</b>: This API is experimental and subject to breaking changes. Please see
+ * https://github.com/google/volley/wiki/Asynchronous-Volley for more details.
  */
 public class CronetHttpStack extends AsyncHttpStack {
 

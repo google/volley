@@ -22,7 +22,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** An asynchronous implementation of {@link Network} to perform requests. */
+/**
+ * An asynchronous implementation of {@link Network} to perform requests.
+ *
+ * <p><b>WARNING</b>: This API is experimental and subject to breaking changes. Please see
+ * https://github.com/google/volley/wiki/Asynchronous-Volley for more details.
+ */
 public abstract class AsyncNetwork implements Network {
     private ExecutorService mBlockingExecutor;
     private ExecutorService mNonBlockingExecutor;

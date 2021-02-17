@@ -42,7 +42,10 @@ import java.util.concurrent.TimeUnit;
  * An asynchronous request dispatch queue.
  *
  * <p>Add requests to the queue with {@link #add(Request)}. Once completed, responses will be
- * delivered on the main thread (unless a custom {@link ResponseDelivery} has been provided)
+ * delivered on the main thread (unless a custom {@link ResponseDelivery} has been provided).
+ *
+ * <p><b>WARNING</b>: This API is experimental and subject to breaking changes. Please see
+ * https://github.com/google/volley/wiki/Asynchronous-Volley for more details.
  */
 public class AsyncRequestQueue extends RequestQueue {
     /** Default number of blocking threads to start. */

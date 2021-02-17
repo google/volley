@@ -28,7 +28,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Asynchronous extension of the {@link BaseHttpStack} class. */
+/**
+ * Asynchronous extension of the {@link BaseHttpStack} class.
+ *
+ * <p><b>WARNING</b>: This API is experimental and subject to breaking changes. Please see
+ * https://github.com/google/volley/wiki/Asynchronous-Volley for more details.
+ */
 public abstract class AsyncHttpStack extends BaseHttpStack {
     private ExecutorService mBlockingExecutor;
     private ExecutorService mNonBlockingExecutor;

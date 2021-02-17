@@ -37,7 +37,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-/** A network performing Volley requests over an {@link HttpStack}. */
+/**
+ * A network performing Volley requests over an {@link HttpStack}.
+ *
+ * <p><b>WARNING</b>: This API is experimental and subject to breaking changes. Please see
+ * https://github.com/google/volley/wiki/Asynchronous-Volley for more details.
+ */
 public class BasicAsyncNetwork extends AsyncNetwork {
 
     private final AsyncHttpStack mAsyncStack;
