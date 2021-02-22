@@ -42,6 +42,12 @@ publishing {
                     developerConnection = 'scm:git:ssh://git@github.com/google/volley.git'
                     url = 'https://github.com/google/volley'
                 }
+                developers {
+                    developer {
+                        name = 'The Volley Team'
+                        email = 'noreply+volley@google.com'
+                    }
+                }
             }
 
             // Release AAR, Sources, and JavaDoc
