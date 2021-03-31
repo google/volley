@@ -61,6 +61,16 @@ public abstract class JsonRequest<T> extends Request<T> {
         this(Method.DEPRECATED_GET_OR_POST, url, requestBody, listener, errorListener);
     }
 
+    /**
+     * Creates a new request.
+     *
+     * @param method the HTTP method to use
+     * @param url URL to fetch the JSON from
+     * @param requestBody The content to post as the body of the request. Null indicates no
+     *     parameters will be posted along with request.
+     * @param listener Listener to receive the JSON response
+     * @param errorListener Error listener, or null to ignore errors.
+     */
     public JsonRequest(
             int method,
             String url,
