@@ -135,8 +135,8 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * @deprecated Use {@link #Request(int, String, com.android.volley.Response.ErrorListener)}.
      */
     @Deprecated
-    public Request(String url, Response.ErrorListener listener) {
-        this(Method.DEPRECATED_GET_OR_POST, url, listener);
+    public Request(String url, Response.ErrorListener errorListener) {
+        this(Method.DEPRECATED_GET_OR_POST, url, errorListener);
     }
 
     /**

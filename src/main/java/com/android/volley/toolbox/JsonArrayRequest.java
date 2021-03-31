@@ -28,8 +28,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * A request for retrieving a {@link JSONArray} response body at a given URL,
- * allowing for an optional {@link JSONObject} to be passed in as part of the request body.
+ * A request for retrieving a {@link JSONArray} response body at a given URL, allowing for an
+ * optional {@link JSONObject} to be passed in as part of the request body.
  */
 public class JsonArrayRequest extends JsonRequest<JSONArray> {
 
@@ -50,8 +50,8 @@ public class JsonArrayRequest extends JsonRequest<JSONArray> {
      *
      * @param method the HTTP method to use
      * @param url URL to fetch the JSON from
-     * @param jsonRequest A {@link JSONObject} to post with the request.
-     *        Null indicates no parameters will be posted along with request.
+     * @param jsonRequest A {@link JSONObject} to post with the request. Null indicates no
+     *     parameters will be posted along with request.
      * @param listener Listener to receive the JSON response
      * @param errorListener Error listener, or null to ignore errors.
      */
@@ -74,8 +74,8 @@ public class JsonArrayRequest extends JsonRequest<JSONArray> {
      *
      * @param method the HTTP method to use
      * @param url URL to fetch the JSON from
-     * @param jsonRequest A {@link JSONArray} to post with the request.
-     *        Null indicates no parameters will be posted along with request.
+     * @param jsonRequest A {@link JSONArray} to post with the request. Null indicates no parameters
+     *     will be posted along with request.
      * @param listener Listener to receive the JSON response
      * @param errorListener Error listener, or null to ignore errors.
      */
