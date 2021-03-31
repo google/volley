@@ -140,7 +140,7 @@ public class JsonObjectRequest extends JsonRequest<JSONObject> {
     public JsonObjectRequest(
         int method,
         String url,
-        String requestBody,
+        @Nullable String requestBody,
         Listener<JSONObject> listener,
         @Nullable ErrorListener errorListener
     ) {

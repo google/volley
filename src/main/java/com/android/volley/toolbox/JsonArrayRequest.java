@@ -119,7 +119,7 @@ public class JsonArrayRequest extends JsonRequest<JSONArray> {
     public JsonArrayRequest(
         int method,
         String url,
-        String requestBody,
+        @Nullable String requestBody,
         Listener<JSONArray> listener,
         @Nullable ErrorListener errorListener
     ) {
