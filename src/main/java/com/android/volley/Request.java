@@ -144,11 +144,15 @@ public abstract class Request<T> implements Comparable<Request<T>> {
      * error listener. Note that the normal response listener is not provided here as delivery of
      * responses is provided by subclasses, who have a better idea of how to deliver an
      * already-parsed response.
+     *
+     * @param method the HTTP method to use
+     * @param url URL to fetch the response from
+     * @param errorListener Error listener, or null to ignore errors.
      */
-    public Request(int method, String url, @Nullable Response.ErrorListener listener) {
+    public Request(int method, String url, @Nullable Response.ErrorListener errorListener) {
         mMethod = method;
         mUrl = url;
-        mErrorListener = listener;
+        mErrorListener = errorListener;
         setRetryPolicy(new DefaultRetryPolicy());
 
         mDefaultTrafficStatsTag = findDefaultTrafficStatsTag(url);
