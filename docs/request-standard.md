@@ -1,63 +1,172 @@
 # Make a standard request
-This lesson describes how to use the common request types that Volley supports:
+This lesson describes how to use Volley's built-in request types:
 
-- `StringRequest`. Specify a URL and receive a raw string in response. See [Setting Up a Request Queue](request-queue.md) for an example.
-- `JsonObjectRequest` and `JsonArrayRequest` (both subclasses of `JsonRequest`). Specify a URL and get a JSON object or array (respectively) in response.
+- `StringRequest` - Parse the response as a raw string.
+- `JsonObjectRequest` - Parse the response as an [org.json.JSONObject](https://developer.android.com/reference/org/json/JSONObject)
+- `JsonArrayRequest` - Parse the response as an [org.json.JSONArray](https://developer.android.com/reference/org/json/JSONArray)
 
-If your expected response is one of these types, you probably don't have to implement a custom request. This lesson describes how to use these standard request types. For information on how to implement your own custom request, see [Implementing a Custom Request](request-custom.md).
+Extending volley with more request types will be covered in the next lesson [Implementing a Custom Request](request-custom.md)
 
-## Request JSON
-Volley provides the following classes for JSON requests:
 
-- `JsonArrayRequest` — A request for retrieving a [JSONArray](https://developer.android.com/reference/org/json/JSONArray) response body at a given URL.
-- `JsonObjectRequest` — A request for retrieving a [JSONObject](https://developer.android.com/reference/org/json/JSONObject) response body at a given URL, allowing for an optional [JSONObject](https://developer.android.com/reference/org/json/JSONObject) to be passed in as part of the request body.
-
-Both classes are based on the common base class `JsonRequest`. You use them following the same basic pattern you use for other types of requests. For example, this snippet fetches a JSON feed and displays it as text in the UI:
+## StringRequest
+`StringRequest` allows you to specify a URL and retrieve the contents as a raw string. This is suitable for simple testing, but moves the parsing of the response onto the main/ui thread, so is generally not optimal.
 
 ### Kotlin
 ```
-val url = "http://my-json-feed"
-
-val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, url, null,
-        Response.Listener { response ->
-            textView.text = "Response: %s".format(response.toString())
-        },
-        Response.ErrorListener { error ->
-            // TODO: Handle error
-        }
-)
-
-// Access the RequestQueue through your singleton class.
-MySingleton.getInstance(this).addToRequestQueue(jsonObjectRequest)
+val request = StringRequest(
+  Request.Method.GET, 
+  "https://www.example.com",
+  (response: String) -> {
+    Log.i(LOG_TAG, "Response: " + response);
+  },
+  (error: VolleyError) -> {
+    Log.e(LOG_TAG, "Error: " + error.getMessage(), error);
+  }
+);
+requestQueue.add(request);
 ```
+
 ### Java
 ```
-String url = "http://my-json-feed";
-
-JsonObjectRequest jsonObjectRequest = new JsonObjectRequest
-        (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-
-    @Override
-    public void onResponse(JSONObject response) {
-        textView.setText("Response: " + response.toString());
-    }
-}, new Response.ErrorListener() {
-
-    @Override
-    public void onErrorResponse(VolleyError error) {
-        // TODO: Handle error
-
-    }
-});
-
-// Access the RequestQueue through your singleton class.
-MySingleton.getInstance(this).addToRequestQueue(jsonObjectRequest);
+Request request = new StringRequest(
+  Request.Method.GET, 
+  "https://www.example.com",
+  (String response) -> {
+    Log.i(LOG_TAG, "Response: " + response);
+  },
+  (VolleyError error) -> {
+    Log.e(LOG_TAG, "Error: " + error.getMessage(), error);
+  }
+);
+requestQueue.add(request);
 ```
 
-For an example of implementing a custom JSON request based on [Gson](https://github.com/google/gson), see the next lesson, [Implement a custom request](request-custom.md).
+### Posting data with StringRequest
+
+*`StringRequest` does not currently provide a mechanism to POST data to the URL.*
+
+
+## JsonObjectRequest
+`JsonObjectRequest` allows you to specify a URL and parse the contents as an [org.json.JSONObject](https://developer.android.com/reference/org/json/JSONObject). This will send the request and parse the response on the background thread, which is preferable over `StringRequest`.
+
+### Kotlin
+```
+val request = JsonObjectRequest(
+  Request.Method.GET, 
+  "http://time.jsontest.com",
+  null,  // indicates no data will posted as request body
+  (response: JSONObject) -> {
+    Log.i(LOG_TAG, "Response: " + response);
+  },
+  (error: VolleyError) -> {
+    Log.e(LOG_TAG, "Error: " + error.getMessage(), error);
+  }
+);
+requestQueue.add(request);
+```
+
+### Java
+```
+Request request = new JsonObjectRequest(
+  Request.Method.GET, 
+  "http://time.jsontest.com",
+  null, // indicates no data will posted as request body
+  (JSONObject response) -> {
+    Log.i(LOG_TAG, "Response: " + response);
+  },
+  (VolleyError error) -> {
+    Log.e(LOG_TAG, "Error: " + error.getMessage(), error);
+  }
+);
+requestQueue.add(request);
+```
+
+### Posting data with JsonObjectRequest
+`JsonObjectRequest` also allows to send an [org.json.JSONObject](https://developer.android.com/reference/org/json/JSONObject) as the request body.
+
+### Kotlin
+```
+val requestData = JSONObject()
+requestData.put("id", 123)
+requestData.put("name", "example")
+
+val request = JsonObjectRequest(
+  Request.Method.POST, 
+  "https://reqres.in/api/users",
+  requestData,
+  (response: JSONObject) -> {
+    Log.i(LOG_TAG, "Response: " + response);
+  },
+  (error: VolleyError) -> {
+    Log.e(LOG_TAG, "Error: " + error.getMessage(), error);
+  }
+);
+requestQueue.add(request);
+```
+
+### Java
+```
+JSONObject requestData = new JSONObject();
+requestData.put("id", 123);
+requestData.put("name", "example");
+
+Request request = new JsonObjectRequest(
+  Request.Method.POST, 
+  "https://reqres.in/api/users",
+  requestData,
+  (JSONObject response) -> {
+    Log.i(LOG_TAG, "Response: " + response);
+  },
+  (VolleyError error) -> {
+    Log.e(LOG_TAG, "Error: " + error.getMessage(), error);
+  }
+);
+requestQueue.add(request);
+```
+
+
+## JsonArrayRequest
+`JsonArrayRequest` allows you to specify a URL and parse the contents as an [org.json.JSONArray](https://developer.android.com/reference/org/json/JSONArray). This will send the request and parse the response on the background thread, which is preferable over `StringRequest`.
+
+### Kotlin
+```
+val request = JsonArrayRequest(
+  "https://jsonplaceholder.typicode.com/users",
+  (response: JSONArray) -> {
+    Log.i(LOG_TAG, "Response: " + response);
+  },
+  (error: VolleyError) -> {
+    Log.e(LOG_TAG, "Error: " + error.getMessage(), error);
+  }
+);
+requestQueue.add(request);
+```
+
+### Java
+```
+Request request = new JsonArrayRequest(
+  "https://jsonplaceholder.typicode.com/users",
+  (JSONArray response) -> {
+    Log.i(LOG_TAG, "Response: " + response);
+  },
+  (VolleyError error) -> {
+    Log.e(LOG_TAG, "Error: " + error.getMessage(), error);
+  }
+);
+requestQueue.add(request);
+```
+
+### Posting data with JsonArrayRequest
+*`JsonArrayRequest` does not currently allow you to POST a [org.json.JSONObject](https://developer.android.com/reference/org/json/JSONObject) to the URL. But you can create a custom `Request` type to implement this.*
+
+
+
+### Using other JSON libraries
+See [Implementing a Custom Request](request-custom.md) for how to use other JSON libraries with Volley. 
+
 
 ## Previous Lesson
-[Set up RequestQueue](request-queue.md)
+[Send a simple request](request-simple.md)
 
 ## Next Lesson
 [Implement a custom request](request-custom.md)
