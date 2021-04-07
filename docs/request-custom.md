@@ -89,16 +89,17 @@ class GsonRequest<T>(
     errorListener: Response.ErrorListener?
 ) : Request<T>(method, url, errorListener) {
 
+    private val LOG_TAG = GsonRequest.class.getSimpleName()
     private val gson = Gson()
 
-    override fun getHeaders(): MutableMap<String, String> = headers ?: super.getHeaders()
+    override fun getHeaders(): MutableMap<String, String> = headers ?: Collections.emptyMap()
 
     override fun getBodyContentType(): String = "application/json; charset=utf-8"
 
     override fun getBody(): byte[] {
         try {
             if (requestBody != null) {
-                return gson.toJson(requestBody).getBytes("utf-8")
+                return gson.toJson(requestBody).getBytes(StandardCharsets.UTF_8)
             } else {
                 return null;
             }
@@ -126,11 +127,13 @@ class GsonRequest<T>(
 ### Java
 ```
 public class GsonRequest<T> extends Request<T> {
+    private static final String LOG_TAG = GsonRequest.class.getSimpleName();
+
     private final Gson gson = new Gson();
     private final Class<T> clazz;
     private final Map<String, String> headers;
     private final Object requestBody;
-    private final Listener<T> listener;
+    private final Response.Listener<T> listener;
 
     /**
      * Make a GET request and return a parsed object from JSON.
@@ -150,18 +153,19 @@ public class GsonRequest<T> extends Request<T> {
         Class<T> clazz, 
         @Nullable Map<String, String> headers, 
         @Nullable Object requestBody,
-        @Nullable Listener<T> listener, 
-        @Nullable ErrorListener errorListener
+        @Nullable Response.Listener<T> listener, 
+        @Nullable Response.ErrorListener errorListener
     ) {    
         super(method, url, errorListener);
         this.clazz = clazz;
         this.headers = headers;
+        this.requestBody = requestBody;
         this.listener = listener;
     }
 
     @Override
     public Map<String, String> getHeaders() {
-        return headers != null ? headers : super.getHeaders();
+        return headers != null ? headers : Collections.emptyMap();
     }
 
     @Override
@@ -173,7 +177,7 @@ public class GsonRequest<T> extends Request<T> {
     public byte[] getBody() {
         try {
             if (requestBody != null) {
-                return gson.toJson(requestBody).getBytes("utf-8");
+                return gson.toJson(requestBody).getBytes(StandardCharsets.UTF_8);
             } else {
                 return null;
             }
