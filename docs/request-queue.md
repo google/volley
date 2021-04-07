@@ -45,6 +45,7 @@ There are three common patterns for managing the instances of `RequestQueue`:
 - The `Application` manages the shared `RequestQueue`. This ensures that there is only one `RequestQueue` instance and prevents multiple `Requests` from being in-flight at the same time. 
 - If you are using the [Android Architecture Components](https://developer.android.com/topic/libraries/architecture), then the [Repositories](https://developer.android.com/jetpack/guide#recommended-app-arch)/[DataSources](https://developer.android.com/topic/libraries/architecture/paging/data)/[ViewModels](https://developer.android.com/topic/libraries/architecture/viewmodel) can manage the `RequestQueue` instances.
 - Using Singletons is **strongly discouraged.**
+  - [Singleton Considered Stupid](https://sites.google.com/site/steveyegge2/singleton-considered-stupid)
   - [So Singletons are bad, then what?](https://softwareengineering.stackexchange.com/questions/40373/so-singletons-are-bad-then-what)
 
 
