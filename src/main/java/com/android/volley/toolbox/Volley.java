@@ -21,6 +21,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.http.AndroidHttpClient;
 import android.os.Build;
+import androidx.annotation.NonNull;
 import com.android.volley.Network;
 import com.android.volley.RequestQueue;
 import java.io.File;
@@ -37,6 +38,7 @@ public class Volley {
      * @param stack A {@link BaseHttpStack} to use for the network, or null for default.
      * @return A started {@link RequestQueue} instance.
      */
+    @NonNull
     public static RequestQueue newRequestQueue(Context context, BaseHttpStack stack) {
         BasicNetwork network;
         if (stack == null) {
@@ -78,6 +80,7 @@ public class Volley {
      */
     @Deprecated
     @SuppressWarnings("deprecation")
+    @NonNull
     public static RequestQueue newRequestQueue(Context context, HttpStack stack) {
         if (stack == null) {
             return newRequestQueue(context, (BaseHttpStack) null);
@@ -85,6 +88,7 @@ public class Volley {
         return newRequestQueue(context, new BasicNetwork(stack));
     }
 
+    @NonNull
     private static RequestQueue newRequestQueue(Context context, Network network) {
         final Context appContext = context.getApplicationContext();
         // Use a lazy supplier for the cache directory so that newRequestQueue() can be called on
@@ -112,6 +116,7 @@ public class Volley {
      * @param context A {@link Context} to use for creating the cache dir.
      * @return A started {@link RequestQueue} instance.
      */
+    @NonNull
     public static RequestQueue newRequestQueue(Context context) {
         return newRequestQueue(context, (BaseHttpStack) null);
     }
