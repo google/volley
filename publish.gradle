@@ -10,6 +10,12 @@ task javadoc(type: Javadoc) {
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
 }
 
+afterEvaluate {
+    javadoc.classpath += files(android.libraryVariants.collect { variant ->
+        variant.getJavaCompile().classpath.files
+    })
+}
+
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.destinationDir
@@ -24,11 +30,9 @@ publishing {
     publications {
         library(MavenPublication) {
             groupId 'com.android.volley'
-            artifactId 'volley'
             version project.version
             pom {
                 name = 'Volley'
-                description = 'An HTTP library that makes networking for Android apps easier and, most importantly, faster.'
                 url = 'https://github.com/google/volley'
                 packaging 'aar'
                 licenses {
@@ -51,7 +55,6 @@ publishing {
             }
 
             // Release AAR, Sources, and JavaDoc
-            artifact "$buildDir/outputs/aar/volley-release.aar"
             artifact sourcesJar
             artifact javadocJar
         }

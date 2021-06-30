@@ -1,0 +1,4 @@
+rootProject.name = 'volley'
+include 'core'
+include 'cronet'
+include 'testing'
