@@ -23,7 +23,6 @@ import com.android.volley.Response;
 import com.android.volley.Response.ErrorListener;
 import com.android.volley.Response.Listener;
 import java.io.UnsupportedEncodingException;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -79,30 +78,6 @@ public class JsonObjectRequest extends JsonRequest<JSONObject> {
             int method,
             String url,
             @Nullable JSONObject jsonRequest,
-            Listener<JSONObject> listener,
-            @Nullable ErrorListener errorListener) {
-        super(
-                method,
-                url,
-                jsonRequest != null ? jsonRequest.toString() : null,
-                listener,
-                errorListener);
-    }
-
-    /**
-     * Creates a new request.
-     *
-     * @param method the HTTP method to use
-     * @param url URL to fetch the JSON from
-     * @param jsonRequest A {@link JSONArray} to post with the request. Null indicates no parameters
-     *     will be posted along with request.
-     * @param listener Listener to receive the JSON response
-     * @param errorListener Error listener, or null to ignore errors.
-     */
-    public JsonObjectRequest(
-            int method,
-            String url,
-            @Nullable JSONArray jsonRequest,
             Listener<JSONObject> listener,
             @Nullable ErrorListener errorListener) {
         super(
