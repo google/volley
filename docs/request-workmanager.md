@@ -2,7 +2,7 @@
 
 Using *WorkManager* and *Volley* together requires some special considerations:
 - Volley executes requests asynchronously on a background thread.
-- A [Workers](https://developer.android.com/reference/androidx/work/Worker) is required to perform its synchronously on the provided background thread.
+- A [Worker](https://developer.android.com/reference/androidx/work/Worker) is required to perform its synchronously on the provided background thread.
 - When you need to call asynchronous APIs, you should use [ListenableWorker](https://developer.android.com/reference/androidx/work/ListenableWorker) instead.
 
 As such, this lesson will cover how to create a `ListenableWorker` that executes an asynchronous request with volley.

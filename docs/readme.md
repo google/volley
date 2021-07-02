@@ -3,8 +3,6 @@
 Volley is an HTTP library that makes networking for Android apps easier and most importantly, faster. 
 
 Volley offers the following benefits:
-- Automatic scheduling of network requests.
-- Multiple concurrent network connections.
 - Transparent disk and memory response caching with standard [HTTP Cache Coherence.](https://en.wikipedia.org/wiki/Cache_coherence)
 - Support for request prioritization.
 - Cancellation request API. You can cancel a single request, or you can set blocks or scopes of requests to cancel.
