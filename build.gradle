@@ -1,76 +1,72 @@
-// NOTE: The only changes that belong in this file are the definitions
-// of tool versions (gradle plugin, compile SDK, build tools), so that
-// Volley can be built via gradle as a standalone project.
-//
-// Any other changes to the build config belong in rules.gradle, which
-// is used by projects that depend on Volley but define their own
-// tools versions across all dependencies to ensure a consistent build.
-//
-// Most users should just add this line to settings.gradle:
-//     include(":volley")
-//
-// If you have a more complicated Gradle setup you can choose to use
-// this instead:
-//     include(":volley")
-//     project(':volley').buildFileName = 'rules.gradle'
-
-import net.ltgt.gradle.errorprone.CheckSeverity
-
 buildscript {
     repositories {
+        gradlePluginPortal()
         jcenter()
         google()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.1'
+        classpath 'gradle.plugin.com.github.sherter.google-java-format:google-java-format-gradle-plugin:0.6'
+        // NOTE: 0.7 or newer will require upgrading to a newer Android gradle plugin:
+        // https://github.com/tbroyer/gradle-errorprone-plugin/commit/65b1026ebeae1b7ed8c28578c7f6eea512c16bea
+        classpath 'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:0.6.1'
     }
 }
 
-plugins {
-    id "com.github.sherter.google-java-format" version "0.6"
-    // NOTE: 0.7 or newer will require upgrading to a newer Android gradle plugin:
-    // https://github.com/tbroyer/gradle-errorprone-plugin/commit/65b1026ebeae1b7ed8c28578c7f6eea512c16bea
-    id "net.ltgt.errorprone" version "0.6.1"
-}
-
-googleJavaFormat {
-    toolVersion = '1.5'
-    options style: 'AOSP'
-}
-
-apply plugin: 'com.android.library'
-
-repositories {
-    jcenter()
-    google()
-}
-
-dependencies {
-    // NOTE: Updating ErrorProne introduces new checks that may cause the build to fail. Pin to a
-    // specific version to control these updates.
-    errorprone("com.google.errorprone:error_prone_core:2.3.2")
-    // ErrorProne requires a JDK 9 compiler, so pull one in as a dependency since we use Java 8:
-    // https://github.com/tbroyer/gradle-errorprone-plugin#jdk-8-support
-    errorproneJavac("com.google.errorprone:javac:9+181-r4173-1")
-}
-
-group = 'com.android.volley'
-version = '1.2.1-SNAPSHOT'
-
-android {
-    compileSdkVersion 28
-    buildToolsVersion = '28.0.3'
-
-    defaultConfig {
-        minSdkVersion 8
+allprojects {
+    repositories {
+        jcenter()
+        google()
     }
 }
 
-tasks.withType(JavaCompile) {
-    options.errorprone {
-        check("ParameterComment", CheckSeverity.ERROR)
+subprojects {
+    apply plugin: 'com.github.sherter.google-java-format'
+    apply plugin: 'net.ltgt.errorprone'
+
+    googleJavaFormat {
+        toolVersion = '1.5'
+        options style: 'AOSP'
+    }
+
+    apply plugin: 'com.android.library'
+
+    dependencies {
+        // NOTE: Updating ErrorProne introduces new checks that may cause the build to fail. Pin to a
+        // specific version to control these updates.
+        errorprone("com.google.errorprone:error_prone_core:2.3.2")
+        // ErrorProne requires a JDK 9 compiler, so pull one in as a dependency since we use Java 8:
+        // https://github.com/tbroyer/gradle-errorprone-plugin#jdk-8-support
+        errorproneJavac("com.google.errorprone:javac:9+181-r4173-1")
+    }
+
+    group = 'com.android.volley'
+    version = '1.2.1-SNAPSHOT'
+
+    android {
+        useLibrary 'org.apache.http.legacy'
+
+        compileSdkVersion 28
+        buildToolsVersion = '28.0.3'
+
+        defaultConfig {
+            minSdkVersion 8
+        }
+
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_1_7
+            targetCompatibility JavaVersion.VERSION_1_7
+        }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.errorprone {
+            check("ParameterComment", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
+        }
+        options.compilerArgs << "-Xlint:unchecked" << "-Werror"
+    }
+
+    if (it.name != 'testing') {
+        apply from: '../publish.gradle'
     }
 }
-
-apply from: 'rules.gradle'
-apply from: 'publish.gradle'
