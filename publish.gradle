@@ -26,46 +26,53 @@ artifacts {
     archives sourcesJar
 }
 
-publishing {
-    publications {
-        library(MavenPublication) {
-            groupId 'com.android.volley'
-            version project.version
-            pom {
-                name = 'Volley'
-                url = 'https://github.com/google/volley'
-                packaging 'aar'
-                licenses {
-                    license {
-                      name = "The Apache License, Version 2.0"
-                      url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-                    }
-                }
-                scm {
-                    connection = 'scm:git:git://github.com/google/volley.git'
-                    developerConnection = 'scm:git:ssh://git@github.com/google/volley.git'
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                // Depend on the release AAR
+                from project.components.release
+
+                groupId 'com.android.volley'
+                artifactId project.artifactId
+                version project.version
+                pom {
+                    name = project.pomName
+                    description = project.pomDescription
                     url = 'https://github.com/google/volley'
-                }
-                developers {
-                    developer {
-                        name = 'The Volley Team'
-                        email = 'noreply+volley@google.com'
+                    packaging 'aar'
+                    licenses {
+                        license {
+                            name = "The Apache License, Version 2.0"
+                            url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com/google/volley.git'
+                        developerConnection = 'scm:git:ssh://git@github.com/google/volley.git'
+                        url = 'https://github.com/google/volley'
+                    }
+                    developers {
+                        developer {
+                            name = 'The Volley Team'
+                            email = 'noreply+volley@google.com'
+                        }
                     }
                 }
+
+                // Also include sources and JavaDoc
+                artifact sourcesJar
+                artifact javadocJar
             }
-
-            // Release AAR, Sources, and JavaDoc
-            artifact sourcesJar
-            artifact javadocJar
         }
-    }
 
-    repositories {
-        maven {
-            url = "https://oss.sonatype.org/content/repositories/snapshots/"
-            credentials {
-                username = System.env.OSSRH_DEPLOY_USERNAME
-                password = System.env.OSSRH_DEPLOY_PASSWORD
+        repositories {
+            maven {
+                url = "https://oss.sonatype.org/content/repositories/snapshots/"
+                credentials {
+                    username = System.env.OSSRH_DEPLOY_USERNAME
+                    password = System.env.OSSRH_DEPLOY_PASSWORD
+                }
             }
         }
     }
