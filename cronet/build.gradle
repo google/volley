@@ -1,5 +1,5 @@
 dependencies {
-    implementation project(":core")
+    api project(":core")
     compileOnly "androidx.annotation:annotation:1.0.1"
     compileOnly "org.chromium.net:cronet-embedded:76.3809.111"
 
