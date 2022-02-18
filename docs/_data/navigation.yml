@@ -1,6 +1,6 @@
 nav:
   - title: "Overview"
-    url: "/index.html"
+    url: "/"
   - title: "Send a simple request"
     url: "/simple.html"
   - title: "Set up a RequestQueue"

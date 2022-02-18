@@ -17,18 +17,15 @@
         <span class="arrow"></span>
     </label>
     <nav>
-        {% for item in site.data.navigation.nav %}
-        <h2>{{ item.section }}</h2>
         <ul>
-            {% for subitem in item.items %}
-            <a href="{{subitem.url | relative_url }}">
-                <li class="{% if subitem.url == page.url %}active{% endif %}">
-                    {{ subitem.title }}
+            {% for item in site.data.navigation.nav %}
+            <a href="{{item.url | relative_url }}">
+                <li class="{% if item.url == page.url %}active{% endif %}">
+                    {{ item.title }}
                 </li>
             </a>
             {% endfor %}
         </ul>
-        {% endfor %}
     </nav>
 </div>
 <div class="main markdown-body">
