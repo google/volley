@@ -1,0 +1,11 @@
+nav:
+  - title: "Overview"
+    url: "/"
+  - title: "Send a simple request"
+    url: "/simple.html"
+  - title: "Set up a RequestQueue"
+    url: "/requestqueue.html"
+  - title: "Make a standard request"
+    url: "/request.html"
+  - title: "Implement a custom request"
+    url: "/request-custom.html"

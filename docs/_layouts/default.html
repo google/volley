@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: "en-US" }}">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% seo %}
+    <link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
+</head>
+<body>
+<div class="sidebar">
+    <div class="header">
+        <h1><a href="{{ "/" | relative_url }}">{{ site.title | default: "Documentation" }}</a></h1>
+    </div>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="expander">
+        <span class="arrow"></span>
+    </label>
+    <nav>
+        <ul>
+            {% for item in site.data.navigation.nav %}
+            <a href="{{item.url | relative_url }}">
+                <li class="{% if item.url == page.url %}active{% endif %}">
+                    {{ item.title }}
+                </li>
+            </a>
+            {% endfor %}
+        </ul>
+    </nav>
+</div>
+<div class="main markdown-body">
+    <div class="main-inner">
+        {{ content }}
+    </div>
+    <div class="footer">
+        Volley &middot;
+        <a href="https://github.com/google/volley">GitHub Repository</a> &middot;
+        <a href="https://github.com/google/volley/blob/master/LICENSE">License</a>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+<script>anchors.add('.main h2, .main h3, .main h4, .main h5, .main h6');</script>
+</body>
+</html>
