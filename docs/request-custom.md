@@ -45,13 +45,12 @@ override fun parseNetworkResponse(response: NetworkResponse?): Response<T> {
 
 ```java
 @Override
-protected Response<T> parseNetworkResponse(
-        NetworkResponse response) {
+protected Response<T> parseNetworkResponse(NetworkResponse response) {
     try {
         String json = new String(response.data,
-        HttpHeaderParser.parseCharset(response.headers));
-    return Response.success(gson.fromJson(json, clazz),
-    HttpHeaderParser.parseCacheHeaders(response));
+                HttpHeaderParser.parseCharset(response.headers));
+        return Response.success(gson.fromJson(json, clazz),
+                HttpHeaderParser.parseCacheHeaders(response));
     }
     // handle errors
 }
@@ -131,7 +130,6 @@ class GsonRequest<T>(
         errorListener: Response.ErrorListener
 ) : Request<T>(Method.GET, url, errorListener) {
     private val gson = Gson()
-
 
     override fun getHeaders(): MutableMap<String, String> = headers ?: super.getHeaders()
 

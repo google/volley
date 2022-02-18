@@ -55,7 +55,7 @@ final TextView textView = (TextView) findViewById(R.id.text);
 
 // Instantiate the RequestQueue.
 RequestQueue queue = Volley.newRequestQueue(this);
-String url ="https://www.google.com";
+String url = "https://www.google.com";
 
 // Request a string response from the provided URL.
 StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
@@ -63,7 +63,7 @@ StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
     @Override
     public void onResponse(String response) {
         // Display the first 500 characters of the response string.
-        textView.setText("Response is: "+ response.substring(0,500));
+        textView.setText("Response is: " + response.substring(0,500));
     }
 }, new Response.ErrorListener() {
     @Override

@@ -27,7 +27,7 @@ all responses in memory during parsing. For large download operations, consider 
 alternative like
 [`DownloadManager`](https://developer.android.com/reference/android/app/DownloadManager).
 
-The core Volley library is developed on <a href="https://github.com/google/volley">GitHub</a> and
+The core Volley library is developed on [GitHub](https://github.com/google/volley) and
 contains the main request dispatch pipeline as well as a set of commonly applicable utilities,
 available in the Volley "toolbox." The easiest way to add Volley to your project is to add the
 following dependency to your app's build.gradle file:
@@ -36,7 +36,6 @@ following dependency to your app's build.gradle file:
 
 ```groovy
 dependencies {
-    ...
     implementation 'com.android.volley:volley:1.2.1'
 }
 ```
@@ -45,7 +44,6 @@ dependencies {
 
 ```kotlin
 dependencies {
-    ...
     implementation("com.android.volley:volley:1.2.1")
 }
 ```
@@ -54,7 +52,7 @@ You can also clone the Volley repository and set it as a library project:
 
 1. Git clone the repository by typing the following at the command line:
 
-    ```
+    ```console
     git clone https://github.com/google/volley
     ```
 

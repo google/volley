@@ -72,7 +72,7 @@ requestQueue = new RequestQueue(cache, network);
 // Start the queue
 requestQueue.start();
 
-String url ="http://www.example.com";
+String url = "http://www.example.com";
 
 // Formulate the request and handle the response.
 StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
