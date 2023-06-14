@@ -50,7 +50,7 @@ final class NetworkUtility {
     /** Logs requests that took over SLOW_REQUEST_THRESHOLD_MS to complete. */
     static void logSlowRequests(
             long requestLifetime, Request<?> request, byte[] responseContents, int statusCode) {
-        if (VolleyLog.DEBUG || requestLifetime > SLOW_REQUEST_THRESHOLD_MS) {
+        if (VolleyLog.DEBUG && requestLifetime > SLOW_REQUEST_THRESHOLD_MS) {
             VolleyLog.d(
                     "HTTP response for request=<%s> [lifetime=%d], [size=%s], "
                             + "[rc=%d], [retryCount=%s]",
