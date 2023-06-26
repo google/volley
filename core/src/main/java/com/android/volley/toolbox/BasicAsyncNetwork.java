@@ -16,7 +16,7 @@
 
 package com.android.volley.toolbox;
 
-import static com.android.volley.toolbox.NetworkUtility.logSlowRequests;
+import static com.android.volley.toolbox.NetworkUtility.logRequestSummary;
 
 import android.os.SystemClock;
 import androidx.annotation.NonNull;
@@ -213,9 +213,9 @@ public class BasicAsyncNetwork extends AsyncNetwork {
             OnRequestComplete callback,
             List<Header> responseHeaders,
             byte[] responseContents) {
-        // if the request is slow, log it.
+        // log request when debugging is enabled.
         long requestLifetime = SystemClock.elapsedRealtime() - requestStartMs;
-        logSlowRequests(requestLifetime, request, responseContents, statusCode);
+        logRequestSummary(requestLifetime, request, responseContents, statusCode);
 
         if (statusCode < 200 || statusCode > 299) {
             onRequestFailed(
