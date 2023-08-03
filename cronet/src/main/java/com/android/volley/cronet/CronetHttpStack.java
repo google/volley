@@ -171,7 +171,8 @@ public class CronetHttpStack extends AsyncHttpStack {
                         .newUrlRequestBuilder(url, urlCallback, getNonBlockingExecutor())
                         .allowDirectExecutor()
                         .disableCache()
-                        .setPriority(getPriority(request));
+                        .setPriority(getPriority(request))
+                        .setTrafficStatsTag(request.getTrafficStatsTag());
         // request.getHeaders() may be blocking, so submit it to the blocking executor.
         getBlockingExecutor()
                 .execute(
