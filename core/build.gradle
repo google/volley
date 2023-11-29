@@ -11,7 +11,7 @@ dependencies {
     testImplementation "junit:junit:4.12"
     testImplementation "org.hamcrest:hamcrest-library:1.3"
     testImplementation "org.mockito:mockito-core:2.19.0"
-    testImplementation "org.robolectric:robolectric:3.4.2"
+    testImplementation "org.robolectric:robolectric:4.8.2"
     // TODO(#424): Fix this dependency at the library level.
     testImplementation "androidx.annotation:annotation:1.0.1"
 }
