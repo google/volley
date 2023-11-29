@@ -1,10 +1,10 @@
 dependencies {
     api project(":core")
     compileOnly "androidx.annotation:annotation:1.0.1"
-    compileOnly "org.chromium.net:cronet-embedded:76.3809.111"
+    compileOnly "org.chromium.net:cronet-embedded:113.5672.61"
 
     testImplementation project(":testing")
-    testImplementation "org.chromium.net:cronet-embedded:76.3809.111"
+    testImplementation "org.chromium.net:cronet-embedded:113.5672.61"
     testImplementation "junit:junit:4.12"
     testImplementation "org.mockito:mockito-core:2.19.0"
     testImplementation "org.robolectric:robolectric:4.8.2"
