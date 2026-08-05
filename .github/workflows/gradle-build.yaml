@@ -1,6 +1,12 @@
 name: Gradle
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '[0-9]+.*'
+  pull_request:
 
 permissions:
   contents: read
@@ -17,11 +23,44 @@ jobs:
           java-version: 17
           distribution: 'temurin'
           cache: 'gradle'
+
+      - name: Determine Version
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+        run: |
+          if [[ "$GITHUB_REPO" == "google/volley" && "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "IS_RELEASE=true" >> "$GITHUB_ENV"
+            echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+          else
+            echo "IS_RELEASE=false" >> "$GITHUB_ENV"
+            echo "RELEASE_VERSION=" >> "$GITHUB_ENV"
+          fi
+
       - name: Build with Gradle
-        run: ./gradlew --continue verifyGoogleJavaFormat build connectedCheck
+        run: ./gradlew --continue verifyGoogleJavaFormat build connectedCheck -PVERSION_NAME="$RELEASE_VERSION"
+
       - name: Publish snapshot
-        if: github.event_name == 'push'
+        if: github.repository == 'google/volley' && github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_CENTRAL_PUBLISHING_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_CENTRAL_PUBLISHING_PASSWORD }}
-        run: ./publish-snapshot-on-commit.sh
+        run: ./gradlew publish
+
+      - name: Publish Release to Maven Central and Local Repository
+        if: env.IS_RELEASE == 'true'
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_CENTRAL_PUBLISHING_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_CENTRAL_PUBLISHING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          ./gradlew publishToMavenLocal publishToMavenCentral \
+            -PVERSION_NAME="$RELEASE_VERSION"
+
+      - name: Upload GMaven Release Bundle
+        if: env.IS_RELEASE == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gmaven-release-bundle
+          path: ~/.m2/repository/com/android/volley/
+          retention-days: 90
