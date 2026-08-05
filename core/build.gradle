@@ -1,4 +1,5 @@
 android {
+    namespace "com.android.volley"
     defaultConfig {
         consumerProguardFiles 'consumer-proguard-rules.pro'
     }

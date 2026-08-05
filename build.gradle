@@ -4,9 +4,10 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.1'
+        classpath 'com.android.tools.build:gradle:8.13.0'
         classpath 'gradle.plugin.com.github.sherter.google-java-format:google-java-format-gradle-plugin:0.9'
-        classpath 'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:2.0.2'
+        classpath 'net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:5.1.0'
+        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.37.0'
     }
 }
 
@@ -19,6 +20,7 @@ allprojects {
 
 subprojects {
     apply plugin: 'com.github.sherter.google-java-format'
+    apply plugin: 'com.android.library'
     apply plugin: 'net.ltgt.errorprone'
 
     googleJavaFormat {
@@ -26,15 +28,12 @@ subprojects {
         options style: 'AOSP'
     }
 
-    apply plugin: 'com.android.library'
-
     dependencies {
         // NOTE: Updating ErrorProne introduces new checks that may cause the build to fail. Pin to a
         // specific version to control these updates.
-        errorprone("com.google.errorprone:error_prone_core:2.3.2")
-        // ErrorProne requires a JDK 9 compiler, so pull one in as a dependency since we use Java 8:
-        // https://github.com/tbroyer/gradle-errorprone-plugin#jdk-8-support
-        errorproneJavac("com.google.errorprone:javac:9+181-r4173-1")
+        errorprone("com.google.errorprone:error_prone_core:2.42.0")
+        annotationProcessor("com.google.errorprone:error_prone_core:2.42.0")
+        testAnnotationProcessor("com.google.errorprone:error_prone_core:2.42.0")
     }
 
     group = 'com.android.volley'
@@ -43,22 +42,42 @@ subprojects {
     android {
         useLibrary 'org.apache.http.legacy'
 
-        compileSdkVersion 28
-        buildToolsVersion = '30.0.3'
+        compileSdk 34
 
         defaultConfig {
             minSdkVersion 8
         }
 
         compileOptions {
-            sourceCompatibility JavaVersion.VERSION_1_7
-            targetCompatibility JavaVersion.VERSION_1_7
+            sourceCompatibility JavaVersion.VERSION_1_8
+            targetCompatibility JavaVersion.VERSION_1_8
         }
     }
 
-    tasks.withType(JavaCompile) {
+    tasks.withType(JavaCompile).configureEach {
+        options.errorprone.enabled = true
         options.errorprone {
             check("ParameterComment", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
+            // TODO: Fix violations introduced by upgrading ErrorProne and re-enable these checks.
+            disable("BadImport")
+            disable("DirectInvocationOnMock")
+            disable("EffectivelyPrivate")
+            disable("EmptyBlockTag")
+            disable("EmptyCatch")
+            disable("EnumOrdinal")
+            disable("EscapedEntity")
+            disable("Finalize")
+            disable("InlineMeSuggester")
+            disable("JavaUtilDate")
+            disable("MissingImplementsComparable")
+            disable("MissingSummary")
+            disable("MixedMutabilityReturnType")
+            disable("MockNotUsedInProduction")
+            disable("NonApiType")
+            disable("StringCharset")
+            disable("UnnecessaryStringBuilder")
+            disable("UnusedMethod")
+            disable("UnusedVariable")
         }
         options.compilerArgs << "-Xlint:unchecked" << "-Werror"
     }
