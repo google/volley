@@ -1,3 +1,7 @@
+android {
+    namespace "com.android.volley.cronet"
+}
+
 dependencies {
     api project(":core")
     compileOnly "androidx.annotation:annotation:1.0.1"

@@ -1,77 +1,30 @@
-apply plugin: 'maven-publish'
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from android.sourceSets.main.java.srcDirs
-}
-
-task javadoc(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-}
+apply plugin: 'com.vanniktech.maven.publish'
 
 afterEvaluate {
-    javadoc.classpath += files(android.libraryVariants.collect { variant ->
-        variant.getJavaCompileProvider().get().classpath.files
-    })
-}
+    mavenPublishing {
+        coordinates(project.group.toString(), project.artifactId.toString(), project.version.toString())
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
+        publishToMavenCentral()
 
-artifacts {
-    archives javadocJar
-    archives sourcesJar
-}
-
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                // Depend on the release AAR
-                from project.components.release
-
-                groupId 'com.android.volley'
-                artifactId project.artifactId
-                version project.version
-                pom {
-                    name = project.pomName
-                    description = project.pomDescription
-                    url = 'https://github.com/google/volley'
-                    packaging 'aar'
-                    licenses {
-                        license {
-                            name = "The Apache License, Version 2.0"
-                            url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-                        }
-                    }
-                    scm {
-                        connection = 'scm:git:git://github.com/google/volley.git'
-                        developerConnection = 'scm:git:ssh://git@github.com/google/volley.git'
-                        url = 'https://github.com/google/volley'
-                    }
-                    developers {
-                        developer {
-                            name = 'The Volley Team'
-                            email = 'noreply+volley@google.com'
-                        }
-                    }
+        pom {
+            name = project.pomName
+            description = project.pomDescription
+            url = 'https://github.com/google/volley'
+            licenses {
+                license {
+                    name = "The Apache License, Version 2.0"
+                    url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
                 }
-
-                // Also include sources and JavaDoc
-                artifact sourcesJar
-                artifact javadocJar
             }
-        }
-
-        repositories {
-            maven {
-                url = "https://oss.sonatype.org/content/repositories/snapshots/"
-                credentials {
-                    username = System.env.OSSRH_DEPLOY_USERNAME
-                    password = System.env.OSSRH_DEPLOY_PASSWORD
+            scm {
+                connection = 'scm:git:git://github.com/google/volley.git'
+                developerConnection = 'scm:git:ssh://git@github.com/google/volley.git'
+                url = 'https://github.com/google/volley'
+            }
+            developers {
+                developer {
+                    name = 'The Volley Team'
+                    email = 'noreply+volley@google.com'
                 }
             }
         }
