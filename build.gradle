@@ -37,7 +37,7 @@ subprojects {
     }
 
     group = 'com.android.volley'
-    version = '1.2.2-SNAPSHOT'
+    version = findProperty('VERSION_NAME') ?: '1.2.2-SNAPSHOT'
 
     android {
         useLibrary 'org.apache.http.legacy'
