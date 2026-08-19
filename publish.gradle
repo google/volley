@@ -6,6 +6,10 @@ afterEvaluate {
 
         publishToMavenCentral()
 
+        if (!project.version.toString().endsWith("-SNAPSHOT")) {
+            signAllPublications()
+        }
+
         pom {
             name = project.pomName
             description = project.pomDescription
