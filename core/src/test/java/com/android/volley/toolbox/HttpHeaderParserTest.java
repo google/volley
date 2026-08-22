@@ -265,6 +265,12 @@ public class HttpHeaderParserTest {
         headers.put("Content-Type", "text/plain; charset=utf-8; frozzle=bar");
         assertEquals("utf-8", HttpHeaderParser.parseCharset(headers));
 
+        // Charset parameter name is case-insensitive.
+        headers.put("Content-Type", "text/plain; Charset=UTF-8");
+        assertEquals("UTF-8", HttpHeaderParser.parseCharset(headers));
+        headers.put("Content-Type", "text/plain; CHARSET=Shift_JIS");
+        assertEquals("Shift_JIS", HttpHeaderParser.parseCharset(headers));
+
         // No Content-Type header
         headers.clear();
         assertEquals("ISO-8859-1", HttpHeaderParser.parseCharset(headers));
