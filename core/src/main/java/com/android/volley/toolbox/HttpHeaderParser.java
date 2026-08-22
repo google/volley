@@ -194,7 +194,7 @@ public class HttpHeaderParser {
             for (int i = 1; i < params.length; i++) {
                 String[] pair = params[i].trim().split("=", 0);
                 if (pair.length == 2) {
-                    if (pair[0].equals("charset")) {
+                    if (pair[0].equalsIgnoreCase("charset")) {
                         return pair[1];
                     }
                 }
