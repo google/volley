@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Set up JDK 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
@@ -46,19 +48,103 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_CENTRAL_PUBLISHING_PASSWORD }}
         run: ./gradlew publish
 
-      - name: Publish Release to Maven Central and Local Repository
-        if: env.IS_RELEASE == 'true'
+  publish-release:
+    name: Publish Release via OSS Exit Gate
+    if: github.repository == 'google/volley' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          java-version: 17
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: 'projects/305452601764/locations/global/workloadIdentityPools/builders/providers/github'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+
+      - name: Clean up prior staged artifacts in OSS Exit Gate repository
+        run: |
+          for pkg in volley volley-cronet; do
+            gcloud artifacts packages delete "com.android.volley:${pkg}" \
+              --project="oss-exit-gate-prod" \
+              --location="us" \
+              --repository="volley--mavencentral" \
+              --quiet 2>/dev/null || true
+          done
+
+      - name: Stage signed artifacts to OSS Exit Gate and local repository
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_CENTRAL_PUBLISHING_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_CENTRAL_PUBLISHING_PASSWORD }}
+          RELEASE_VERSION: ${{ github.ref_name }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          ./gradlew publishToMavenLocal publishToMavenCentral \
-            -PVERSION_NAME="$RELEASE_VERSION"
+          set -euo pipefail
+          set +x
+          INIT_SCRIPT="$(mktemp "${RUNNER_TEMP}/exit-gate-init.XXXXXX.gradle")"
+          trap 'rm -f "${INIT_SCRIPT}"' EXIT
+          cat <<'EOF' > "${INIT_SCRIPT}"
+          allprojects {
+            afterEvaluate { proj ->
+              if (proj.plugins.hasPlugin('maven-publish')) {
+                proj.publishing.repositories.maven {
+                  name = 'ExitGateArtifactRegistry'
+                  url = uri('https://us-maven.pkg.dev/oss-exit-gate-prod/volley--mavencentral')
+                  credentials {
+                    username = 'oauth2accesstoken'
+                    password = System.getenv('AR_ACCESS_TOKEN')
+                  }
+                }
+              }
+            }
+          }
+          EOF
+          export AR_ACCESS_TOKEN="$(gcloud auth print-access-token 2>/dev/null || gcloud auth application-default print-access-token)"
+          ./gradlew --no-daemon \
+            --init-script "${INIT_SCRIPT}" \
+            publishToMavenLocal \
+            publishAllPublicationsToExitGateArtifactRegistryRepository \
+            -PVERSION_NAME="${RELEASE_VERSION}"
+          unset AR_ACCESS_TOKEN
+
+      - name: Trigger OSS Exit Gate Maven Central release
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          cat <<EOF > manifest.json
+          {
+            "publish_all": false,
+            "publishing_groups": [
+              {
+                "namespace": "com.android.volley",
+                "packages": [
+                  { "name": "volley" },
+                  { "name": "volley-cronet" }
+                ]
+              }
+            ]
+          }
+          EOF
+          gcloud storage cp manifest.json \
+            "gs://oss-exit-gate-prod-projects-bucket/volley/mavencentral/manifests/manifest-${RUN_ID}-${RUN_ATTEMPT}.json"
 
       - name: Upload GMaven Release Bundle
-        if: env.IS_RELEASE == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: gmaven-release-bundle
